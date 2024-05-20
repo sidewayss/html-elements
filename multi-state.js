@@ -7,7 +7,7 @@ const KEY_CODES = "data-key-codes";
 async function getTemplate(name) {
     const id  = `template-${name}`;
     const url = `${id}.html`;       // local template file
-
+                                    // where did suppress-errors come from??
     const response = await fetch(url, {headers:{"suppress-errors":""}})
      .then(rsp => rsp.ok && rsp.status != 202
                 ? rsp
