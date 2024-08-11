@@ -31,6 +31,8 @@ class MultiCheck extends MultiState {
         else
             super.attributeChangedCallback(name, _, val);
     }
+    get labelElement() {return this.#label; }
+
     get label()    { return this.getAttribute(LABEL); }
     set label(val) { this.setAttribute(LABEL, val);   }
 }
@@ -98,7 +100,9 @@ class CheckTri extends MultiCheck {
             this._setHref(CheckBox.hrefs[Number(b)], this.#def);
             break;
         case SHOW_DEF:
-            const w = b ? CheckTri.#w : CheckTri.#w * 2;
+            let w = CheckTri.#w;
+            if (b)
+                w *= 2;
             this.#viewBox[CheckTri.#vbW] = w;
             this.#svg.setAttribute("viewBox", this.#viewBox.join(" "));
             this.#svg.setAttribute("width", w);
@@ -108,24 +112,30 @@ class CheckTri extends MultiCheck {
             super.attributeChangedCallback(name, _, val);
         }
     }
+// this.checked is read-only, set by set value(), useful for CSS styles
 // this.default is the default value for when value == null (indeterminate)
 // this.showDefault determines whether to show the default value as a 2nd box
-    get default()        { return this.hasAttribute(DEFAULT); }
-    get showDefault()    { return this.hasAttribute(SHOW_DEF); }
+    get checked()     { return this.hasAttribute(CHECKED);  }
+    get default()     { return this.hasAttribute(DEFAULT);  }
+    get showDefault() { return this.hasAttribute(SHOW_DEF); }
     set default(val)     { this._setBool(DEFAULT,  val); }
     set showDefault(val) { this._setBool(SHOW_DEF, val); }
 
-// this.value can be null, FALSE (""), or TRUE ("1")
+// this.value can be indeterminate (null), FALSE (""), or TRUE ("1")
     get value()     {
         const val = this.getAttribute(VALUE);
         return val === null ? val : Boolean(val);
     }
     set value(val)  {
-        if (val === null)
-            this.removeAttribute(VALUE);
-        else
+        if (val !== null)
             this.setAttribute(VALUE, val ? TRUE : FALSE);
+        else {
+            this.removeAttribute(VALUE);
+            val = this.default;          // indeterminate = inherit default
+        }
+        this._setBool(CHECKED, val);     // apply it as checked attribute
     }
+
 //  change() converts click and spacebar-up to a self-inflicted change event
     change(evt) {
         // The 3 states are TRUE = "1", FALSE = "", and null.

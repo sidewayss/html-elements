@@ -5,15 +5,19 @@ const TAB_INDEX = "tab-index";
 const KEY_CODES = "data-key-codes";
 // =============================================================================
 async function getTemplate(name) {
-    const id  = `template-${name}`;
-    const url = `${id}.html`;       // local template file
-                                    // where did suppress-errors come from??
-    const response = await fetch(url, {headers:{"suppress-errors":""}})
-     .then(rsp => rsp.ok && rsp.status != 202
-                ? rsp
-                : fallBack(url))    // fall back to the default template file,
-     .catch(() => fallBack(url));   // regardless of the reason for failure.
+    const
+    id  = `template-${name}`,
+    url = `${id}.html`;       // local template file
 
+//!!I don't have custom templates and this generates and unsuppressable 404
+//!!                                // suppress-errors doesn't supress 404
+//!!const response = await fetch(url, {headers:{"suppress-errors":""}})
+//!! .then(rsp => rsp.ok && rsp.status != 202
+//!!            ? rsp
+//!!            : fallBack(url))    // fall back to the default template file,
+//!! .catch(() => fallBack(url));   // regardless of the reason for failure.
+
+    const response = await fallBack(url);
     return await response.text()
      .then(txt => new DOMParser().parseFromString(txt, "text/html")
                                  .getElementById(id).content)
