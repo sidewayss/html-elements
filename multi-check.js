@@ -147,9 +147,9 @@ class CheckTri extends MultiCheck {
             switch (this.value) {
             case null:
                 this.value = def ? FALSE : TRUE;  break;
-            case FALSE:
+            case false:
                 this.value = def ? TRUE  : null;  break;
-            case TRUE:
+            case true:
                 this.value = def ? null : FALSE;
             }
             this.dispatchEvent(new Event("change"));
