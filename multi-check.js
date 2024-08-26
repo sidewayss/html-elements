@@ -86,6 +86,7 @@ class CheckTri extends MultiCheck {
         if (!CheckTri.#w)
             CheckTri.#w = this.#viewBox[CheckTri.#vbW]; // baseline width
 
+        this._setHref(CheckTri.hrefs.get(null));         // it needs a default
         Object.defineProperty(this, "isCheckTri", {value:true});
         Object.seal(this);
     }
