@@ -1,13 +1,13 @@
 export {StateButton};
 import {VALUE, getTemplate, MultiState} from "./multi-state.js";
 const STATES = "data-states";
-const AUTO   = "data-automatic"
+const AUTO   = "data-auto-increment"
 const BTN    = "btn";
 
 const template = await getTemplate("button");
 // =============================================================================
 class StateButton extends MultiState {
-    #index; #states; #values;
+    #index; #states; #value; #values;
     static observedAttributes = [VALUE, STATES, AUTO,
                                  ...MultiState.observedAttributes];
     constructor() {
@@ -26,12 +26,14 @@ class StateButton extends MultiState {
             const i = this.#values.indexOf(val);
             if (i >= 0) {
                 this.#index = i;
+                this.#value = val;                      // reverts on error
                 this.title  = this.#states[val].title;
                 this._setHref(this.#states[val].href);
             }
-            else
-                throw new Error(`Invalid value: ${val}. `
-                              + `Must be one of: ${this.#values.join(", ")}`);
+            else {
+                this.setAttribute(VALUE, this.#value);  // revert
+                throw new Error(`Invalid value: ${val}. Must be one of: ${this.#values.join(", ")}`);
+            }
             break;
         case STATES:
             const states = {};
@@ -45,7 +47,7 @@ class StateButton extends MultiState {
             this.value = this.#values.includes(this.value)
                        ? this.value               // same value, different state
                        : this.#values[this.#index];
-        case AUTO:
+        case AUTO:  //!!this case is unnecessary, as is observing this attribute
             break;
         default:
             super.attributeChangedCallback(name, _, val);

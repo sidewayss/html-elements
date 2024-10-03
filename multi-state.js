@@ -1,15 +1,16 @@
 export {VALUE, getTemplate, MultiState};
-const VALUE     = "value";    // built-in attributes
-const DISABLED  = "disabled";
-const TAB_INDEX = "tab-index";
-const KEY_CODES = "data-key-codes";
+const
+VALUE     = "value",    // built-in attributes
+DISABLED  = "disabled",
+TAB_INDEX = "tab-index",
+KEY_CODES = "data-key-codes";
 // =============================================================================
 async function getTemplate(name) {
     const
     id  = `template-${name}`,
     url = `${id}.html`;       // local template file
 
-//!!I don't have custom templates and this generates and unsuppressable 404
+//!!I don't have custom templates and this generates an unsuppressable 404: !!\\
 //!!                                // suppress-errors doesn't supress 404
 //!!const response = await fetch(url, {headers:{"suppress-errors":""}})
 //!! .then(rsp => rsp.ok && rsp.status != 202
@@ -83,6 +84,7 @@ class MultiState extends HTMLElement {
     get disabled()    { return this.hasAttribute(DISABLED); }
     set disabled(val) { this._setBool(DISABLED, val); }
 
+// this.keyCodes is the Set of keycodes that act like mouseclick
     get keyCodes()    { return Array.from(this._keyCodes); }
     set keyCodes(val) {
         this.setAttribute(KEY_CODES, JSON.stringify(Array.from(val)));  //??validation??
