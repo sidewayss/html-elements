@@ -5,13 +5,15 @@ VALUE = "value",                // DOM attributes
 MAX   = "max",
 MIN   = "min",
 STEP  = "step",
-UNITS     = "data-units",       // custom attributes
-DIGITS    = "data-digits",
-LOCALE    = "data-locale",
-DELAY     = "data-delay",       // delay between mousedown and spin
-INTERVAL  = "data-interval",    // millisecond interval for spin
-AUTO_SIZE = "data-auto-size",
-minimums  = {
+UNITS      = "data-units",      // custom attributes
+DIGITS     = "data-digits",
+LOCALE     = "data-locale",
+CURRENCY   = "data-currency",   // the Intl.NumberFormat() currency property
+ACCOUNTING = "data-accounting", // boolean: currencySign == "accounting"
+DELAY      = "data-delay",      // delay between mousedown and spin
+INTERVAL   = "data-interval",   // millisecond interval for spin
+AUTO_SIZE  = "data-auto-size",
+minimums   = {
     [DIGITS]:   0,
     [DELAY]:    1,
     [INTERVAL]: 1
@@ -26,9 +28,11 @@ mouse = {
 template = await getTemplate("number");
 // =============================================================================
 class NumberInput extends BaseElement {
-    #blurry; #bound; #btns; #controls; #focused; #hovering; #input; #isBlurring;
-    #localeDigits; #spinId; #svg; #units; #unitsWidth; #isBlurry;
-    #attrs = {
+    #blurry; #bound; #btns; #ch; #controls; #focused; #hovering;
+    #input; #isBlurring; #isMousing; #spinId; #svg; #units; #unitsWidth;
+    #isBlurry;             // a kludge for this._dom.activeElement === null
+    #locale = {currencyDisplay:"narrowSymbol"};
+    #attrs  = {
         [VALUE]:  0,       // attribute values as numbers, not strings
         [DIGITS]: 0,       // defaults to integer formatting
         [MAX]:  Infinity,
@@ -38,7 +42,8 @@ class NumberInput extends BaseElement {
         [INTERVAL]:33.333  // ~2 frames at 60fps
     }
     static observedAttributes = [VALUE, DIGITS, MAX, MIN, STEP, DELAY, INTERVAL,
-                                 UNITS, ...BaseElement.observedAttributes];
+                                 CURRENCY, ACCOUNTING, UNITS,
+                                 ...BaseElement.observedAttributes];
     constructor() {
         super(template);
         this.#addEvent("keydown",   this.#keyDown);
@@ -67,45 +72,55 @@ class NumberInput extends BaseElement {
         this.#swapEvents(true); // must follow this.#bound initialization
         this.#spinId = null;
     }
-
     connectedCallback() {
         // the next line is a repeat of setting the VALUE attribute, but it
         // allows declaring DIGITS after VALUE, no fixed attribute order.
         this.#input.value = this.#getText(false, true);
+
+        // we're supposed to wait until now to get styles
+        const font = getComputedStyle(this.#input).fontFamily;
+        this.#units.style.fontFamily = font;
+
+        // "ch" units don't work properly with variable-width fonts, and I need
+        // this number for mousedown selection behavior workarounds.
+        const ch = this._dom.getElementById("ch");
+        ch.style.fontFamily = font;
+        ch.value = "0";
+        this.#ch = ch.getBoundingClientRect().width;
 
         if (this.autoSize) {
             if (this.max == Infinity || this.min == -Infinity) {
                 console.info("auto-size only available for non-infinite min and max values.");
                 this._setBool(AUTO_SIZE, false);
                 return;
-            } //----------------------------------------------------------------
-            // this is a repeat of setting the UNITS attribute, but I can't find
-            // any guarantees that external style sheets will be available then.
-            this.#units.style.fontFamily = getComputedStyle(this.#input).fontFamily;
+            } //-------------------------------------------------------------
+            // this repeats code for UNITS attribute, but I just set the font
             this.#unitsWidth = this.#units.getBoundingClientRect().width;
 
             const
+            px    = "px",
             chars = Math.max(this.#formatNumber(this.max).length,
-                             this.#formatNumber(this.min).length) + "ch",
+                             this.#formatNumber(this.min).length)
+                  * this.#ch,
             svg   = parseFloat(getComputedStyle(this.#svg).width),
             extra = Math.max(svg, this.#unitsWidth),
             diff  = Math.max(0, svg - this.#unitsWidth),
             right = parseFloat(getComputedStyle(this.#input).paddingLeft);  //!!mirrored, can't set it externally!!Chrome bug??
 
             this.#blurry = {
-                width: `calc(${chars} + ${extra - diff}px)`,
-                paddingRight: diff  + right + "px",
-                textAlign:"right"
+                width:        (chars + extra - diff) + px,
+                paddingRight: (diff  + right) + px,
+                textAlign:    "right"
             }
             this.#hovering = {
-                width: chars,
-                paddingRight: extra + right + "px",
-                textAlign:"right"
+                width:         chars + px,
+                paddingRight: (extra + right) + px,
+                textAlign:    "right"
             }
             this.#focused = {
-                width: `calc(${chars} + ${extra}px)`,
-                paddingRight: right + "px",
-                textAlign:"left"
+                width:        (chars + extra) + px,
+                paddingRight:  right + px,
+                textAlign:    "left"
             }
             Object.assign(this.#input.style, this.#blurry);
         }
@@ -121,8 +136,8 @@ class NumberInput extends BaseElement {
             switch (name) {
             case DIGITS:    // runs twice if #revert(), but simpler
                 this.#input.inputMode = n ? "decimal" : "numeric";
-                this.#localeDigits    = { maximumFractionDigits:n,
-                                          minimumFractionDigits:n }
+                this.#locale.maximumFractionDigits = n;
+                this.#locale.minimumFractionDigits = n;
             case DELAY: case INTERVAL:
                 if (n < minimums[name])
                     this.#revert(name, val);
@@ -145,12 +160,25 @@ class NumberInput extends BaseElement {
                 }
             }
         }
-        else if (name == UNITS) {
-            this.#units.innerHTML = val ?? "";
-            this.#unitsWidth = this.#units.getBoundingClientRect().width;
+        else {
+            switch(name) {
+            case UNITS:
+                this.#units.innerHTML = val ?? "";
+                this.#unitsWidth = this.#units.getBoundingClientRect().width;
+                break;
+            case CURRENCY:
+                this.#locale.currency = val ?? undefined;
+                this.#locale.style    = val ? "currency" : undefined;
+                break;
+            case ACCOUNTING:
+                this.#locale.currencyStyle = (val !== null)
+                                           ? "accounting"
+                                           : undefined;
+                break;
+            default:
+                super.attributeChangedCallback(name, _, val);
+            }
         }
-        else
-            super.attributeChangedCallback(name, _, val);
     }
     #accept(name, n) {
         this.#attrs[name] = n;
@@ -199,17 +227,19 @@ class NumberInput extends BaseElement {
         this.#showCtrls(false);
     }
 //  target is #input:
-    #blur() {
-        if (this.#isBlurry) return; // see #blurMe()
+    #blur(evt) {
+        if (this.#isBlurry || evt.relatedTarget === this)
+            return;
         //---------------------------------------------
         Object.assign(this.#input.style, this.#blurry);
         this.#showCtrls (false);
         this.#swapEvents(true);
         this.#input.value = this.#getText(false, true);
+        this.#isMousing   = false;
         this.classList.remove("NaN");
     }
     #focus() {
-        if (this.#isBlurry) return;
+        if (this.#isBlurry || this.#isMousing) return;
         //----------------------------------------------
         Object.assign(this.#input.style, this.#focused);
         this.#showCtrls (false);
@@ -217,13 +247,18 @@ class NumberInput extends BaseElement {
         this.#input.value = this.#attrs[VALUE];
     }
 //  #swapEvents() is better than converting mousedown/mouseup into click,
-//                and it end up helping #enter() and #leave() too.
+//                and it avoids if statements in several event handlers.
     #swapEvents(b) {
-        for (const elm of this.#btns) {
+        let elm;
+        for (elm of this.#btns) {
             this.#toggleEvent(mouse.down,   b, elm);
             this.#toggleEvent(mouse.up,     b, elm);
             this.#toggleEvent(mouse.click, !b, elm);
         }
+        elm = this.#input;
+        this.#toggleEvent(mouse.down, b, elm);
+        this.#toggleEvent(mouse.up,   b, elm);
+
         this.#toggleEvent(mouse.enter, b, this.#enter);
         this.#toggleEvent(mouse.leave, b, this.#leave);
     }
@@ -237,6 +272,36 @@ class NumberInput extends BaseElement {
     }
     #showCtrls(b) {                 // generally helpful
         this.#controls.style.visibility = b ? "visible" : "hidden";
+    }
+//  target is #input or up or down <rect>:
+    #mouseDown(evt) {
+        if (evt.target === this.#input)
+            this.#isMousing = true;
+        else
+            this.#spin(true, evt.target.id == "up");
+    }
+    #mouseUp(evt) {
+        if (evt.target === this.#input && this.#isMousing) {
+            const
+            range = [],
+            input = this.#input,
+            start = input.selectionStart,
+            dist  = input.selectionEnd - start,
+            val   = input.value,
+            orig  = [{num:start, str:val.slice(0, start)},
+                     {num:dist,  str:val.slice(start, dist)}];
+
+            let match, obj;
+            for (obj of orig) {
+                match = obj.str.match(/[^\d-.eE]/g);
+                range.push(obj.num - (match ? match.length : 0))
+            }
+            this.#isMousing = false;  // let this.#focus() do it's thing
+            this.#focus();            // it already has the focus
+            input.setSelectionRange(range[0], range[0] + range[1]);
+        }
+        else
+            this.#spin();
     }
 //  target is up or down <rect>:
     #mouseEnter(evt) {
@@ -267,12 +332,6 @@ class NumberInput extends BaseElement {
                 this._setHref("#spinner-idle");
         }
     }
-    #mouseDown(evt) {
-        this.#spin(true, evt.target.id == "up");
-    }
-    #mouseUp() {
-        this.#spin();
-    }
     #click(evt) {
         if (evt.target.id == "up") {
             if (this.#input.classList.contains("NaN"))
@@ -280,7 +339,7 @@ class NumberInput extends BaseElement {
             else
                 this.#apply();
         }
-        this.#blurMe();
+        this.#blurMe(false);
     }
 //  target is this for keyboard because the svg buttons don't receive focus:
     #keyDown(evt) {
@@ -354,7 +413,7 @@ class NumberInput extends BaseElement {
 //  #formatNumber() formats a number for display as text
     #formatNumber(n) {
         return this.useLocale
-             ? new Intl.NumberFormat(this.locale, this.#localeDigits)
+             ? new Intl.NumberFormat(this.locale, this.#locale)
                        .format(n)
              : n.toFixed(this.#attrs[DIGITS]);
     }
@@ -371,8 +430,8 @@ class NumberInput extends BaseElement {
         elm.addEventListener(type, func);
     }
 //!!this.blur() doesn't work in Chrome (elsewhere?) when _dom.activeElement === null
-    #blurMe() {
-        this.#isBlurry = true;
+    #blurMe(b = true) {
+        this.#isBlurry = b;
         this.#input.focus();
         this.#input.blur();
         this.#isBlurry = false;
