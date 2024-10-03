@@ -7,9 +7,15 @@ MIN   = "min",
 STEP  = "step",
 UNITS     = "data-units",       // custom attributes
 DIGITS    = "data-digits",
+LOCALE    = "data-locale",
 DELAY     = "data-delay",       // delay between mousedown and spin
 INTERVAL  = "data-interval",    // millisecond interval for spin
 AUTO_SIZE = "data-auto-size",
+minimums  = {
+    [DIGITS]:   0,
+    [DELAY]:    1,
+    [INTERVAL]: 1
+},
 mouse = {
     enter:"mouseenter",
     leave:"mouseleave",
@@ -21,7 +27,7 @@ template = await getTemplate("number");
 // =============================================================================
 class NumberInput extends BaseElement {
     #blurry; #bound; #btns; #controls; #focused; #hovering; #input; #isBlurring;
-    #spinId; #svg; #units; #unitsWidth; #isBlurry;
+    #localeDigits; #spinId; #svg; #units; #unitsWidth; #isBlurry;
     #attrs = {
         [VALUE]:  0,       // attribute values as numbers, not strings
         [DIGITS]: 0,       // defaults to integer formatting
@@ -79,8 +85,8 @@ class NumberInput extends BaseElement {
             this.#unitsWidth = this.#units.getBoundingClientRect().width;
 
             const
-            chars = Math.max(this.max.toFixed(this.digits).length,
-                             this.min.toFixed(this.digits).length) + "ch",
+            chars = Math.max(this.#formatNumber(this.max).length,
+                             this.#formatNumber(this.min).length) + "ch",
             svg   = parseFloat(getComputedStyle(this.#svg).width),
             extra = Math.max(svg, this.#unitsWidth),
             diff  = Math.max(0, svg - this.#unitsWidth),
@@ -113,14 +119,15 @@ class NumberInput extends BaseElement {
                 return;
             } //-----------
             switch (name) {
-            case DIGITS:
+            case DIGITS:    // runs twice if #revert(), but simpler
                 this.#input.inputMode = n ? "decimal" : "numeric";
-                if (n < 0)
-                    this.#revert(name, val);
-                return;
+                this.#localeDigits    = { maximumFractionDigits:n,
+                                          minimumFractionDigits:n }
             case DELAY: case INTERVAL:
-                if (n < 1)
+                if (n < minimums[name])
                     this.#revert(name, val);
+                else
+                    this.#accept(name, n);
                 return;
             default:
                 if (n > this.max && name != MAX)                // clamp
@@ -128,7 +135,7 @@ class NumberInput extends BaseElement {
                 else if (n < this.min && name != MIN)           // clamp
                     this.setAttribute(name, this.getAttribute(MIN));
                 else {
-                    this.#attrs[name] = n;                      // accept
+                    this.#accept(name, n);
                     if (name == VALUE && !this.#isBlurring)     // display
                         this.#input.value = this.#getText(this.#hasFocus);
                     else if ((name == MAX && n < this.value)
@@ -145,26 +152,32 @@ class NumberInput extends BaseElement {
         else
             super.attributeChangedCallback(name, _, val);
     }
+    #accept(name, n) {
+        this.#attrs[name] = n;
+    }
     #revert(name, val) {
         this.setAttribute(name, this.#attrs[name]);
         console.info(`${val} is not a valid value for the ${name} attribute.`);
     }
 //==============================================================================
 //  Getters/setters reflect the HTML attributes, see attributeChangedCallback()
-    get autoSize() { return this.hasAttribute(AUTO_SIZE); } // bool: read-only
+    get autoSize()  { return this.hasAttribute(AUTO_SIZE); } // bool: read-only
+    get useLocale() { return this.hasAttribute(LOCALE);    }
 
-    get units() { return this.getAttribute(UNITS) ?? ""; }  // strings:
-    get text()  { return this.#input.value; }               // read-only
+    get units()  { return this.getAttribute(UNITS)  ?? ""; } // strings:
+    get locale() { return this.getAttribute(LOCALE) || undefined; }
+    get text()   { return this.#input.value; }               // read-only
 
-    get value()    { return this.#attrs[VALUE];    }        // numbers:
-    get digits()   { return this.#attrs[DIGITS];   }        // cached for
-    get max()      { return this.#attrs[MAX];      }        // revert on NaN.
+    get value()    { return this.#attrs[VALUE];    }         // numbers:
+    get digits()   { return this.#attrs[DIGITS];   }         // cached for
+    get max()      { return this.#attrs[MAX];      }         // revert on NaN
     get min()      { return this.#attrs[MIN];      }
     get step()     { return this.#attrs[STEP];     }
     get delay()    { return this.#attrs[DELAY];    }
     get interval() { return this.#attrs[INTERVAL]; }
 
     set units   (val) { this.setAttribute(UNITS,    val); }
+    set locale  (val) { this.setAttribute(LOCALE,   val); }
     set value   (val) { this.setAttribute(VALUE,    val); }
     set digits  (val) { this.setAttribute(DIGITS,   val); }
     set max     (val) { this.setAttribute(MAX,      val); }
@@ -332,11 +345,18 @@ class NumberInput extends BaseElement {
 
 //  #getText() gets the appropriate text for the #input
     #getText(hasFocus, appendUnits) {
-        const val = this.#attrs[VALUE];
-        let   txt = hasFocus ? val : val.toFixed(this.#attrs[DIGITS]);
+        const n = this.#attrs[VALUE];
+        let txt = hasFocus ? n : this.#formatNumber(n);
         if (appendUnits)
             txt += this.units;
         return txt;
+    }
+//  #formatNumber() formats a number for display as text
+    #formatNumber(n) {
+        return this.useLocale
+             ? new Intl.NumberFormat(this.locale, this.#localeDigits)
+                       .format(n)
+             : n.toFixed(this.#attrs[DIGITS]);
     }
 //  #toNumber() converts string to number
     #toNumber(str) {                    // Number() converts "" to 0
