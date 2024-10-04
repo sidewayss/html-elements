@@ -1,103 +1,33 @@
-export {VALUE, getTemplate, MultiState};
-const
-VALUE     = "value",    // built-in attributes
-DISABLED  = "disabled",
-TAB_INDEX = "tab-index",
-KEY_CODES = "data-key-codes";
-// =============================================================================
-async function getTemplate(name) {
-    const
-    id  = `template-${name}`,
-    url = `${id}.html`;       // local template file
+export {MultiState};
+import {BaseElement} from "./base-element.js";
 
-//!!I don't have custom templates and this generates an unsuppressable 404: !!\\
-//!!                                // suppress-errors doesn't supress 404
-//!!const response = await fetch(url, {headers:{"suppress-errors":""}})
-//!! .then(rsp => rsp.ok && rsp.status != 202
-//!!            ? rsp
-//!!            : fallBack(url))    // fall back to the default template file,
-//!! .catch(() => fallBack(url));   // regardless of the reason for failure.
-
-    const response = await fallBack(url);
-    return await response.text()
-     .then(txt => new DOMParser().parseFromString(txt, "text/html")
-                                 .getElementById(id).content)
-     .catch(err => catchError(err));
-}
-function fallBack(url) {
-    url = `/html-elements/${url}`;  // default template file
-    return fetch(url)
-     .then (rsp => rsp.ok ? rsp : fetchError(url, rsp))
-     .catch(err => catchError(err));
-}
-function catchError(err) {
-    console.error(err.stack ?? err);
-}
-function fetchError(url, rsp) {
-    console.error(`HTTP error fetching ${url}: ${rsp.status} ${rsp.statusText}`);
-}
+const KEY_CODES = "data-key-codes";
 // =============================================================================
-// The multi-state base class, direct sub-class of HTMLElement
-class MultiState extends HTMLElement {
-    #tabIndex;
-    static observedAttributes = [DISABLED, TAB_INDEX, KEY_CODES];
-    constructor(template) { // <template> as DocumentFragment
-        super();            // emulates change (not input) event
-        this._fragment = template.cloneNode(true);
+// The multi-state base class, emulates change (not input) event, this.change
+// declared in sub-classes, all of them dispatch a change event to the client.
+class MultiState extends BaseElement {
+    static observedAttributes = [KEY_CODES, ...BaseElement.observedAttributes];
+    constructor(template) {
+        super(template);
         this._keyCodes = new Set;
-
-        this._dom = this.attachShadow({mode:"open"});
-        this._dom.appendChild(this._fragment);
-
         this.addEventListener("keyup", this.change, false);
         this.addEventListener("click", this.change, false);
-        if (this.tabIndex < 0)
-            this.tabIndex = 0;
-        this.#tabIndex = this.tabIndex;
     }
 //  attributeChangedCallback() handles changes to the observed attributes
     attributeChangedCallback(name, _, val) {
-        const b = (val !== null); // null == removeAttribute()
-        switch (name) {
-        case DISABLED:
-            if (b) {
-                this.tabIndex = -1;
-                this.style.pointerEvents = "none";
-            }
-            else {
-                this.tabIndex = this.#tabIndex;
-                this.style.pointerEvents = "";
-            }
-            break;
-        case TAB_INDEX:
-            this.#tabIndex = val; // to restore post-disable
-            break;
-        case KEY_CODES:
-            if (b)
-                this._keyCodes = new Set(JSON.parse(val)) //??validation??
-            else
+        if (name == KEY_CODES) {
+            if (val === null)
                 this._keyCodes.clear();
-        default:
+            else
+                this._keyCodes = new Set(JSON.parse(val)) //??validation??
         }
+        else
+            super.attributeChangedCallback(name, _, val);
     }
-// getters/setters reflect the HTML attributes, see attributeChangedCallback()
-    get disabled()    { return this.hasAttribute(DISABLED); }
-    set disabled(val) { this._setBool(DISABLED, val); }
-
 // this.keyCodes is the Set of keycodes that act like mouseclick
     get keyCodes()    { return Array.from(this._keyCodes); }
     set keyCodes(val) {
         this.setAttribute(KEY_CODES, JSON.stringify(Array.from(val)));  //??validation??
-    }
-
-//  _setHref() changes the image for this._use or another element
-    _setHref(href, elm = this._use) {
-        elm.setAttribute("href", href);
-    }
-//  _setBool() helps disabled, checked, and other boolean attributes
-    _setBool(attr, b) {
-        b ? this.setAttribute(attr, "")
-          : this.removeAttribute(attr);
     }
 //  _handleEvent() determines whether or not to handle an event
     _handleEvent(evt) {

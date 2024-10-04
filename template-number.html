@@ -46,32 +46,34 @@
         #controls {
           visibility:hidden;    /* initial state*/
         }
-        #ch, #units {
+        #max, #min, #units {
           visibility:hidden;    /* permanent state*/
           position:absolute;
           padding:0;
         }
       </style>
+      <!--------------------------------------------------------------->
       <div style="display:flex">
         <input part="input" id="input" type="text" inputmode="numeric"/>
         <svg part="buttons" viewbox="0 0 16 22">
-          <defs>
+          <defs><!-------------->
             <g id="spinner-idle">
               <rect class="idle"/>
-              <path class="arrow-idle"  d="M4.5,9 L8.5,4 12.5,9"/>
+              <path class="arrow-idle"  d="M4.5, 9 L8.5, 4 12.5, 9"/>
               <path class="arrow-idle"  d="M4.5,13 L8.5,18 12.5,13"/>
             </g>
             <g id="spinner-hover-up">
               <rect class="hover"/>
-              <path class="arrow-hover" d="M4.5,8 L8.5,3 12.5,8"/>
+              <path class="arrow-hover" d="M4.5, 8 L8.5, 3 12.5, 8"/>
               <path class="arrow-idle"  d="M4.5,13 L8.5,18 12.5,13"/>
             </g>
             <g id="spinner-hover-dn">
               <rect class="hover"/>
-              <path class="arrow-idle"  d="M4.5,9 L8.5,4 12.5,9"/>
+              <path class="arrow-idle"  d="M4.5, 9 L8.5, 4 12.5, 9"/>
               <path class="arrow-hover" d="M4.5,14 L8.5,19 12.5,14"/>
             </g>
-            <g id="confirm-idle"> <!-- yes, empty avoids errors -->
+            <!------------------>
+            <g id="confirm-idle"> <!-- empty avoids the possibility of errors -->
             </g>
             <g id="confirm-hover-up">
               <rect class="hover"/>
@@ -83,6 +85,7 @@
               <path d="M6,6 L8.5,8.5 12.5,2" stroke="darkgreen"/>
               <path d="M6,13.5 L12,19.5 M12,13.5 L6,19.5" stroke="red"/>
             </g>
+            <!----------------->
             <g id="cancel-idle">
             </g>
             <g id="cancel-hover-up">
@@ -96,7 +99,7 @@
               <path d="M6,13.5 L12,19.5 M12,13.5 L6,19.5" stroke="red"/>
             </g>
           </defs>
-          <!---->
+          <!-------------->
           <g id="controls">
             <use href="#spinner-idle"/> <!-- initial state -->
             <polyline part="border" points="0.5,0 0.5,22"/>
@@ -105,7 +108,8 @@
           <rect id="dn" class="events" y="11"/>
         </svg>
       </div>
-      <span id="ch">0</span>
+      <span id="max"></span>
+      <span id="min"></span>
       <span id="units"></span>
     </template>
   </body>

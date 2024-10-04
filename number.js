@@ -1,18 +1,18 @@
 export {NumberInput};
-import {BaseElement, getTemplate} from "./base-element.js";
+import {VALUE, BaseElement, getTemplate} from "./base-element.js";
 const
-VALUE = "value",                // DOM attributes
-MAX   = "max",
+MAX   = "max",                  // DOM attributes
 MIN   = "min",
 STEP  = "step",
-UNITS      = "data-units",      // custom attributes
-DIGITS     = "data-digits",
-LOCALE     = "data-locale",
-CURRENCY   = "data-currency",   // the Intl.NumberFormat() currency property
+UNITS      = "data-units",      // custom attributes:
+DIGITS     = "data-digits",     // Number.prototype.toFixed(digits)
+LOCALE     = "data-locale",     // locale string
+NOTATION   = "data-notation",   // Intl.NumberFormat() options notation property
+CURRENCY   = "data-currency",   // Intl.NumberFormat() options currency property
 ACCOUNTING = "data-accounting", // boolean: currencySign == "accounting"
 DELAY      = "data-delay",      // delay between mousedown and spin
 INTERVAL   = "data-interval",   // millisecond interval for spin
-AUTO_SIZE  = "data-auto-size",
+AUTO_SIZE  = "data-auto-size",  // boolean: auto-size the width of the element
 minimums   = {
     [DIGITS]:   0,
     [DELAY]:    1,
@@ -28,8 +28,8 @@ mouse = {
 template = await getTemplate("number");
 // =============================================================================
 class NumberInput extends BaseElement {
-    #blurry; #bound; #btns; #ch; #controls; #focused; #hovering;
-    #input; #isBlurring; #isMousing; #spinId; #svg; #units; #unitsWidth;
+    #blurry; #bound; #btns; #ch; #controls; #focused; #hovering; #input;
+    #isBlurring; #isLoading; #isMousing; #max; #min; #spinId; #svg; #units;
     #isBlurry;             // a kludge for this._dom.activeElement === null
     #locale = {currencyDisplay:"narrowSymbol"};
     #attrs  = {
@@ -42,7 +42,7 @@ class NumberInput extends BaseElement {
         [INTERVAL]:33.333  // ~2 frames at 60fps
     }
     static observedAttributes = [VALUE, DIGITS, MAX, MIN, STEP, DELAY, INTERVAL,
-                                 CURRENCY, ACCOUNTING, UNITS,
+                                 NOTATION, CURRENCY, ACCOUNTING, UNITS,
                                  ...BaseElement.observedAttributes];
     constructor() {
         super(template);
@@ -53,6 +53,8 @@ class NumberInput extends BaseElement {
 
         this.#controls = this._dom.getElementById("controls");
         this.#units    = this._dom.getElementById("units");
+        this.#max      = this._dom.getElementById("max");
+        this.#min      = this._dom.getElementById("min");
         this.#input    = this._dom.getElementById("input");
         this.#addEvent("focus", this.#focus, this.#input);
         this.#addEvent("blur",  this.#blur , this.#input);
@@ -70,60 +72,21 @@ class NumberInput extends BaseElement {
             [mouse.click]:this.#click    .bind(this)
         };
         this.#swapEvents(true); // must follow this.#bound initialization
-        this.#spinId = null;
+        this.#spinId    = null;
+        this.#isLoading = true; // prevents double-setting of values during load
     }
     connectedCallback() {
-        // the next line is a repeat of setting the VALUE attribute, but it
-        // allows declaring DIGITS after VALUE, no fixed attribute order.
-        this.#input.value = this.#getText(false, true);
+        this.#isLoading = false;
 
         // we're supposed to wait until now to get styles
         const font = getComputedStyle(this.#input).fontFamily;
+        this.#max  .style.fontFamily = font;
+        this.#min  .style.fontFamily = font;
         this.#units.style.fontFamily = font;
 
-        // "ch" units don't work properly with variable-width fonts, and I need
-        // this number for mousedown selection behavior workarounds.
-        const ch = this._dom.getElementById("ch");
-        ch.style.fontFamily = font;
-        ch.value = "0";
-        this.#ch = ch.getBoundingClientRect().width;
-
-        if (this.autoSize) {
-            if (this.max == Infinity || this.min == -Infinity) {
-                console.info("auto-size only available for non-infinite min and max values.");
-                this._setBool(AUTO_SIZE, false);
-                return;
-            } //-------------------------------------------------------------
-            // this repeats code for UNITS attribute, but I just set the font
-            this.#unitsWidth = this.#units.getBoundingClientRect().width;
-
-            const
-            px    = "px",
-            chars = Math.max(this.#formatNumber(this.max).length,
-                             this.#formatNumber(this.min).length)
-                  * this.#ch,
-            svg   = parseFloat(getComputedStyle(this.#svg).width),
-            extra = Math.max(svg, this.#unitsWidth),
-            diff  = Math.max(0, svg - this.#unitsWidth),
-            right = parseFloat(getComputedStyle(this.#input).paddingLeft);  //!!mirrored, can't set it externally!!Chrome bug??
-
-            this.#blurry = {
-                width:        (chars + extra - diff) + px,
-                paddingRight: (diff  + right) + px,
-                textAlign:    "right"
-            }
-            this.#hovering = {
-                width:         chars + px,
-                paddingRight: (extra + right) + px,
-                textAlign:    "right"
-            }
-            this.#focused = {
-                width:        (chars + extra) + px,
-                paddingRight:  right + px,
-                textAlign:    "left"
-            }
-            Object.assign(this.#input.style, this.#blurry);
-        }
+        this.#input.value = this.#getText(false, true);
+        if (this.autoSize)
+            this.#autoSize();
     }
 
     attributeChangedCallback(name, _, val) {
@@ -151,7 +114,7 @@ class NumberInput extends BaseElement {
                     this.setAttribute(name, this.getAttribute(MIN));
                 else {
                     this.#accept(name, n);
-                    if (name == VALUE && !this.#isBlurring)     // display
+                    if (name == VALUE && !this.#isBlurring && !this.#isLoading)
                         this.#input.value = this.#getText(this.#hasFocus);
                     else if ((name == MAX && n < this.value)
                           || (name == MIN && n > this.value))
@@ -164,16 +127,17 @@ class NumberInput extends BaseElement {
             switch(name) {
             case UNITS:
                 this.#units.innerHTML = val ?? "";
-                this.#unitsWidth = this.#units.getBoundingClientRect().width;
+                break;
+            case NOTATION:
+                this.#locale.notation = val ?? undefined;
                 break;
             case CURRENCY:
                 this.#locale.currency = val ?? undefined;
                 this.#locale.style    = val ? "currency" : undefined;
                 break;
             case ACCOUNTING:
-                this.#locale.currencyStyle = (val !== null)
-                                           ? "accounting"
-                                           : undefined;
+                this.#locale.currencySign = (val !== null)
+                                          ? "accounting" : undefined;
                 break;
             default:
                 super.attributeChangedCallback(name, _, val);
@@ -187,14 +151,51 @@ class NumberInput extends BaseElement {
         this.setAttribute(name, this.#attrs[name]);
         console.info(`${val} is not a valid value for the ${name} attribute.`);
     }
+    #autoSize() {
+        if (this.max == Infinity || this.min == -Infinity) {
+            console.info("auto-size only available for non-infinite min and max values.");
+            this._setBool(AUTO_SIZE, false);
+            return;
+        } //-------------------------------------------
+        this.#max.innerHTML = this.#formatNumber(this.max);
+        this.#min.innerHTML = this.#formatNumber(this.min);
+        const
+        px    = "px",
+        svg   = this.#svg.getBoundingClientRect().width,
+        units = this.#units.getBoundingClientRect().width,
+        chars = Math.max(this.#max.getBoundingClientRect().width,
+                         this.#min.getBoundingClientRect().width),
+        extra = Math.max(svg, units),
+        diff  = Math.max(0, svg - units),
+        right = parseFloat(getComputedStyle(this.#input).paddingLeft); //!!mirrored, can't set it externally!!Chrome bug??
+
+        this.#blurry = {
+            width:        (chars + extra - diff) + px,
+            paddingRight: (diff  + right) + px,
+            textAlign:    "right"
+        }
+        this.#hovering = {
+            width:         chars + px,
+            paddingRight: (extra + right) + px,
+            textAlign:    "right"
+        }
+        this.#focused = {
+            width:        (chars + extra) + px,
+            paddingRight:  right + px,
+            textAlign:    "left"
+        }
+        Object.assign(this.#input.style, this.#blurry);
+    }
 //==============================================================================
 //  Getters/setters reflect the HTML attributes, see attributeChangedCallback()
-    get autoSize()  { return this.hasAttribute(AUTO_SIZE); } // bool: read-only
-    get useLocale() { return this.hasAttribute(LOCALE);    }
+    get autoSize()   { return this.hasAttribute(AUTO_SIZE); } // bool: read-only
+    get useLocale()  { return this.hasAttribute(LOCALE);    }
+    get accounting() { return this.hasAttribute(ACCOUNTING);}
 
-    get units()  { return this.getAttribute(UNITS)  ?? ""; } // strings:
-    get locale() { return this.getAttribute(LOCALE) || undefined; }
-    get text()   { return this.#input.value; }               // read-only
+    get units()    { return this.getAttribute(UNITS)  ?? ""; } // strings:
+    get locale()   { return this.getAttribute(LOCALE) || undefined; }
+    get currency() { return this.getAttribute(CURRENCY); }
+    get text()     { return this.#input.value; }               // read-only
 
     get value()    { return this.#attrs[VALUE];    }         // numbers:
     get digits()   { return this.#attrs[DIGITS];   }         // cached for
@@ -236,6 +237,7 @@ class NumberInput extends BaseElement {
         this.#swapEvents(true);
         this.#input.value = this.#getText(false, true);
         this.#isMousing   = false;
+        this._setHref("#spinner-idle");
         this.classList.remove("NaN");
     }
     #focus() {
@@ -244,7 +246,7 @@ class NumberInput extends BaseElement {
         Object.assign(this.#input.style, this.#focused);
         this.#showCtrls (false);
         this.#swapEvents(false);
-        this.#input.value = this.#attrs[VALUE];
+        this.#input.value = this.#attrs[VALUE].toFixed(this.digits);
     }
 //  #swapEvents() is better than converting mousedown/mouseup into click,
 //                and it avoids if statements in several event handlers.
@@ -285,6 +287,7 @@ class NumberInput extends BaseElement {
             const
             range = [],
             input = this.#input,
+            dir   = input.selectionDirection,
             start = input.selectionStart,
             dist  = input.selectionEnd - start,
             val   = input.value,
@@ -298,7 +301,9 @@ class NumberInput extends BaseElement {
             }
             this.#isMousing = false;  // let this.#focus() do it's thing
             this.#focus();            // it already has the focus
-            input.setSelectionRange(range[0], range[0] + range[1]);
+            if (this.accounting && val[0] == "(")
+                ++range[0];
+            input.setSelectionRange(range[0], range[0] + range[1], dir);
         }
         else
             this.#spin();

@@ -1,7 +1,8 @@
-export {getTemplate, BaseElement};
+export {VALUE, BaseElement, getTemplate};
 const
 DISABLED  = "disabled", // DOM attributes
-TAB_INDEX = "tab-index";
+TAB_INDEX = "tab-index",
+VALUE     = "value";    // const exported, but not handled here
 // =============================================================================
 // The custom base class, direct sub-class of HTMLElement
 class BaseElement extends HTMLElement {

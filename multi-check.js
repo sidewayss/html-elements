@@ -1,5 +1,6 @@
 export {CheckBox, CheckTri};
-import {VALUE, getTemplate, MultiState} from "./multi-state.js";
+import {VALUE, getTemplate} from "./base-element.js";
+import {MultiState}         from "./multi-state.js";
 
 const TRUE  = "1";
 const FALSE = "";

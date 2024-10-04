@@ -1,5 +1,7 @@
 export {StateButton};
-import {VALUE, getTemplate, MultiState} from "./multi-state.js";
+import {VALUE, getTemplate} from "./base-element.js";
+import {MultiState}         from "./multi-state.js";
+
 const STATES = "data-states";
 const AUTO   = "data-auto-increment"
 const BTN    = "btn";
