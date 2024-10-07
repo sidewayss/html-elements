@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>&lt;in-number&gt;</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=overlays-content"/>
+
+    <link rel="stylesheet" href="/html-elements/in-number.css"/>
+    <link rel="stylesheet" href="/html-elements/multi-check.css"/>
+    <script src="/html-elements/in-number.js"   type="module"></script>
+    <script src="/html-elements/multi-check.js" type="module"></script>
+    <script src="number-app.js" type="module"></script>
+    <style>
+      * {
+        font-family:"Roboto Mono";
+        font-size:1rem;
+      }
+      @media (height < 340px) {
+        * { font-family:monospace; }
+      }
+      p {
+        font-family:sans-serif;
+        white-space:nowrap;
+        margin-bottom:0;
+      }
+      select    { margin-left:0.25rem;    border-color:#0002; }
+      in-number { margin-bottom:1rem    }
+      #spins,
+      #confirms { margin-right:1rem }
+
+      select:disabled, .disabled {
+        opacity:1;
+        color:gray;
+        background-color:transparent;
+      }
+
+      .info     { margin:0 0 0 0.25rem; }
+      .header {
+        margin:1em 0 0 0;
+        font-weight:bold;
+      }
+      .col {
+        display:flex;
+        flex-direction:column;
+      }
+      .row {
+        display:flex;
+        align-items:center;
+      }
+      div.row { margin-top:0.125rem; }
+
+      #max, #min, #step, #delay, #interval {
+        text-align:right
+      }
+      #html, #script {
+        font-family:monospace;
+        padding:0.25rem 0.5rem;
+        border:1px solid #000;
+        background-color:#444;
+        color:white;
+      }
+    </style>
+  </head>
+  <body class="col"  style="align-items:center; background-color:#F7F7F7;">
+    <in-number id="number" data-auto-size></in-number>
+    <div class="col" style="align-items:flex-start;">
+      <div class="row">
+        <label for="font">Font:&nbsp;&nbsp;</label>
+        <select  id="font"></select>
+      </div>
+      <div class="row">
+        <label for="max">Max:&nbsp;&nbsp;&nbsp;</label>
+        <select id="max" class="attr"></select>
+        <p class="info" style="color:darkred"></p>
+      </div>
+      <div class="row">
+        <label for="digits">Digits:</label>
+        <select id="digits" class="attr"></select>
+      </div>
+      <div class="row">
+        <label for="units">Units:&nbsp;</label>
+        <select id="units" class="attr"></select>
+        <p class="info"></p>
+      </div>
+      <div class="row">
+        <label for="locale">Locale:</label>
+        <select id="locale"></select>
+        <p class="info"></p>
+      </div>
+      <div class="row">
+        <label for="currency" class="disabled">Currency:</label>
+        <select id="currency" disabled></select>
+        <p class="info"></p>
+      </div>
+      <!-------------->
+      <div class="row" style="margin:0.5rem 0 0.25rem">
+        <check-box id="spins"      data-label="Spins"      class="row" checked ></check-box>
+        <check-box id="confirms"   data-label="Confirms"   class="row" checked ></check-box>
+        <check-box id="accounting" data-label="Accounting" class="row" disabled></check-box>
+      </div>
+      <div class="row">
+        <label for="step">Step:&nbsp;&nbsp;&nbsp;&nbsp;</label>
+        <select id="step" class="attr">
+          <option>1000</option>
+          <option >509</option> <!-- throw in some odd numbers for testing -->
+          <option >100</option>
+          <option  >59</option>
+          <option  >10</option>
+          <option    >5.89</option>
+          <option    >1</option>
+          <option    >0.5</option>
+        </select>
+      </div>
+      <div class="row">
+        <label for="delay">Delay:&nbsp;&nbsp;&nbsp;</label>
+        <select id="delay" class="attr"></select>
+      </div>
+      <div class="row">
+        <label for="interval">Interval:</label>
+        <select id="interval" class="attr"> <!-- include ~frame boundaries @60fps -->
+          <option value="10">10ms</option>
+          <option value="17">17ms</option>
+          <option value="20">20ms</option>
+          <option value="30">30ms</option>
+          <option value="33">33ms</option>
+          <option value="40">40ms</option>
+          <option value="50">50ms</option>
+          <option value="60">60ms</option>
+          <option value="67">67ms</option>
+          <option value="70">70ms</option>
+          <option value="80">80ms</option>
+          <option value="83">83ms</option>
+          <option value="90">90ms</option>
+          <option value="100">100ms</option>
+          <option value="150">150ms</option>
+          <option value="200">200ms</option>
+          <option value="250">250ms</option>
+          <option value="300">300ms</option>
+          <option value="400">400ms</option>
+          <option value="500">500ms</option>
+        </select>
+      </div>
+      <!-------------->
+      <p class="header">HTML</p>
+      <div id="html"></div>
+      <p class="header">JavaScript</p>
+      <div id="script"></div>
+      <p style="font-style:italic">
+        The autoSize property is hardcoded to true<br>
+        on this page, but setting max to Infinity or<br>
+        min to &#x2011;Infinity disables it.
+      </p>
+    </div>
+  </body>
+</html>

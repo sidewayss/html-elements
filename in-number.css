@@ -1,0 +1,42 @@
+  @font-face {
+    font-family:"Roboto Mono";
+    font-weight:400;
+    src:url("/fonts/RobotoMono.ttf") format("truetype");
+  }
+  in-number {
+    outline:none;
+    background-color:white; /* for .beep background opacity < 1*/
+    border: 0.0625rem solid #0002;
+  }
+  in-number:hover:not(:focus) {
+    border-color: #999;
+  }
+  in-number:focus {
+    border-color: #111;
+  }
+  in-number.NaN:focus {
+    border-color:#C00;
+  }
+  in-number.beep:focus {
+    filter:blur(0.5px);
+  }
+  in-number.NaN:focus::part(input) {           /* lavenderblush */
+    background-color:rgb(255 240 245 / 0.5); /* background-opacity does not exist */
+  }
+  in-number.beep:focus::part(input) {
+    background-color:rgb(255 240 245 / 0.25);
+    color:#A02;
+  }
+  in-number::part(border) {   /* left border of controls */
+    stroke:#0002;           /* matches element border  */
+    stroke-width:0.0625rem;
+  }
+  in-number::part(input) {    /* last so apps/number-app.js can find it easily */
+    font-family: "Roboto Mono";
+    border:       none;       /* handled by <in-number> parent */
+    outline-style:none;
+    padding-top:   0;         /* If padding-right, javascript can't */
+    padding-bottom:0.0625rem; /* override, at least not in Chrome.  */
+    padding-left:  0.125rem;
+    background-color:white; /* same as default, afaik */
+  }

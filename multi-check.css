@@ -1,0 +1,45 @@
+:root {
+  --dark-blue:    #007;
+  --medium-blue:  #019;
+  --accent-blue:  #03B;
+  --charcoal:     #272727;
+  --medium-gray:  #777;
+}
+check-box, check-tri {
+  cursor:default;
+  fill-opacity:0.5;
+  fill:  white;
+  stroke:var(--charcoal);
+  color: var(--charcoal);
+}
+check-box[disabled], check-box[disabled][checked],
+check-tri[disabled], check-tri[disabled][checked]  {
+  fill-opacity:0.25;
+  stroke:var(--medium-gray);
+  color: var(--medium-gray);
+}
+check-box[checked],
+check-tri[value]::part(check) {
+  fill-opacity:1;
+  stroke:var(--dark-blue);
+  color: var(--dark-blue);
+}
+check-box:hover, check-tri:hover::part(check),
+check-box[checked]:hover {
+  fill-opacity:0.05;
+  fill:  var(--accent-blue);
+  color: var(--medium-blue);
+}
+check-box:active, check-tri:active::part(check),
+check-box[checked]:active,
+check-tri:not([value])::part(default) {
+  fill-opacity:1;
+  fill:white;
+  stroke:var(--medium-blue);
+  color: var(--medium-blue);
+}
+check-tri[value]::part(default) {
+  fill-opacity:0.05;
+  fill:  var(--medium-gray);
+  stroke:var(--medium-gray);
+}

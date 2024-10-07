@@ -60,6 +60,10 @@ class CheckBox extends MultiCheck {
     get checked()    { return this.hasAttribute(CHECKED); }
     set checked(val) { this._setBool(CHECKED, val);  }
 
+// this.value is a convenient alias
+    get value()    { return this.checked; }
+    set value(val) { this.checked = val;  }
+
 //  change() converts click and spacebar-up to a self-inflicted change event
     change(evt) {
         if (this._handleEvent(evt)) {
@@ -114,10 +118,8 @@ class CheckTri extends MultiCheck {
             super.attributeChangedCallback(name, _, val);
         }
     }
-// this.checked is read-only, set by set value(), useful for CSS styles
 // this.default is the default value for when value == null (indeterminate)
 // this.showDefault determines whether to show the default value as a 2nd box
-    get checked()     { return this.hasAttribute(CHECKED);  }
     get default()     { return this.hasAttribute(DEFAULT);  }
     get showDefault() { return this.hasAttribute(SHOW_DEF); }
     set default(val)     { this._setBool(DEFAULT,  val); }
@@ -136,6 +138,10 @@ class CheckTri extends MultiCheck {
             val = this.default;          // indeterminate = inherit default
         }
         this._setBool(CHECKED, val);     // apply it as checked attribute
+    }
+// this.checked is read-only
+    get checked() {
+        return this.value === null ? this.default : Boolean(this.value);
     }
 
 //  change() converts click and spacebar-up to a self-inflicted change event
