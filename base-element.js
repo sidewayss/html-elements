@@ -21,10 +21,9 @@ class BaseElement extends HTMLElement {
     }
 //  attributeChangedCallback() handles changes to the observed attributes
     attributeChangedCallback(name, _, val) {
-        const b = (val !== null); // null == removeAttribute()
         switch (name) {
         case DISABLED:
-            if (b) {
+            if (val !== null) {    // null == removeAttribute()
                 this.tabIndex = -1;
                 this.style.pointerEvents = "none";
             }
@@ -34,7 +33,7 @@ class BaseElement extends HTMLElement {
             }
             break;
         case TAB_INDEX:
-            this.#tabIndex = val; // to restore post-disable
+            this.#tabIndex = val;  // to restore post-disable
         default:
         }
     }
@@ -54,34 +53,36 @@ class BaseElement extends HTMLElement {
     }
 }
 // =============================================================================
+// getTemplate() gets the template as a new document fragment. Users store their
+//               templates in the /html-templates directory. If no template file
+//               is found there, fall back to built-in file.
+//               {headers:{"suppress-errors":""}} doesn't supress 404. To avoid
+//               404 errors, put your templates in /html-templates. If you are
+//               using the built-in templates, copy the files there.
 async function getTemplate(name) {
     const
-    id  = `template-${name}`,
-    url = `${id}.html`;       // local template file
+    id   = `template-${name}`,
+    file = `${id}.html`;
 
-//!!I don't have custom templates and this generates an unsuppressable 404: !!\\
-//!!                                // suppress-errors doesn't supress 404
-//!!const response = await fetch(url, {headers:{"suppress-errors":""}})
-//!! .then(rsp => rsp.ok && rsp.status != 202
-//!!            ? rsp
-//!!            : fallBack(url))    // fall back to the default template file,
-//!! .catch(() => fallBack(url));   // regardless of the reason for failure.
+    const response = await fetch(`/html-templates/${file}`)
+     .then(rsp => rsp.ok && rsp.status != 202
+                ? rsp
+                : fallBack(file))   // fall back to the built-in template
+     .catch(() => fallBack(file));  // regardless of the reason for failure
 
-    const response = await fallBack(url);
     return await response.text()
      .then(txt => new DOMParser().parseFromString(txt, "text/html")
                                  .getElementById(id).content)
      .catch(err => catchError(err));
 }
-function fallBack(url) {
-    url = `/html-elements/${url}`;  // default template file
+function fallBack(file) {
+    const url = `/html-elements/${file}`; // built-in template file
     return fetch(url)
-     .then (rsp => rsp.ok ? rsp : fetchError(url, rsp))
+     .then (rsp => rsp.ok
+                 ? rsp
+                 : console.error(`HTTP error fetching ${url}: ${rsp.status} ${rsp.statusText}`))
      .catch(err => catchError(err));
 }
 function catchError(err) {
     console.error(err.stack ?? err);
-}
-function fetchError(url, rsp) {
-    console.error(`HTTP error fetching ${url}: ${rsp.status} ${rsp.statusText}`);
 }
