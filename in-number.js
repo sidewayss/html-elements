@@ -479,9 +479,13 @@ class NumberInput extends BaseElement {
                 : false;    // can't auto-size infinite min or max value
 
         if (this.spins || this.confirms) {
-            this.#svg.style.height = this.autoScale
-                                   ? this.clientHeight + px
-                                   : "";
+            if (this.autoScale) {      // auto lets this.clientHeight adjust
+                this.#svg.style.height = "auto";
+                this.#svg.style.height = this.clientHeight + px;
+            }
+            else
+                this.#svg.style.height = "";
+
             svg = this.#svg.getBoundingClientRect().width;
         }
         else {
