@@ -1,5 +1,4 @@
 :root {
-  --dark-blue:    #007;
   --medium-blue:  #019;
   --accent-blue:  #03B;
   --charcoal:     #272727;
@@ -7,7 +6,7 @@
 }
 check-box, check-tri {
   cursor:default;
-  fill-opacity:0.5;
+  fill-opacity:0;
   fill:  white;
   stroke:var(--charcoal);
   color: var(--charcoal);
@@ -21,14 +20,12 @@ check-tri[disabled], check-tri[disabled][checked]  {
 check-box[checked],
 check-tri[value]::part(check) {
   fill-opacity:1;
-  stroke:var(--dark-blue);
-  color: var(--dark-blue);
 }
 check-box:hover, check-tri:hover::part(check),
 check-box[checked]:hover {
   fill-opacity:0.05;
   fill:  var(--accent-blue);
-  color: var(--medium-blue);
+  stroke:var(--medium-blue);
 }
 check-box:active, check-tri:active::part(check),
 check-box[checked]:active,

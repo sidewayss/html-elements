@@ -1,5 +1,12 @@
 {
-  "Microsoft": [
+  "Android": [
+  ],
+  "Linux": [
+    "helvetica",
+    "arial",
+    "times"
+  ],
+  "Windows": [
     "Arial",
     "Arial Black",
     "Bahnschrift",
@@ -122,12 +129,5 @@
     "Trebuchet MS",
     "Verdana",
     "Zapfino"
-  ],
-  "Google": [
-  ],
-  "Linux": [
-    "helvetica",
-    "arial",
-    "times"
   ]
 }

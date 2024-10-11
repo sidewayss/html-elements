@@ -3,6 +3,11 @@
     font-weight:400;
     src:url("/fonts/RobotoMono.ttf") format("truetype");
   }
+  @font-face {
+    font-family:"Roboto Mono";
+    font-weight:700;
+    src:url("/fonts/RobotoMono.ttf") format("truetype");
+  }
   in-number {
     outline:none;
     background-color:white; /* for .beep background opacity < 1*/
@@ -34,9 +39,7 @@
   in-number::part(input) {    /* last so apps/number-app.js can find it easily */
     font-family: "Roboto Mono";
     border:       none;       /* handled by <in-number> parent */
-    outline-style:none;
-    padding-top:   0;         /* If padding-right, javascript can't */
-    padding-bottom:0.0625rem; /* override, at least not in Chrome.  */
-    padding-left:  0.125rem;
+    outline-style:none;       /* initial padding-right is baseline for javascript: */
+    padding: 0 0.0625rem 0.0625rem 0.125rem;
     background-color:white; /* same as default, afaik */
   }

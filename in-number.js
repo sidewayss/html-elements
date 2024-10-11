@@ -4,35 +4,45 @@ const
 MAX   = "max",                  // DOM attributes
 MIN   = "min",
 STEP  = "step",
-UNITS      = "data-units",      // custom attributes:
-DIGITS     = "data-digits",     // Number.prototype.toFixed(digits)
-LOCALE     = "data-locale",     // locale string
-NOTATION   = "data-notation",   // Intl.NumberFormat() options notation property
-CURRENCY   = "data-currency",   // Intl.NumberFormat() options currency property
-ACCOUNTING = "data-accounting", // boolean: {currencySign:"accounting"}
+                                // custom attributes:
 DELAY      = "data-delay",      // millisecond delay between mousedown and spin
 INTERVAL   = "data-interval",   // millisecond interval for spin
-AUTO_SIZE  = "data-auto-size",  // boolean: auto-size the width of the element
-NO_SPIN    = "data-no-spin",    // boolean: hide buttons, no keyboard spinning
-NO_CONFIRM = "data-no-confirm", // boolean: hide confirm/cancel buttons
-minimums   = {
+DIGITS     = "data-digits",     // Number.prototype.toFixed(digits)
+UNITS      = "data-units",      // units string suffix
+LOCALE     = "data-locale",     // locale string: "aa-AA", "" = user locale
+NOTATION   = "data-notation",   // Intl.NumberFormat() options notation property
+CURRENCY   = "data-currency",   // ditto: currency property
+                                // booleans:
+ACCOUNTING = "data-accounting", // {currencySign:"accounting"}
+NO_SPIN    = "data-no-spin",    // hide buttons, no keyboard spinning
+NO_CONFIRM = "data-no-confirm", // hide confirm/cancel buttons
+NO_SCALE   = "data-no-scale",   // don't scale the buttons to match font size
+NO_WIDTH   = "data-no-width",   // don't auto-size width
+NO_ALIGN   = "data-no-align",   // don't auto-align or auto-pad
+
+minimums = {
     [DIGITS]:   0,
     [DELAY]:    1,
     [INTERVAL]: 1
 },
-mouse = {
+event = {
     enter:"mouseenter",
     leave:"mouseleave",
     down: "mousedown",
     up:   "mouseup",
-    click:"click"
+    click:"click",
+    blur: "blur",
+    focus:"focus"
 },
+resizeEvents = [event.blur, event.focus, event.enter],
+
 template = await getTemplate("number");
 // =============================================================================
 class NumberInput extends BaseElement {
-    static observedAttributes = [VALUE, DIGITS, MAX, MIN, STEP, DELAY, INTERVAL,
-                                 AUTO_SIZE, NOTATION, CURRENCY, ACCOUNTING,
-                                 ...BaseElement.observedAttributes];
+    static observedAttributes = [VALUE, MAX, MIN, STEP, DELAY, INTERVAL, DIGITS,
+                                 UNITS, LOCALE, CURRENCY, ACCOUNTING, NOTATION,
+                                 NO_SPIN, NO_CONFIRM, NO_WIDTH, NO_ALIGN,
+                                 NO_SCALE, ...BaseElement.observedAttributes];
     static defaults = {
         [VALUE]:  0,       // attribute values as numbers, not strings
         [DIGITS]: 0,       // defaults to integer formatting
@@ -42,39 +52,47 @@ class NumberInput extends BaseElement {
         [DELAY]:  500,
         [INTERVAL]:33      // ~2 frames at 60fps
     };
-    #attrs; #blurry; #bound; #btns; #controls; #focused; #hovering; #input;
-    #isBlurring; #isLoading; #isMousing; #spinId; #svg;
+    #attrs; #bound; #btns; #controls; #input; #isBlurring; #isLoading;
+    #isMousing; #padRight; #spinId; #states; #svg; #texts;
+
     #isBlurry;             // a kludge for this._dom.activeElement === null
     #locale = {currencyDisplay:"narrowSymbol"};
 // =============================================================================
     constructor() {
         super(template);
-        this.#attrs  = Object.assign({}, NumberInput.defaults);
+        this.#attrs = Object.assign({}, NumberInput.defaults);
 
         this.#addEvent("keydown",   this.#keyDown);
         this.#addEvent("keyup",     this.#keyUp);
-        this.#addEvent(mouse.enter, this.#enter);
-        this.#addEvent(mouse.leave, this.#leave);
+        this.#addEvent(event.enter, this.#enter);
+        this.#addEvent(event.leave, this.#leave);
 
-        this.#controls = this._dom.getElementById("controls");
-        this.#input    = this._dom.getElementById("input");
-        this.#addEvent("focus", this.#focus, this.#input);
-        this.#addEvent("blur",  this.#blur , this.#input);
+        this.#input = this._dom.getElementById("input");
+        this.#addEvent(event.focus, this.#focus, this.#input);
+        this.#addEvent(event.blur,  this.#blur , this.#input);
 
-        this._use  = this.#controls.getElementsByTagName("use")[0];
-        this.#svg  = this.#input.nextElementSibling;
-        this.#btns = Array.from(this.#svg.getElementsByClassName("events"));
+        this.#svg      = this.#input.nextElementSibling;
+        this.#controls = this.#svg.getElementById("controls");
+        this._use      = this.#controls.getElementsByTagName("use")[0];
+        this.#texts = Array.from(this.#svg.getElementsByTagName("text"));
+        this.#btns  = Array.from(this.#svg.getElementsByClassName("events"));
         for (const elm of this.#btns) {
-            this.#addEvent(mouse.enter, this.#mouseEnter, elm);
-            this.#addEvent(mouse.leave, this.#mouseLeave, elm);
+            this.#addEvent(event.enter, this.#mouseEnter, elm);
+            this.#addEvent(event.leave, this.#mouseLeave, elm);
         }
-        this.#bound  = {        // for removeEventListener()
-            [mouse.down]: this.#mouseDown.bind(this),
-            [mouse.up]:   this.#mouseUp  .bind(this),
-            [mouse.click]:this.#click    .bind(this)
+        this.#bound = {         // for removeEventListener()
+            [event.down]: this.#mouseDown.bind(this),
+            [event.up]:   this.#mouseUp  .bind(this),
+            [event.click]:this.#click    .bind(this)
         };
         this.#swapEvents(true); // must follow this.#bound initialization
-        this.#spinId    = null;
+
+        const obj = {};         // #states are #input styles for each state
+        for (const key of resizeEvents)
+            obj[key] = {};
+        obj[event.leave] = obj[event.blur];
+        this.#states = obj;
+        this.#spinId = null;
         this.#isLoading = true; // prevents double-setting of values during load
     }
 //  connectedCallback()
@@ -84,70 +102,97 @@ class NumberInput extends BaseElement {
             if (val > this.max || val < this.min) // else split the difference
                 this.value = this.min + ((this.max - this.min) / 2);
         }
-        // wait until all attributes set and styles loaded for these two:
+        // wait until all attributes set and styles loaded for these three:
+        this.#padRight = parseFloat(getComputedStyle(this.#input).paddingRight);
         this.#input.value = this.#getText(false, true);
-        if (this.autoSize)
-            this.#autoSize();
+        this.resize();
 
         this.#isLoading = false;
     }
 //  attributeChangedCallback() runs after the attribute has been set. There is
-//  no preventing it. #revert() restores the previous, valid value.
+//  no preventing it. For numeric attributes, #revert() restores the previous,
+//  valid value. Validation of string values is left to the DOM.
     attributeChangedCallback(name, _, val) {
-        if (name in this.#attrs) {
+        let isResize, isUpdate;
+        if (name in this.#attrs) {  // numeric attributes
             const n = this.#toNumber(val);
-            if (Number.isNaN(n)) {         // null and "" are not valid values
-                this.#revert(name, val);   // you can't remove these attributes
-                return;
+            if (Number.isNaN(n) && name != STEP) {
+                this.#revert(name, val);    // null and "" are not valid values
+                return;                     // you can't remove these attributes
             } //-----------
             switch (name) {
-            case STEP:      // can't be zero
-                n ? this.#accept(name, n)
-                  : this.#revert(name, val);
+            case STEP:
+                if (val === null)
+                    this.#attrs[STEP] = this.#autoStep(this.#attrs[DIGITS]);
+                else if (n)
+                    this.#accept(name, n);
+                else                        // can't be zero
+                    this.#revert(name, val);
                 return;
-            case DIGITS:    // runs twice if #revert(), but simpler
+            //----------
+            case DIGITS:            // runs twice if #revert(), but simpler
+                isResize = true;
+                isUpdate = true;
                 this.#input.inputMode = n ? "decimal" : "numeric";
                 this.#locale.maximumFractionDigits = n;
                 this.#locale.minimumFractionDigits = n;
+                if (this.getAttribute(STEP) === null)   // auto-step default
+                    this.#attrs[STEP] = this.#autoStep(n);
             case DELAY: case INTERVAL:
                 n >= minimums[name]
                 ? this.#accept(name, n)
                 : this.#revert(name, val);
-                return;
-            default:        // clamp it
-                if (n > this.max && name != MAX)
+                break;
+            default:                // VALUE, MAX, MIN
+                const
+                isMax = (name == MAX),
+                isMin = (name == MIN);
+                isResize = isMax || isMin;
+                isUpdate = !isResize && !this.#isBlurring;
+
+                if      (!isMax && n > this.max)        // clamp it
                     this.setAttribute(name, this.getAttribute(MAX));
-                else if (n < this.min && name != MIN)
+                else if (!isMin && n < this.min)
                     this.setAttribute(name, this.getAttribute(MIN));
-                else {      // accept it
-                    this.#accept(name, n);
-                    if (name == VALUE && !this.#isBlurring && !this.#isLoading)
-                        this.#input.value = this.#getText(this.#hasFocus);
-                    else if ((name == MAX && n < this.value)
-                          || (name == MIN && n > this.value))
-                        this.setAttribute(VALUE, n); // clamp VALUE
+                else {
+                    this.#accept(name, n);              // accept it
+                    if (!this.#isLoading && (isMax && n < this.value
+                                          || isMin && n > this.value))
+                        this.setAttribute(VALUE, n);    // clamp VALUE
                 }
             }
         }
-        else {
+        else {                      // string and boolean attributes:
+            isResize = true;
+            isUpdate = true;
             switch(name) {
-            case AUTO_SIZE:
-                if (!this.#isLoading)
-                    this.#autoSize();
-                return;
-            case NOTATION:
+            case NOTATION:                  // string
                 this.#locale.notation = val ?? undefined;
-                return;
-            case CURRENCY:
+                break;
+            case CURRENCY:                  // string
                 this.#locale.currency = val ?? undefined;
                 this.#locale.style    = val ? "currency" : undefined;
-                return;
-            case ACCOUNTING:
+                break;
+            case ACCOUNTING:                // bool
                 this.#locale.currencySign = (val !== null)
                                           ? "accounting" : undefined;
-                return;
-            default:
+            case LOCALE: case UNITS:        // strings
+                break;
+            case NO_CONFIRM: case NO_SPIN:  // bools
+            case NO_WIDTH:   case NO_ALIGN: case NO_SCALE:
+                isUpdate = false;
+                break;
+            default:                // handled by BaseElement
                 super.attributeChangedCallback(name, _, val);
+                return;
+            } //-------
+        }
+        if (!this.#isLoading) {
+            if (isResize)
+                this.resize();
+            if (isUpdate) {
+                const b = this.#hasFocus;
+                this.#input.value = this.#getText(b, !b);
             }
         }
     }
@@ -157,62 +202,19 @@ class NumberInput extends BaseElement {
     }
     #revert(name, val) {
         this.setAttribute(name, this.#attrs[name]);
-        console.info(`${val} is not a valid value for the ${name} attribute.`);
+        console.info(val === null ? val : `"${val}"`,
+                     `is not a valid value for the ${name} attribute.`);
     }
-// =============================================================================
-//  #autoSize() calculates the correct width and applies it to this.#input
-    #autoSize() {
-        if (this.max == Infinity || this.min == -Infinity) {
-            console.info("auto-size is only available for non-infinite min and max values.");
-            this._setBool(AUTO_SIZE, false);
-            return;
-        } //-------------------------------------------
-        let elm, id, svg;
-        const
-        px    = "px",
-        width = {},
-        font  = getComputedStyle(this.#input).fontFamily;
-                            // setup elements and calculate widths
-        for (id of [UNITS, MAX, MIN]) {
-            elm = this._dom.getElementById(id);
-            elm.style.fontFamily = font;
-            elm.innerHTML = this.#formatNumber(this[id]) ?? this.units;
-            width[id]     = elm.getBoundingClientRect().width;
-        }
-        if (this.spins || this.confirms)
-            svg = this.#svg.getBoundingClientRect().width;
-        else {
-            svg = 0;        // no spinning, no confirming = no buttons
-            this.#svg.style.display = "none";
-        }
-        const               // the rest of the sub-values
-        chars = Math.max(width[MAX], width[MIN]), // text width w/o units
-        extra = Math.max(svg, width[UNITS]),      // the rest of the width
-        diff  = Math.max(0, svg - width[UNITS]),  // only if svg > width[UNITS]
-        right = parseFloat(getComputedStyle(this.#input).paddingLeft); //!!mirrored, can't set it externally!!Chrome bug??
-
-        this.#blurry = {    // properties assigned to #input for each state
-            width:        (chars + extra - diff) + px,
-            paddingRight: (diff  + right) + px,
-            textAlign:    "right"
-        }
-        this.#hovering = {
-            width:         chars + px,
-            paddingRight: (extra + right) + px,
-            textAlign:    "right"
-        }
-        this.#focused = {
-            width:        (chars + extra) + px,
-            paddingRight:  right + px,
-            textAlign:    "left"
-        }                   // initial state = blurry
-        Object.assign(this.#input.style, this.#blurry);
+    #autoStep(digits) { // using min/max to auto-step integers would be cool if
+        return 1 / Math.pow(10, digits);  // you could ever make sense of it...
     }
 //==============================================================================
 //  Getters/setters reflect the HTML attributes, see attributeChangedCallback()
-    get autoSize()   { return  this.hasAttribute(AUTO_SIZE);  } // booleans:
-    get spins()      { return !this.hasAttribute(NO_SPIN);    }
+    get spins()      { return !this.hasAttribute(NO_SPIN);    } // booleans:
     get confirms()   { return !this.hasAttribute(NO_CONFIRM); }
+    get autoWidth()  { return !this.hasAttribute(NO_WIDTH);   }
+    get autoAlign()  { return !this.hasAttribute(NO_ALIGN);   }
+    get autoScale()  { return !this.hasAttribute(NO_SCALE);   }
     get accounting() { return  this.hasAttribute(ACCOUNTING); }
     get useLocale()  { return  this.hasAttribute(LOCALE);     } // read-only
 
@@ -229,32 +231,42 @@ class NumberInput extends BaseElement {
     get delay()    { return this.#attrs[DELAY];    }
     get interval() { return this.#attrs[INTERVAL]; }
 
-    set autoSize  (val) { this._setBool(AUTO_SIZE,   val); }    // booleans:
-    set spins     (val) { this._setBool(NO_SPIN,    !val); }
+    set spins     (val) { this._setBool(NO_SPIN,    !val); }    // booleans:
     set confirms  (val) { this._setBool(NO_CONFIRM, !val); }
+    set autoWidth (val) { this._setBool(NO_WIDTH,   !val); }
+    set autoAlign (val) { this._setBool(NO_ALIGN,   !val); }
+    set autoScale (val) { this._setBool(NO_SCALE,   !val); }
     set accounting(val) { this._setBool(ACCOUNTING,  val); }
 
-    set units   (val) { this.setAttribute(UNITS,    val); }     // strings:
-    set locale  (val) { this.setAttribute(LOCALE,   val); }
-    set currency(val) { this.setAttribute(CURRENCY, val); }
+    set units   (val) { this.#setRemove(UNITS,    val); }       // strings:
+    set locale  (val) { this.#setRemove(LOCALE,   val); }
+    set currency(val) { this.#setRemove(CURRENCY, val); }
+
     set value   (val) { this.setAttribute(VALUE,    val); }     // numbers:
     set digits  (val) { this.setAttribute(DIGITS,   val); }
     set max     (val) { this.setAttribute(MAX,      val); }
     set min     (val) { this.setAttribute(MIN,      val); }
-    set step    (val) { this.setAttribute(STEP,     val); }
+    set step    (val) { this.#setRemove  (STEP,     val); }
     set delay   (val) { this.setAttribute(DELAY,    val); }
     set interval(val) { this.setAttribute(INTERVAL, val); }
+
+//  #setRemove() is for non-boolean attributes that can be removed
+    #setRemove(attr, val) {
+        val === null || val === undefined
+        ? this.removeAttribute(attr)
+        : this.setAttribute(attr, val);
+    }
 //==============================================================================
 //  Event handlers
 //  target is this:
-    #enter() {
-        Object.assign(this.#input.style, this.#hovering);
+    #enter(evt) {
+        this.#assignCSS(evt.type);
         this.#input.value = this.#getText(false);
         if (this.spins)
             this.#showCtrls(true);
     }
-    #leave() {
-        Object.assign(this.#input.style, this.#blurry);
+    #leave(evt) {
+        this.#assignCSS(evt.type);
         this.#input.value = this.#getText(false, true);
         this.#showCtrls(false);
     }
@@ -263,7 +275,7 @@ class NumberInput extends BaseElement {
         if (this.#isBlurry || evt.relatedTarget === this)
             return;
         //---------------------------------------------
-        Object.assign(this.#input.style, this.#blurry);
+        this.#assignCSS(evt.type);
         this.#showCtrls (false);
         this.#swapEvents(true);
         this.#input.value = this.#getText(false, true);
@@ -271,10 +283,10 @@ class NumberInput extends BaseElement {
         this._setHref("#spinner-idle");
         this.classList.remove("NaN");
     }
-    #focus() {
+    #focus(evt) {
         if (this.#isBlurry || this.#isMousing) return;
         //----------------------------------------------
-        Object.assign(this.#input.style, this.#focused);
+        this.#assignCSS(evt.type);
         this.#showCtrls (false);
         this.#swapEvents(false);
         this.#input.value = this.#attrs[VALUE].toFixed(this.digits);
@@ -284,16 +296,16 @@ class NumberInput extends BaseElement {
     #swapEvents(b) {
         let elm;
         for (elm of this.#btns) {
-            this.#toggleEvent(mouse.down,   b, elm);
-            this.#toggleEvent(mouse.up,     b, elm);
-            this.#toggleEvent(mouse.click, !b, elm);
+            this.#toggleEvent(event.down,   b, elm);
+            this.#toggleEvent(event.up,     b, elm);
+            this.#toggleEvent(event.click, !b, elm);
         }
         elm = this.#input;
-        this.#toggleEvent(mouse.down, b, elm);
-        this.#toggleEvent(mouse.up,   b, elm);
+        this.#toggleEvent(event.down, b, elm);
+        this.#toggleEvent(event.up,   b, elm);
 
-        this.#toggleEvent(mouse.enter, b, this.#enter);
-        this.#toggleEvent(mouse.leave, b, this.#leave);
+        this.#toggleEvent(event.enter, b, this.#enter);
+        this.#toggleEvent(event.leave, b, this.#leave);
     }
     #toggleEvent(type, b, elmer) {  // helps #swapEvents only
         const func = b ? "addEventListener"
@@ -328,8 +340,8 @@ class NumberInput extends BaseElement {
                 match = obj.str.match(/[^\d-.eE]/g);
                 range.push(obj.num - (match ? match.length : 0))
             }
-            this.#isMousing = false;  // let this.#focus() do it's thing
-            this.#focus();            // it already has the focus
+            this.#isMousing = false;         // let this.#focus() do it's thing,
+            this.#focus({type:event.focus}); // it already has the focus
             if (this.accounting && val[0] == "(")
                 ++range[0];
             input.setSelectionRange(range[0], range[0] + range[1], dir);
@@ -451,16 +463,100 @@ class NumberInput extends BaseElement {
     }
 // this.#isSpinning gives it a name.
     get #isSpinning() { return this.#spinId !== null; }
-//==============================================================================
-// Miscellaneous
-// this.#hasFocus returns true if #input has the focus
-    get #hasFocus() { return this.#input === this._dom.activeElement; }
-//  could be written: return Boolean(this._dom.activeElement);
+// =============================================================================
+//  resize() calculates the correct width and applies it to this.#input
+    resize() {
+        let chars, diff, extra, id, isItalic, svg;
+        const
+        px = "px",
+        W  = "width",
+        PR = "padding-right",
+        TA = "text-align",
+        states  = this.#states,
+        isAlign = this.autoAlign,
+        isWidth = this.max < Infinity && this.min > -Infinity
+                ? this.autoWidth
+                : false;    // can't auto-size infinite min or max value
 
-//  #showCtrls() shows or hides the spin or confirm buttons
-    #showCtrls(b) {
-        this.#controls.style.visibility = b ? "visible" : "hidden";
+        if (this.spins || this.confirms) {
+            this.#svg.style.height = this.autoScale
+                                   ? this.clientHeight + px
+                                   : "";
+            svg = this.#svg.getBoundingClientRect().width;
+        }
+        else {
+            svg = 0;        // no spinning, no confirming = no buttons
+            this.#svg.style.display = "none";
+        }
+        if (isWidth || isAlign) {
+            let id, prop, txt, type;
+            const
+            style = getComputedStyle(this.#input),
+            width = {};
+            for (txt of this.#texts) {
+                id = txt.id;
+                txt.innerHTML = this.#formatNumber(this[id]) ?? this.units;
+                for (type of ["family","size","weight","style","stretch",
+                              "font-size-adjust","font-kerning"]) {
+                    prop = "font-" + type;
+                    txt.style[prop] = style[prop];
+                }
+                width[id] = txt.getBBox().width;
+            }
+            chars = Math.max(width[MAX], width[MIN]); // text width w/o units
+            extra = Math.max(svg, width[UNITS]);      // the rest of the width
+            diff  = Math.max(0, svg - width[UNITS]);  // only if svg > width[UNITS]
+            isItalic = style.fontStyle == "italic";
+        }
+
+        if (isWidth) {
+            const obj = {
+                [event.blur] : chars + extra - diff,
+                [event.focus]: chars + extra,
+                [event.enter]: chars
+            }
+            if (isItalic)            // ...does anyone use italics for input??
+                for (id in obj)
+                    obj[id] = this.#roundEven(obj[id]);
+
+            for (id in obj)
+                states[id][W] = obj[id] + px;
+        }
+        else
+            for (id of resizeEvents)
+                states[id][W] = "";
+
+        if (isAlign) {
+            states[event.blur] [PR] = this.#padRight + diff  + px;
+            states[event.focus][PR] = this.#padRight + px;
+            states[event.enter][PR] = this.#padRight + extra + px;
+            states[event.blur] [TA] = "right";
+            states[event.focus][TA] = "left";
+            states[event.enter][TA] = "right";
+        }
+        else {
+            for (id of resizeEvents) {
+                states[id][PR] = "";
+                states[id][TA] = "";
+            }
+        }
+        this.#assignCSS(event.blur); // assumes #input not focused or hovering!!
     }
+//  #roundEven() is because italics can truncate slightly when right-aligned,
+//               and rounding the width to the nearest even number reduces it.
+    #roundEven(n) {
+        const
+        floor = Math.floor(n),
+        ceil  = Math.ceil(n);
+        return (floor % 2 ? ceil : floor);
+    }
+//  #assignCSS() is necessary because overriding ::part requires "important"
+    #assignCSS(type) {
+        const style = this.#input.style;
+        for (const [prop, val] of Object.entries(this.#states[type]))
+            style.setProperty(prop, val, "important");
+    }
+//==============================================================================
 //  #getText() gets the appropriate text for the #input
     #getText(hasFocus, appendUnits) {
         const n = this.#attrs[VALUE];
@@ -471,7 +567,7 @@ class NumberInput extends BaseElement {
     }
 //  #formatNumber() formats a number for display as text
     #formatNumber(n) {
-        if (n === undefined) return;  // helps #autoSize()
+        if (n === undefined) return;  // helps resize()
         //-----------------------------------------------------
         return this.useLocale
              ? new Intl.NumberFormat(this.locale, this.#locale)
@@ -482,6 +578,11 @@ class NumberInput extends BaseElement {
     #toNumber(str) {                    // parseFloat() is too lenient
         return str ? Number(str) : NaN; // Number() converts "" and null to 0
     }
+//==============================================================================
+//  #showCtrls() shows or hides the spin or confirm buttons
+    #showCtrls(b) {
+        this.#controls.style.visibility = b ? "visible" : "hidden";
+    }
 //  #addEvent() is a convenience
     #addEvent(type, func, elm) {
         if (elm)
@@ -490,7 +591,12 @@ class NumberInput extends BaseElement {
             elm = this;
         elm.addEventListener(type, func);
     }
-//!!this.blur() doesn't work in Chrome (elsewhere?) when _dom.activeElement === null
+//==============================================================================
+// this.#hasFocus returns true if #input has the focus
+    get #hasFocus() { return this.#input === this._dom.activeElement; }
+//  could be written: return Boolean(this._dom.activeElement);
+
+//!! this.blur() doesn't work in Chrome (elsewhere?) when _dom.activeElement === null
     #blurMe(b = true) {
         this.#isBlurry = b;
         this.#input.focus();
