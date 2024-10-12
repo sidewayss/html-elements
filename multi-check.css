@@ -5,6 +5,7 @@
   --medium-gray:  #777;
 }
 check-box, check-tri {
+  font-family:inherit;
   cursor:default;
   fill-opacity:0;
   fill:  white;

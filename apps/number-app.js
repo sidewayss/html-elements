@@ -7,11 +7,9 @@ spinner = [];
 document.addEventListener("DOMContentLoaded", load);
 function load() {
   let btn, f, i, n;
-  const
-  promises   = [],
-  rules      = document.styleSheets[0].cssRules;  // only used by next line
-  inStyle    = rules[rules.length - 1].style;     // in-number::part(input)
+  const promises = [];
   inNum      = document.getElementById("number"); // the <in-number>
+  inStyle    = inNum.style;     // in-number::part(input)
   userLocale = navigator.language;
 
   // Async processes // forEach maintains the value of key in fetch.then():

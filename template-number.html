@@ -2,14 +2,19 @@
   <body>
     <template id="template-number"> <!-- the <number-in> template -->
       <style>
-        input, span {
-          font-size:1rem;
+        input {
+          font:inherit;
+          font-kerning:inherit;
+          font-size-adjust:inherit;
+          font-synthesis:inherit;
+          font-optical-sizing:inherit;
+          font-palette:inherit;
         }
         svg {
           pointer-events:none;
           height:1.375rem;
           width: auto;
-          margin-left:-1rem;   /* offsets width */
+          margin-left:-1rem; /* offsets width */
       /* position:relative;
           left: -1rem;
           margin-right:-1rem; */
@@ -22,13 +27,14 @@
         rect, use {
           stroke:none;
           width: 1rem;
-          height:1.375rem;     /* 22px */
+          height:1.375rem;  /* 22px */
         }
-        rect.idle {
-          fill:#E7E7E7;
-        }
-        rect.hover {
-          fill:#EEE;
+        rect.idle  { fill:#E7E7E7 }
+        rect.hover { fill:#EEE }
+        .events {
+          pointer-events:visible;
+          fill:none;
+          height:0.6875rem; /* 11px */
         }
         .arrow-idle {
           stroke:#333;
@@ -38,74 +44,117 @@
           stroke:#111;
           stroke-width:0.0625rem;
         }
-        .events {
-          pointer-events:visible;
-          fill:none;
-          height:0.6875rem;     /* 11px */
-        }
-        #controls {
-          visibility:hidden;    /* initial state*/
-        }
-        text {
-          visibility:hidden;    /* permanent state*/
-        }
+        /* visibility, vs display, lets #controls capture
+           events, and it's less prone to screen glitches.
+           It requires the negative margin set above. */
+        #controls { visibility:hidden } /* initial   state */
+        text      { visibility:hidden } /* permanent state */
       </style>
       <!--------------------------------------------------------------->
       <div style="display:flex; align-items:center;">
         <input part="input" id="input" type="text" inputmode="numeric"/>
         <svg part="buttons" viewbox="0 0 16 22">
-          <defs><!-------------->
+          <defs>
+            <!-- spinner buttons: up and down -->
             <g id="spinner-idle">
               <rect class="idle"/>
               <path class="arrow-idle"  d="M4.5, 9 L8.5, 4 12.5, 9"/>
               <path class="arrow-idle"  d="M4.5,13 L8.5,18 12.5,13"/>
             </g>
+            <!---------------------->
             <g id="spinner-hover-up">
               <rect class="hover"/>
               <path class="arrow-hover" d="M4.5, 8 L8.5, 3 12.5, 8"/>
               <path class="arrow-idle"  d="M4.5,13 L8.5,18 12.5,13"/>
             </g>
-            <g id="spinner-hover-dn">
+            <g id="spinner-active-up">
+              <rect class="hover"/>
+              <path class="arrow-hover" d="M4.5, 7 L8.5, 2 12.5, 8"/>
+              <path class="arrow-idle"  d="M4.5,13 L8.5,18 12.5,13"/>
+            </g>
+            <g id="spinner-active-upper">
+              <rect class="hover"/>
+              <path class="arrow-hover" d="M4.5, 6 L8.5, 1 12.5, 8"/>
+              <path class="arrow-idle"  d="M4.5,13 L8.5,18 12.5,13"/>
+            </g>
+            <!------------------------>
+            <g id="spinner-hover-down">
               <rect class="hover"/>
               <path class="arrow-idle"  d="M4.5, 9 L8.5, 4 12.5, 9"/>
               <path class="arrow-hover" d="M4.5,14 L8.5,19 12.5,14"/>
             </g>
-            <!------------------>
-            <g id="confirm-idle"> <!-- empty avoids the possibility of errors -->
+            <g id="spinner-active-down">
+              <rect class="hover"/>
+              <path class="arrow-idle"  d="M4.5, 9 L8.5, 4 12.5, 9"/>
+              <path class="arrow-hover" d="M4.5,15 L8.5,20 12.5,15"/>
+            </g>
+            <g id="spinner-active-downer">
+              <rect class="hover"/>
+              <path class="arrow-idle"  d="M4.5, 9 L8.5, 4 12.5, 9"/>
+              <path class="arrow-hover" d="M4.5,16 L8.5,21 12.5,16"/>
+            </g>
+            <!-- confirm buttons: ok and cancel -->
+            <g id="confirm-idle">
+              <rect class="idle"/>
+              <path d="M6,6 L8.5,8.5 12.5,2" stroke="black"/>
+              <path d="M6,13.5 L12,19.5 M12,13.5 L6,19.5" stroke="black"/>
             </g>
             <g id="confirm-hover-up">
               <rect class="hover"/>
               <path d="M6,6 L8.5,8.5 12.5,2" stroke="green"/>
               <path d="M6,13.5 L12,19.5 M12,13.5 L6,19.5" stroke="darkred"/>
             </g>
-            <g id="confirm-hover-dn">
+            <g id="confirm-active-up">
+              <rect class="hover"/>
+              <path d="M6,6 L8.5,8.5 12.5,2" stroke="green"/>
+              <path d="M6,13.5 L12,19.5 M12,13.5 L6,19.5" stroke="darkred"/>
+            </g>
+            <g id="confirm-hover-down">
               <rect class="hover"/>
               <path d="M6,6 L8.5,8.5 12.5,2" stroke="darkgreen"/>
               <path d="M6,13.5 L12,19.5 M12,13.5 L6,19.5" stroke="red"/>
             </g>
-            <!----------------->
+            <g id="confirm-active-down">
+              <rect class="hover"/>
+              <path d="M6,6 L8.5,8.5 12.5,2" stroke="darkgreen"/>
+              <path d="M6,13.5 L12,19.5 M12,13.5 L6,19.5" stroke="red"/>
+            </g>
+            <!-- cancel-only buttons for when ok is disabled -->
             <g id="cancel-idle">
+              <rect class="idle"/>
+              <path d="M6,6 L8.5,8.5 12.5,2" stroke="black"/>
+              <path d="M6,13.5 L12,19.5 M12,13.5 L6,19.5" stroke="black"/>
             </g>
             <g id="cancel-hover-up">
               <rect class="hover"/>
               <path d="M6,6 L8.5,8.5 12.5,2" stroke="darkgray"/>
               <path d="M6,13.5 L12,19.5 M12,13.5 L6,19.5" stroke="darkred"/>
             </g>
-            <g id="cancel-hover-dn">
+            <g id="cancel-active-up">
+              <rect class="hover"/>
+              <path d="M6,6 L8.5,8.5 12.5,2" stroke="darkgray"/>
+              <path d="M6,13.5 L12,19.5 M12,13.5 L6,19.5" stroke="darkred"/>
+            </g>
+            <g id="cancel-hover-down">
+              <rect class="hover"/>
+              <path d="M6,6 L8.5,8.5 12.5,2" stroke="darkgray"/>
+              <path d="M6,13.5 L12,19.5 M12,13.5 L6,19.5" stroke="red"/>
+            </g>
+            <g id="cancel-active-down">
               <rect class="hover"/>
               <path d="M6,6 L8.5,8.5 12.5,2" stroke="darkgray"/>
               <path d="M6,13.5 L12,19.5 M12,13.5 L6,19.5" stroke="red"/>
             </g>
           </defs>
-          <!--------------------------------------------------------------->
+          <!----------------------------------------------------------------->
           <g id="controls">
-            <use href="#spinner-idle"/>   <!-- initial state -->
+            <use href="#spinner-idle"/>     <!-- initial state -->
             <polyline part="border" points="0.5,0 0.5,22"/>
           </g>
-          <rect id="up" class="events"/>  <!-- invisible event catchers  -->
-          <rect id="dn" class="events" y="11"/>
+          <rect id="up"   class="events"/>  <!-- invisible event catchers  -->
+          <rect id="down" class="events" y="11"/>
           <!------------------->
-          <text id="max"></text>          <!-- invisible width measurers -->
+          <text id="max"></text>            <!-- invisible width measurers -->
           <text id="min"></text>
           <text id="data-units"></text>
         </svg>

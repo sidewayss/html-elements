@@ -52,7 +52,7 @@ class NumberInput extends BaseElement {
         [DELAY]:  500,
         [INTERVAL]:33      // ~2 frames at 60fps
     };
-    #attrs; #bound; #btns; #controls; #input; #isBlurring; #isLoading;
+    #attrs; #bound; #btns; #controls; #erId; #input; #isBlurring; #isLoading;
     #isMousing; #padRight; #spinId; #states; #svg; #texts;
 
     #isBlurry;             // a kludge for this._dom.activeElement === null
@@ -262,7 +262,7 @@ class NumberInput extends BaseElement {
     #enter(evt) {
         this.#assignCSS(evt.type);
         this.#input.value = this.#getText(false);
-        if (this.spins)
+        if (this.spins || this.confirms)
             this.#showCtrls(true);
     }
     #leave(evt) {
@@ -272,9 +272,8 @@ class NumberInput extends BaseElement {
     }
 //  target is #input:
     #blur(evt) {
-        if (this.#isBlurry || evt.relatedTarget === this)
-            return;
-        //---------------------------------------------
+        if (this.#isBlurry || evt.relatedTarget === this) return;
+        //------------------------
         this.#assignCSS(evt.type);
         this.#showCtrls (false);
         this.#swapEvents(true);
@@ -303,9 +302,6 @@ class NumberInput extends BaseElement {
         elm = this.#input;
         this.#toggleEvent(event.down, b, elm);
         this.#toggleEvent(event.up,   b, elm);
-
-        this.#toggleEvent(event.enter, b, this.#enter);
-        this.#toggleEvent(event.leave, b, this.#leave);
     }
     #toggleEvent(type, b, elmer) {  // helps #swapEvents only
         const func = b ? "addEventListener"
@@ -351,8 +347,9 @@ class NumberInput extends BaseElement {
     }
 //  target is up or down <rect>:
     #mouseEnter(evt) {
-        let name;
         const id = evt.target.id;
+        let name,
+        state = "hover";
         if (this.#hasFocus) {
             if (this.confirms) {
                 name = this.#input.classList.contains("NaN")
@@ -364,21 +361,23 @@ class NumberInput extends BaseElement {
         else if (this.spins) {
             name = "spinner";
             this.#input.value = this.#getText(this.#hasFocus);
-            if (this.#isSpinning && this.#btns.includes(evt.relatedTarget)) {
-                this.#spin();                   // cancel current spin
+            if (this.#isSpinning) {
+                state = "active";
                 this.#spin(false, id == "up");  // spin without delay
             }
         }
-        this._setHref(`#${name}-hover-${id}`);  // might not be visible
+        this._setHref(`#${name}-${state}-${id}`);
     }
-    #mouseLeave(evt) {
+    #mouseLeave(evt) { // doesn't bother to test (!this.spins && !this.confirms)
+        let name;      // doesn't bother to test relatedTarget here either
         if (this.#hasFocus)
-            this.#showCtrls(false);
-        else if (!this.#btns.includes(evt.relatedTarget)) {
-            this.#spin();                        // cancel spin
-            if (evt.relatedTarget?.id == "input")
-                this._setHref("#spinner-idle");
+            name = "confirm";
+        else {
+            name = "spinner";
+            this.#spin();                       // cancel spin
         }
+        if (evt.relatedTarget?.id == "input")
+            this._setHref(`#${name}-idle`);
     }
     #click(evt) {
         if (evt.target.id == "up") {
@@ -442,6 +441,9 @@ class NumberInput extends BaseElement {
             if (this.#isSpinning) {
                 clearInterval(this.#spinId); // interchangeable w/clearTimeout()
                 this.#spinId = null;
+                clearTimeout(this.#erId);    // it can happen...
+                this.#erId = null;
+                this._setHref(`#spinner-hover-${isUp ? "up" : "down"}`);
             }
         }
         else {                               // spin:
@@ -450,15 +452,24 @@ class NumberInput extends BaseElement {
                 const n = val + (this.#attrs[STEP] * (isUp ? 1 : -1));
                 this.#attrs[VALUE] = Math.max(this.min, Math.min(this.max, n));
                 this.#input.value  = this.#getText(false);  // #input w/focus doesn't spin
-                this.dispatchEvent(new Event("change"));
-                if (state)
-                    this.#spinId = setTimeout (this.#spin.bind(this), this.delay,   false, isUp);
+                this.dispatchEvent(new Event("change"));    // for client event listener
+                if (state) {
+                    const
+                    pre   = "#spinner-active-",
+                    now   = `${pre}${isUp ? "up"    : "down"}`,
+                    later = `${pre}${isUp ? "upper" : "downer"}`;
+
+                    this._setHref(now);
+                    this.#erId = setTimeout(this._setHref.bind(this), this.delay, later);
+
+                    this.#spinId = setTimeout (this.#spin.bind(this), this.delay, false, isUp);
+                }
                 else if (state === false)
                     this.#spinId = setInterval(this.#spin.bind(this), this.interval, null, isUp);
                 // else  state === null
             }   // let #spinId persist past expiration, see #mouseEnter()
-            if (!this.#isSpinning)  // in case user spins already clamped
-                this.#spinId = -1;  // value, then toggles up|down.
+            if (!this.#isSpinning)  // keeps #isSpinning true if user spins
+                this.#spinId = -1;  // clamped value, then toggles up|down.
         }
     }
 // this.#isSpinning gives it a name.
@@ -466,60 +477,62 @@ class NumberInput extends BaseElement {
 // =============================================================================
 //  resize() calculates the correct width and applies it to this.#input
     resize() {
-        let chars, diff, extra, id, isItalic, svg;
+        let chars, diff, extra, id, isItalic, prop, style;
         const
         px = "px",
         W  = "width",
         PR = "padding-right",
         TA = "text-align",
+        width   = {},
         states  = this.#states,
         isAlign = this.autoAlign,
         isWidth = this.max < Infinity && this.min > -Infinity
                 ? this.autoWidth
-                : false;    // can't auto-size infinite min or max value
+                : false;            // can't auto-size infinite min or max value
 
+        style = this.#svg.style;
         if (this.spins || this.confirms) {
-            if (this.autoScale) {      // auto lets this.clientHeight adjust
-                this.#svg.style.height = "auto";
-                this.#svg.style.height = this.clientHeight + px;
+            if (this.autoScale) {   // auto lets this.clientHeight adjust
+                style.height = "auto";
+                style.height = this.clientHeight + px;
             }
             else
-                this.#svg.style.height = "";
+                for (prop of ["height", "margin-left"])
+                    style.removeProperty(prop);
 
-            svg = this.#svg.getBoundingClientRect().width;
+            width.svg = this.#svg.getBoundingClientRect().width;
+            if (this.autoScale)     // I don't trust this to work at -1em...
+                style.marginLeft = -width.svg;
         }
         else {
-            svg = 0;        // no spinning, no confirming = no buttons
-            this.#svg.style.display = "none";
+            width.svg  = 0;         // no spinning, no confirming = no buttons
+            style.display = "none";
         }
         if (isWidth || isAlign) {
-            let id, prop, txt, type;
-            const
-            style = getComputedStyle(this.#input),
-            width = {};
+            let txt, type;
+            style = getComputedStyle(this.#input);
             for (txt of this.#texts) {
                 id = txt.id;
                 txt.innerHTML = this.#formatNumber(this[id]) ?? this.units;
-                for (type of ["family","size","weight","style","stretch",
-                              "font-size-adjust","font-kerning"]) {
-                    prop = "font-" + type;
+                for (type of ["","-kerning","-size-adjust","-synthesis",
+                              "-optical-sizing",-"palette"]) {
+                    prop = "font" + type;
                     txt.style[prop] = style[prop];
                 }
                 width[id] = txt.getBBox().width;
             }
-            chars = Math.max(width[MAX], width[MIN]); // text width w/o units
-            extra = Math.max(svg, width[UNITS]);      // the rest of the width
-            diff  = Math.max(0, svg - width[UNITS]);  // only if svg > width[UNITS]
-            isItalic = style.fontStyle == "italic";
+            chars = Math.max(width[MAX], width[MIN]);      // text width w/o units
+            extra = Math.max(width.svg,  width[UNITS]);    // the rest of the width
+            diff  = Math.max(0, width.svg - width[UNITS]); // 0 < width[UNITS] < svg
+            isItalic = (style.fontStyle == "italic");
         }
-
         if (isWidth) {
             const obj = {
                 [event.blur] : chars + extra - diff,
                 [event.focus]: chars + extra,
                 [event.enter]: chars
             }
-            if (isItalic)            // ...does anyone use italics for input??
+            if (isItalic)            // ...does anyone use italics for number input??
                 for (id in obj)
                     obj[id] = this.#roundEven(obj[id]);
 
@@ -547,15 +560,16 @@ class NumberInput extends BaseElement {
         this.#assignCSS(event.blur); // assumes #input not focused or hovering!!
     }
 //  #roundEven() is because italics can truncate slightly when right-aligned,
-//               and rounding the width to the nearest even number reduces it.
+//               depending on the font-family and font-size. Rounding the width
+//               to the nearest even number of px reduces the truncation. Why???
     #roundEven(n) {
         const
         floor = Math.floor(n),
         ceil  = Math.ceil(n);
-        return (floor % 2 ? ceil : floor);
+        return floor % 2 ? ceil : floor;
     }
 //  #assignCSS() is necessary because overriding ::part requires "important"
-    #assignCSS(type) {
+    #assignCSS(type) { // only used for width, padding-right, and text-align
         const style = this.#input.style;
         for (const [prop, val] of Object.entries(this.#states[type]))
             style.setProperty(prop, val, "important");
