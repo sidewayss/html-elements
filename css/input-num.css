@@ -1,34 +1,34 @@
-  in-number {
+  input-num {
     font-family:inherit;
     background-color:white; /* for .beep background opacity < 1*/
     border: 0.0625rem solid #0002;
     outline:none;
   }
-  in-number:hover:not(:focus) {
+  input-num:hover:not(:focus) {
     border-color: #999;
   }
-  in-number:focus {
+  input-num:focus {
     border-color: #111;
   }
-  in-number.NaN:focus {
+  input-num.NaN:focus {
     border-color:#C00;
   }
-  in-number.beep:focus {
+  input-num.beep:focus {
     filter:blur(0.5px);
   }
-  in-number.NaN:focus::part(input) {           /* lavenderblush */
+  input-num.NaN:focus::part(input) {           /* lavenderblush */
     background-color:rgb(255 240 245 / 0.5); /* background-opacity does not exist */
   }
-  in-number.beep:focus::part(input) {
+  input-num.beep:focus::part(input) {
     background-color:rgb(255 240 245 / 0.25);
     color:#A02;
   }
-  in-number::part(border) {   /* left border of controls */
+  input-num::part(border) {   /* left border of controls */
     stroke:#0002;           /* matches element border  */
     stroke-width:0.0625rem;
   }
-  in-number::part(input) {    /* last so apps/number-app.js can find it easily */
-    border:       none;       /* handled by <in-number> parent */
+  input-num::part(input) {    /* last so apps/number-app.js can find it easily */
+    border:       none;       /* handled by <input-num> parent */
     outline-style:none;       /* initial padding-right is baseline for javascript: */
     padding: 0 0.0625rem 0.0625rem 0.125rem;
     background-color:white; /* same as default, afaik */

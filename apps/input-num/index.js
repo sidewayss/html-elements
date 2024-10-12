@@ -8,8 +8,8 @@ document.addEventListener("DOMContentLoaded", load);
 function load() {
   let btn, f, i, n;
   const promises = [];
-  inNum      = document.getElementById("number"); // the <in-number>
-  inStyle    = inNum.style;     // in-number::part(input)
+  inNum      = document.getElementById("number"); // the <input-num>
+  inStyle    = inNum.style;     // input-num::part(input)
   userLocale = navigator.language;
 
   // Async processes // forEach maintains the value of key in fetch.then():
@@ -19,7 +19,7 @@ function load() {
     promises.push(fetch(key + ".json").then (rsp => loadJSON(rsp, key))
                                       .catch(alert));
   });
-  ["in-number","check-box"].forEach(  // custom element tags
+  ["input-num","check-box"].forEach(  // custom element tags
     key => promises.push(customElements.whenDefined(key))
   );
   Promise.all(promises).then(allResolved);
@@ -231,8 +231,8 @@ function disable(elm, b) {
 function updateText() {
   const ctrls = new Set(attrs);
   let attr, data, elm, prop,
-  pre = "&lt;in-number",
-  suf = "&gt;&lt;/in-number&gt",
+  pre = "&lt;input-num",
+  suf = "&gt;&lt;/input-num&gt",
   js  = "numby = doc.getElementById(id);<br>";
 
   if (!inNum.confirms) {

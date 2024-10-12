@@ -221,6 +221,7 @@ class NumberInput extends BaseElement {
     get units()    { return this.getAttribute(UNITS)  ?? ""; }  // strings:
     get locale()   { return this.getAttribute(LOCALE) || undefined; }
     get currency() { return this.getAttribute(CURRENCY); }
+    get notation() { return this.getAttribute(NOTATION); }
     get text()     { return this.#input.value; }                // read-only
 
     get value()    { return this.#attrs[VALUE];    }            // numbers:
@@ -241,6 +242,7 @@ class NumberInput extends BaseElement {
     set units   (val) { this.#setRemove(UNITS,    val); }       // strings:
     set locale  (val) { this.#setRemove(LOCALE,   val); }
     set currency(val) { this.#setRemove(CURRENCY, val); }
+    set notation(val) { this.#setRemove(NOTATION, val); }
 
     set value   (val) { this.setAttribute(VALUE,    val); }     // numbers:
     set digits  (val) { this.setAttribute(DIGITS,   val); }
@@ -622,4 +624,4 @@ class NumberInput extends BaseElement {
         this.#isBlurry = false;
     }
 }
-customElements.define("in-number", NumberInput);
+customElements.define("input-num", NumberInput);

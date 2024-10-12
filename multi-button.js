@@ -90,4 +90,4 @@ class StateButton extends MultiState {
         }
     }
 }
-customElements.define("state-button", StateButton);
+customElements.define("state-btn", StateButton);
