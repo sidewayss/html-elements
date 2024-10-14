@@ -1,4 +1,4 @@
-let attrs, defaults, html, inNum, inStyle, script, spinners, userLocale;
+let attrs, defaults, html, inNum, script, spinners, userLocale;
 const
 g       = {},
 elms    = {},
@@ -8,8 +8,8 @@ document.addEventListener("DOMContentLoaded", load);
 function load() {
   let btn, f, i, n;
   const promises = [];
+
   inNum      = document.getElementById("number"); // the <input-num>
-  inStyle    = inNum.style;     // input-num::part(input)
   userLocale = navigator.language;
 
   // Async processes // forEach maintains the value of key in fetch.then():
@@ -26,7 +26,9 @@ function load() {
 
   // Initialize elements and related variables
   const fonts = ["monospace","sans-serif","serif",
-                 inStyle.fontFamily.replaceAll(/["']/g, "")];
+                 getComputedStyle(inNum).fontFamily
+                                        .split(",")[0]
+                                        .replaceAll(/["']/g, "")];
   for (f of fonts)
     elms.fontFamily.add(new Option(f));
 
@@ -179,9 +181,10 @@ function change(evt) {
   val = tar.value;
 
   if (id.startsWith("font")) {  // 2 selects and 2 check-boxes
-    inStyle[id] = val === false ? "normal"
-                : val === true  ? (tar === elms.fontWeight ? "bold" : "italic")
-                                : val;
+    inNum.style[id] =
+      val === false ? "normal"
+    : val === true  ? (tar === elms.fontWeight ? "bold" : "italic")
+                    : val;
     inNum.resize();             // font styles are not attributes, no auto-resize
   }
   else {

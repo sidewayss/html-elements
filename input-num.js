@@ -14,16 +14,28 @@ NOTATION   = "data-notation",   // Intl.NumberFormat() options notation property
 CURRENCY   = "data-currency",   // ditto: currency property
                                 // booleans:
 ACCOUNTING = "data-accounting", // {currencySign:"accounting"}
-NO_SPIN    = "data-no-spin",    // hide buttons, no keyboard spinning
+NO_KEYS    = "data-no-keys",    // no keyboard/pad input, only spinning
+NO_SPIN    = "data-no-spin",    // hide spinner, no keyboard spinning
 NO_CONFIRM = "data-no-confirm", // hide confirm/cancel buttons
 NO_SCALE   = "data-no-scale",   // don't scale the buttons to match font size
 NO_WIDTH   = "data-no-width",   // don't auto-size width
 NO_ALIGN   = "data-no-align",   // don't auto-align or auto-pad
+NO_RESIZE  = "data-no-resize",  // don't run resize(), for page load efficiency
+
+NAN   = "NaN",   // class names:
+BEEP  = "beep",
+INPUT = "input", // <input> element id, and coincidentally its tagName
 
 minimums = {
     [DIGITS]:   0,
     [DELAY]:    1,
     [INTERVAL]: 1
+},
+key = {
+    enter: "Enter",
+    escape:"Escape",
+    up:    "ArrowUp",
+    down:  "ArrowDown"
 },
 event = {
     enter:"mouseenter",
@@ -39,10 +51,11 @@ resizeEvents = [event.blur, event.focus, event.enter],
 template = await getTemplate("number");
 // =============================================================================
 class NumberInput extends BaseElement {
-    static observedAttributes = [VALUE, MAX, MIN, STEP, DELAY, INTERVAL, DIGITS,
-                                 UNITS, LOCALE, CURRENCY, ACCOUNTING, NOTATION,
-                                 NO_SPIN, NO_CONFIRM, NO_WIDTH, NO_ALIGN,
-                                 NO_SCALE, ...BaseElement.observedAttributes];
+    static observedAttributes = [
+        VALUE, MAX, MIN, STEP, DELAY, INTERVAL, DIGITS, UNITS, LOCALE, CURRENCY,
+        ACCOUNTING, NOTATION, NO_KEYS, NO_SPIN, NO_CONFIRM, NO_WIDTH, NO_ALIGN,
+        NO_SCALE, ...BaseElement.observedAttributes
+    ];
     static defaults = {
         [VALUE]:  0,       // attribute values as numbers, not strings
         [DIGITS]: 0,       // defaults to integer formatting
@@ -53,7 +66,7 @@ class NumberInput extends BaseElement {
         [INTERVAL]:33      // ~2 frames at 60fps
     };
     #attrs; #bound; #btns; #controls; #erId; #input; #isBlurring; #isLoading;
-    #isMousing; #padRight; #spinId; #states; #svg; #texts;
+    #isMousing; #padRight; #spinId; #states; #svg; #texts; #validate;
 
     #isBlurry;             // a kludge for this._dom.activeElement === null
     #locale = {currencyDisplay:"narrowSymbol"};
@@ -67,7 +80,7 @@ class NumberInput extends BaseElement {
         this.#addEvent(event.enter, this.#enter);
         this.#addEvent(event.leave, this.#leave);
 
-        this.#input = this._dom.getElementById("input");
+        this.#input = this._dom.getElementById(INPUT);
         this.#addEvent(event.focus, this.#focus, this.#input);
         this.#addEvent(event.blur,  this.#blur , this.#input);
 
@@ -88,8 +101,8 @@ class NumberInput extends BaseElement {
         this.#swapEvents(true); // must follow this.#bound initialization
 
         const obj = {};         // #states are #input styles for each state
-        for (const key of resizeEvents)
-            obj[key] = {};
+        for (const evt of resizeEvents)
+            obj[evt] = {};
         obj[event.leave] = obj[event.blur];
         this.#states = obj;
         this.#spinId = null;
@@ -173,12 +186,14 @@ class NumberInput extends BaseElement {
                 this.#locale.currency = val ?? undefined;
                 this.#locale.style    = val ? "currency" : undefined;
                 break;
-            case ACCOUNTING:                // bool
+            case ACCOUNTING:                // boolean
                 this.#locale.currencySign = (val !== null)
                                           ? "accounting" : undefined;
             case LOCALE: case UNITS:        // strings
                 break;
-            case NO_CONFIRM: case NO_SPIN:  // bools
+            case NO_KEYS:                   // booleans
+                this.#input.disabled = val ?? false;
+            case NO_CONFIRM: case NO_SPIN:
             case NO_WIDTH:   case NO_ALIGN: case NO_SCALE:
                 isUpdate = false;
                 break;
@@ -210,10 +225,12 @@ class NumberInput extends BaseElement {
     }
 //==============================================================================
 //  Getters/setters reflect the HTML attributes, see attributeChangedCallback()
-    get spins()      { return !this.hasAttribute(NO_SPIN);    } // booleans:
+    get keyboards()  { return !this.hasAttribute(NO_KEYS);    } // booleans:
+    get spins()      { return !this.hasAttribute(NO_SPIN);    }
     get confirms()   { return !this.hasAttribute(NO_CONFIRM); }
     get autoWidth()  { return !this.hasAttribute(NO_WIDTH);   }
     get autoAlign()  { return !this.hasAttribute(NO_ALIGN);   }
+    get autoResize() { return !this.hasAttribute(NO_RESIZE);  }
     get autoScale()  { return !this.hasAttribute(NO_SCALE);   }
     get accounting() { return  this.hasAttribute(ACCOUNTING); }
     get useLocale()  { return  this.hasAttribute(LOCALE);     } // read-only
@@ -232,10 +249,19 @@ class NumberInput extends BaseElement {
     get delay()    { return this.#attrs[DELAY];    }
     get interval() { return this.#attrs[INTERVAL]; }
 
-    set spins     (val) { this._setBool(NO_SPIN,    !val); }    // booleans:
+    get validate()    { return this.#validate; }                // function:
+    set validate(val) {
+        if (val === undefined || (val instanceof Function))
+            this.#validate = val;
+        else
+            throw new Error("validate must be an instance of Function or undefined.");
+    }
+    set keyboards (val) { this._setBool(NO_KEYS,    !val); }    // booleans:
+    set spins     (val) { this._setBool(NO_SPIN,    !val); }
     set confirms  (val) { this._setBool(NO_CONFIRM, !val); }
     set autoWidth (val) { this._setBool(NO_WIDTH,   !val); }
     set autoAlign (val) { this._setBool(NO_ALIGN,   !val); }
+    set autoResize(val) { this._setBool(NO_RESIZE,  !val); }
     set autoScale (val) { this._setBool(NO_SCALE,   !val); }
     set accounting(val) { this._setBool(ACCOUNTING,  val); }
 
@@ -282,7 +308,7 @@ class NumberInput extends BaseElement {
         this.#input.value = this.#getText(false, true);
         this.#isMousing   = false;
         this._setHref("#spinner-idle");
-        this.classList.remove("NaN");
+        this.classList.remove(NAN);
     }
     #focus(evt) {
         if (this.#isBlurry || this.#isMousing) return;
@@ -354,7 +380,7 @@ class NumberInput extends BaseElement {
         state = "hover";
         if (this.#hasFocus) {
             if (this.confirms) {
-                name = this.#input.classList.contains("NaN")
+                name = this.#input.classList.contains(NAN)
                      ? "cancel"
                      : "confirm";
                 this.#showCtrls(true);
@@ -364,8 +390,8 @@ class NumberInput extends BaseElement {
             name = "spinner";
             this.#input.value = this.#getText(this.#hasFocus);
             if (this.#isSpinning) {
-                state = "active";
-                this.#spin(false, id == "up");  // spin without delay
+                state = "active";    // spin without delay
+                this.#spin(false, id == "up");
             }
         }
         this._setHref(`#${name}-${state}-${id}`);
@@ -376,18 +402,18 @@ class NumberInput extends BaseElement {
             name = "confirm";
         else {
             name = "spinner";
-            this.#spin();                       // cancel spin
+            this.#spin();            // cancel spin
         }
-        if (evt.relatedTarget?.id == "input")
+        if (evt.relatedTarget?.id == INPUT)
             this._setHref(`#${name}-idle`);
     }
-    #click(evt) {
-        if (evt.target.id == "up") {
-            if (this.#input.classList.contains("NaN"))
-                return; // force user to cancel
+    #click(evt) {   // confirm only, not for spinner
+        if (evt.target.id == "up") { // OK
+            if (this.#input.classList.contains(NAN))
+                return;              // force user to cancel or change the value
             else
                 this.#apply();
-        }
+        }                            // else Cancel
         this.#blurMe(false);
     }
 //==============================================================================
@@ -396,46 +422,49 @@ class NumberInput extends BaseElement {
         const code = evt.code;  // document .activeElement === this
         if (this.#hasFocus)     // this._dom.activeElement === this.#input
             switch (code) {
-            case "Enter":       // apply user input (or not)
+            case key.enter:     // apply user input (or not)
                 if (Number.isNaN(this.#toNumber(this.text))) {
-                    this.classList.add("beep");
+                    this.classList.add(BEEP);
                     return;
                 } //----------
                 this.#apply();
-            case "Escape":      // exit user input mode
+            case key.escape:    // exit user input mode
                 this.#input.blur();
             default:
             }
         else
             switch (code) {     // this._dom.activeElement === null
-            case "Enter": case "Escape":
+            case key.enter: case key.escape:
                 this.#blurMe();
                 return;
-            case "ArrowUp":
+            case key.up:
                 if (this.spin)
                     this.#spin(null, true);
                 return;
-            case "ArrowDown":
+            case key.down:
                 if (this.spin)
                     this.#spin(null, false);
             default:            // keyboard repeat rate is an OS setting
             }
     }
     #keyUp(evt) {
-        if (evt.code == "Enter")
-            this.classList.remove("beep");
-        if (!this.#hasFocus && (evt.code == "ArrowUp" || evt.code == "ArrowDown"))
+        if (evt.code == key.enter)
+            this.classList.remove(BEEP);
+        if (!this.#hasFocus && (evt.code == key.up || evt.code == key.down))
             this.#spin();
         else                            // alert user to NaN
-            this.classList.toggle("NaN", Number.isNaN(this.#toNumber(this.text)));
+            this.classList.toggle(NAN, Number.isNaN(this.#toNumber(this.text)));
     }
 //==============================================================================
-//  #apply() consolidates some funk around setting the VALUE attribute
+//  #apply() consolidates some funk around setting VALUE from keyboard input
     #apply() {
-        this.#isBlurring = true;
-        this.setAttribute(VALUE, this.text);
-        this.#isBlurring = false;
-        this.dispatchEvent(new Event("change"));
+        const val = this.#validate?.(this.text) ?? this.text;
+        if (val !== false) {
+            this.#isBlurring = true;
+            this.setAttribute(VALUE, val);
+            this.#isBlurring = false;
+            this.dispatchEvent(new Event("change"));
+        }
     }
 //  #spin() controls the spinning process
     #spin(state, isUp) {
@@ -451,10 +480,17 @@ class NumberInput extends BaseElement {
         else {                               // spin:
             const val = this.#attrs[VALUE];  // if already clamped, skip it
             if ((isUp && val != this.max) || (!isUp && val != this.min)) {
-                const n = val + (this.#attrs[STEP] * (isUp ? 1 : -1));
-                this.#attrs[VALUE] = Math.max(this.min, Math.min(this.max, n));
-                this.#input.value  = this.#getText(false);  // #input w/focus doesn't spin
-                this.dispatchEvent(new Event("change"));    // for client event listener
+                const
+                n   = val + (this.#attrs[STEP] * (isUp ? 1 : -1)),
+                val = this.#validate?.(n, true) ?? n; // true for isSpinning
+                if (val !== false) {         // clamp it between min and max:
+                    this.setAttribute(VALUE, Math.max(this.min, Math.min(this.max, n)));
+                    this.#input.value = this.#getText(false); // false because #input w/focus does not spin
+                    const evt = new Event("change");
+                    evt.isUp  = isUp;
+                    evt.isSpinning = true;
+                    this.dispatchEvent(evt);
+                }
                 if (state) {
                     const
                     pre   = "#spinner-active-",
@@ -478,7 +514,9 @@ class NumberInput extends BaseElement {
     get #isSpinning() { return this.#spinId !== null; }
 // =============================================================================
 //  resize() calculates the correct width and applies it to this.#input
-    resize() {
+    resize(forceIt) {
+        if (!this.autoResize && !forceIt) return;
+        //------------------------------------------------
         let chars, diff, extra, id, isItalic, prop, style;
         const
         px = "px",
