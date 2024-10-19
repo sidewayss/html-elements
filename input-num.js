@@ -22,33 +22,54 @@ NO_WIDTH   = "data-no-width",   // don't auto-size width
 NO_ALIGN   = "data-no-align",   // don't auto-align or auto-pad
 NO_RESIZE  = "data-no-resize",  // don't run resize(), for page load efficiency
 
-NAN   = "NaN",   // class names:
+NAN   = "NaN",          // class names:
 BEEP  = "beep",
-INPUT = "input", // <input> element id, and coincidentally its tagName
+INPUT = "input",        // <input> element id, and coincidentally its tagName
+
+SPINNER = "#spinner-",  // Each def id has two or three segments:
+CONFIRM = "#confirm-",
+HOVER   = "hover-",     // second segments:
+ACTIVE  = "active-",
+IDLE    = "idle",       // no third segment for idle
+UP      = "up",         // third segments:
+DOWN    = "down",
+er = {
+    [UP]:  "upper",
+    [DOWN]:"downer"
+},
 
 minimums = {
     [DIGITS]:   0,
     [DELAY]:    1,
     [INTERVAL]: 1
 },
-key = {
+code = {
     enter: "Enter",
     escape:"Escape",
     up:    "ArrowUp",
     down:  "ArrowDown"
 },
-event = {
+key = {
+    down: "keydown",
+    up:   "keyup",
+    [code.up]:   UP,
+    [code.down]: DOWN
+},
+mouse = {
     enter:"mouseenter",
     leave:"mouseleave",
     down: "mousedown",
     up:   "mouseup",
     click:"click",
+},
+event = {
     blur: "blur",
     focus:"focus"
 },
-resizeEvents = [event.blur, event.focus, event.enter],
+resizeEvents = [event.blur, event.focus, mouse.enter],
 
-template = await getTemplate("number");
+textAlign = ["text-align","right","important"],
+template  = await getTemplate("number");
 // =============================================================================
 class NumberInput extends BaseElement {
     static observedAttributes = [
@@ -65,9 +86,9 @@ class NumberInput extends BaseElement {
         [DELAY]:  500,
         [INTERVAL]:33      // ~2 frames at 60fps
     };
-    #attrs; #bound; #btns; #controls; #erId; #input; #isBlurring; #isLoading;
-    #isMousing; #padRight; #spinId; #states; #svg; #texts; #validate;
-
+    #attrs; #bound; #btns; #ctrls; #erId; #hoverIn; #hoverOut; #input;
+    #isBlurring; #isLoading; #isMousing; #outFocus; #padRight; #spinId; #states;
+    #svg; #texts; #validate;
     #isBlurry;             // a kludge for this._dom.activeElement === null
     #locale = {currencyDisplay:"narrowSymbol"};
 // =============================================================================
@@ -75,39 +96,45 @@ class NumberInput extends BaseElement {
         super(template);
         this.#attrs = Object.assign({}, NumberInput.defaults);
 
-        this.#addEvent("keydown",   this.#keyDown);
-        this.#addEvent("keyup",     this.#keyUp);
-        this.#addEvent(event.enter, this.#enter);
-        this.#addEvent(event.leave, this.#leave);
+        this.#addEvent(key.down,    this.#keyDown);
+        this.#addEvent(key.up,      this.#keyUp);
+        this.#addEvent(mouse.enter, this.#hover);
+        this.#addEvent(mouse.leave, this.#hover);
+        this.#addEvent(event.focus, this.#active);
+        this.#addEvent(event.blur,  this.#active);
 
         this.#input = this._dom.getElementById(INPUT);
+        this.#input.style.setProperty(...textAlign);
         this.#addEvent(event.focus, this.#focus, this.#input);
         this.#addEvent(event.blur,  this.#blur , this.#input);
 
-        this.#svg      = this.#input.nextElementSibling;
-        this.#controls = this.#svg.getElementById("controls");
-        this._use      = this.#controls.getElementsByTagName("use")[0];
-        this.#texts = Array.from(this.#svg.getElementsByTagName("text"));
-        this.#btns  = Array.from(this.#svg.getElementsByClassName("events"));
-        for (const elm of this.#btns) {
-            this.#addEvent(event.enter, this.#mouseEnter, elm);
-            this.#addEvent(event.leave, this.#mouseLeave, elm);
+        let elm = this.#input.nextElementSibling;
+        this.#svg   = elm;
+        this.#btns  = elm.getElementsByClassName("events");
+        this.#texts = elm.nextElementSibling.children;
+        this.#ctrls = elm.getElementById("controls");
+        this._use   = this.#ctrls.getElementsByTagName("use")[0];
+
+        for (elm of this.#btns) {
+            this.#addEvent(mouse.enter, this.#mouseEnter, elm);
+            this.#addEvent(mouse.leave, this.#mouseLeave, elm);
         }
         this.#bound = {         // for removeEventListener()
-            [event.down]: this.#mouseDown.bind(this),
-            [event.up]:   this.#mouseUp  .bind(this),
-            [event.click]:this.#click    .bind(this)
-        };
+            [mouse.down]: this.#mouseDown.bind(this),
+            [mouse.up]:   this.#mouseUp  .bind(this),
+            [mouse.click]:this.#click    .bind(this)
+        };                      // #swapEvents adds/removes #bound events
         this.#swapEvents(true); // must follow this.#bound initialization
 
         const obj = {};         // #states are #input styles for each state
         for (const evt of resizeEvents)
             obj[evt] = {};
-        obj[event.leave] = obj[event.blur];
+        obj[mouse.leave] = obj[event.blur];
         this.#states = obj;
         this.#spinId = null;
         this.#isLoading = true; // prevents double-setting of values during load
     }
+//==============================================================================
 //  connectedCallback()
     connectedCallback() {
         if (this.getAttribute(VALUE) === null) {  // no initial value set
@@ -130,7 +157,7 @@ class NumberInput extends BaseElement {
         if (name in this.#attrs) {  // numeric attributes
             const n = this.#toNumber(val);
             if (Number.isNaN(n) && name != STEP) {
-                this.#revert(name, val);    // null and "" are not valid values
+                this.#revert(name);         // null and "" are not valid values
                 return;                     // you can't remove these attributes
             } //-----------
             switch (name) {
@@ -140,7 +167,7 @@ class NumberInput extends BaseElement {
                 else if (n)
                     this.#accept(name, n);
                 else                        // can't be zero
-                    this.#revert(name, val);
+                    this.#revert(name);
                 return;
             //----------
             case DIGITS:            // runs twice if #revert(), but simpler
@@ -149,12 +176,13 @@ class NumberInput extends BaseElement {
                 this.#input.inputMode = n ? "decimal" : "numeric";
                 this.#locale.maximumFractionDigits = n;
                 this.#locale.minimumFractionDigits = n;
-                if (this.getAttribute(STEP) === null)   // auto-step default
+                if (!this.hasAttribute(STEP)) // auto-step default:
                     this.#attrs[STEP] = this.#autoStep(n);
-            case DELAY: case INTERVAL:
+            case DELAY:
+            case INTERVAL:
                 n >= minimums[name]
                 ? this.#accept(name, n)
-                : this.#revert(name, val);
+                : this.#revert(name);
                 break;
             default:                // VALUE, MAX, MIN
                 const
@@ -177,36 +205,46 @@ class NumberInput extends BaseElement {
         }
         else {                      // string and boolean attributes:
             isResize = true;
-            isUpdate = true;
-            switch(name) {
-            case NOTATION:                  // string
-                this.#locale.notation = val ?? undefined;
+            switch(name) {          // booleans:
+            case NO_KEYS:
+                this.#input.disabled = (val !== null);
+                isResize = false;
                 break;
-            case CURRENCY:                  // string
-                this.#locale.currency = val ?? undefined;
-                this.#locale.style    = val ? "currency" : undefined;
+            case NO_CONFIRM:
+            case NO_SPIN:           // assume element does not have focus
+                this.#swapEvents(true);
                 break;
-            case ACCOUNTING:                // boolean
-                this.#locale.currencySign = (val !== null)
-                                          ? "accounting" : undefined;
-            case LOCALE: case UNITS:        // strings
+            case NO_ALIGN:
+                const args = (val === null) ? textAlign : [textAlign[0], null];
+                this.#input.style.setProperty(...args);
+            case NO_WIDTH:
+            case NO_SCALE:
                 break;
-            case NO_KEYS:                   // booleans
-                this.#input.disabled = val ?? false;
-            case NO_CONFIRM: case NO_SPIN:
-            case NO_WIDTH:   case NO_ALIGN: case NO_SCALE:
-                isUpdate = false;
-                break;
-            default:                // handled by BaseElement
-                super.attributeChangedCallback(name, _, val);
-                return;
-            } //-------
+            default:
+                isUpdate = true;
+                switch(name) {
+                case ACCOUNTING:
+                    this.#locale.currencySign = (val !== null)
+                                              ? "accounting" : undefined;
+                case LOCALE:
+                case UNITS:         // strings:
+                    break;
+                case CURRENCY:
+                    this.#locale.style = val ? "currency" : undefined;
+                case NOTATION:      // convert null to undefined
+                    this.#locale[name.split("-")[1]] = val ?? undefined;
+                    break;
+                default:            // handled by BaseElement
+                    super.attributeChangedCallback(name, _, val);
+                    return;
+                } //-------
+            }
         }
         if (!this.#isLoading) {
             if (isResize)
                 this.resize();
             if (isUpdate) {
-                const b = this.#hasFocus;
+                const b = this.#inFocus;
                 this.#input.value = this.#getText(b, !b);
             }
         }
@@ -215,10 +253,8 @@ class NumberInput extends BaseElement {
     #accept(name, n) {
         this.#attrs[name] = n;
     }
-    #revert(name, val) {
+    #revert(name) {
         this.setAttribute(name, this.#attrs[name]);
-        console.info(val === null ? val : `"${val}"`,
-                     `is not a valid value for the ${name} attribute.`);
     }
     #autoStep(digits) { // using min/max to auto-step integers would be cool if
         return 1 / Math.pow(10, digits);  // you could ever make sense of it...
@@ -285,71 +321,133 @@ class NumberInput extends BaseElement {
         : this.setAttribute(attr, val);
     }
 //==============================================================================
-//  Event handlers
-//  target is this:
-    #enter(evt) {
-        this.#assignCSS(evt.type);
-        this.#input.value = this.#getText(false);
-        if (this.spins || this.confirms)
-            this.#showCtrls(true);
+//  Event Handlers
+//  Both this and #up, #down listen for mouseenter, mouseleave, focus and blur.
+//  this handles both mouse events with #hover, and focus/blur with #active().
+//  #up, #down handle each event separately, handler is named after the event.
+//  mouseenter and mouseleave ------------------------------------------------
+//  target is this: shows/hides controls and formats #input for spinner
+    #hover(evt) {
+        const
+        isEnter = (evt.type == mouse.enter),
+        inFocus = this.#inFocus;
+        this.#hoverOut = isEnter;
+        if (!this.#hoverIn)
+            this._setHref(`${this.#getButton(inFocus)}${IDLE}`);
+
+        if (inFocus) {
+            if (this.confirms)
+                this.#showCtrls(isEnter);
+        }
+        else if (this.spins) {
+            this.#assignCSS(evt.type);
+            this.#input.value = this.#getText(false, !isEnter);
+            this.#showCtrls(isEnter || this.#outFocus);
+        }
     }
-    #leave(evt) {
-        this.#assignCSS(evt.type);
-        this.#input.value = this.#getText(false, true);
-        this.#showCtrls(false);
+//  target is up or down <rect>: starts/stops spin, sets href
+    #mouseEnter(evt) {
+        let args
+        const id = evt.target.id;
+        if (this.#isSpinning) {          // if spinning, spin the other way
+            this.#spin(undefined, null); // cancel w/o href or #spinId = null
+            args = [false, id == UP];    // restart at full speed
+        }
+        this.#enterLeave(id, true, `${this.#getState(id)}`, args);
+    }
+    #mouseLeave(evt) {
+        const
+        id   = evt.relatedTarget?.id,
+        args = !this.#isSpinning || id == UP || id == DOWN
+             ? undefined  // don't call #spin()
+             : [];        // cancel spinning
+        this.#enterLeave("", id == INPUT, IDLE, args);
+    }
+    #enterLeave(hoverIn, setHref, state, args) {
+        this.#hoverIn = hoverIn;
+        if (setHref)
+            this._setHref(`${this.#getButton(this.#inFocus)}${state}`);
+       if (args !== undefined)
+            this.#spin(...args);
+    }
+//  focus and blur -----------------------------------------------------------
+//  target is this:
+    #active(evt) {
+        console.log("active", this.#isMousing);
+        this.#outFocus = (evt.type == event.focus);
+        const
+        inFocus = this.#inFocus,
+        showIt  = (inFocus || !this.#outFocus)
+                ? this.#hoverOut // #input is focused or this is blurring
+                : true;          // this is focused, not #input
+        this.#showCtrls(showIt);
+        this._setHref(this.#getButton(inFocus) + this.#getState());
     }
 //  target is #input:
-    #blur(evt) {
-        if (this.#isBlurry || evt.relatedTarget === this) return;
-        //------------------------
-        this.#assignCSS(evt.type);
-        this.#showCtrls (false);
-        this.#swapEvents(true);
-        this.#input.value = this.#getText(false, true);
-        this.#isMousing   = false;
-        this._setHref("#spinner-idle");
-        this.classList.remove(NAN);
-    }
     #focus(evt) {
+        console.log("focus", this.#isMousing);
+        if (this.#isBlurry)
+            return;
+        else if (this.#isMousing) // wait for mouseup to run #fur()
+            evt.stopPropagation;  // don't run #active()
+        else
+            this.#fur(evt, false, CONFIRM, false,
+                      this.#attrs[VALUE].toFixed(this.digits));
+    };
+    #blur(evt) {
+        console.log("blur", this.#isMousing);
         if (this.#isBlurry || this.#isMousing) return;
-        //----------------------------------------------
-        this.#assignCSS(evt.type);
-        this.#showCtrls (false);
-        this.#swapEvents(false);
-        this.#input.value = this.#attrs[VALUE].toFixed(this.digits);
+        //==========================================================
+        // When #input has the focus and the user presses Shift+Tab:
+        //    evt.relatedTarget === this and #active does not run
+        // because this === document.activeElement before and after
+        const
+        showIt = (evt.relatedTarget === this),
+        value  = this.#getText(false, true);
+
+        if (this.#fur(evt, true, SPINNER, showIt, value))
+            this.classList.remove(NAN);
     }
-//  #swapEvents() is better than converting mousedown/mouseup into click,
-//                and it avoids if statements in several event handlers.
-    #swapEvents(b) {
-        let elm;
-        for (elm of this.#btns) {
-            this.#toggleEvent(event.down,   b, elm);
-            this.#toggleEvent(event.up,     b, elm);
-            this.#toggleEvent(event.click, !b, elm);
+    #fur(evt, isBlur, name, showIt, value) {
+        this.#input.value = value;
+        this._setHref   (name + this.#getState());
+        this.#assignCSS (evt.type);
+        this.#showCtrls (showIt || this.#hoverOut);
+        this.#swapEvents(isBlur);       // both are focusing or blurring:
+        if (isBlur ? document.activeElement !== this : !this.#outFocus) {
+            if (evt.target)             // else called by #mouseUp()
+                evt.stopPropagation();  // don't run #active()
+            this.#outFocus = !isBlur;   // but gotta set this
         }
-        elm = this.#input;
-        this.#toggleEvent(event.down, b, elm);
-        this.#toggleEvent(event.up,   b, elm);
+        return true;
     }
-    #toggleEvent(type, b, elmer) {  // helps #swapEvents only
-        const func = b ? "addEventListener"
-                       : "removeEventListener";
-        if (elmer.tagName)          // elmer is an element or an event handler
-            elmer[func](type, this.#bound[type]);
-        else
-            this[func](type, elmer);
-    }
-//==============================================================================
+//  mousedown, mouseup, and click --------------------------------------------
 //  target is #input or up or down <rect>:
+//  #isMousing is because in #input the user can mousedown & drag to select,
+//  even trigger mouseleave, and because preventDefault() doesn't prevent blur.
     #mouseDown(evt) {
-        if (evt.target === this.#input)
-            this.#isMousing = true;
-        else
-            this.#spin(true, evt.target.id == "up");
+        if (evt.target === this.#input) {
+            if (!this.#inFocus) {             // about to get focus, not yet
+                this.#isMousing = true;
+                this.#dragEvents(true);
+            }
+        }
+        else if (this.#inFocus) {             // clicking ok/cancel blurs #input
+            this.#isMousing = true;           // #blur() = noop
+            this._setHref(this.#getButton(this.#inFocus)
+                        + ACTIVE + evt.target.id);
+        }
+        else {
+            this.#spin(true);
+            if (this.#outFocus)               // Chrome: prevent next element's
+                evt.preventDefault();         // text selection on double-click,
+        }                                     // but allow focus to happen first
     }
     #mouseUp(evt) {
-        if (evt.target === this.#input && this.#isMousing) {
-            const
+        if (evt.currentTarget !== window)
+            this.#spin();   // safe to cancel regardless of #isSpinning
+        else {
+            const           // end a text selection drag
             range = [],
             input = this.#input,
             dir   = input.selectionDirection,
@@ -358,104 +456,85 @@ class NumberInput extends BaseElement {
             val   = input.value,
             orig  = [{num:start, str:val.slice(0, start)},
                      {num:dist,  str:val.slice(start, dist)}];
-
             let match, obj;
             for (obj of orig) {
                 match = obj.str.match(/[^\d-.eE]/g);
                 range.push(obj.num - (match ? match.length : 0))
             }
-            this.#isMousing = false;         // let this.#focus() do it's thing,
-            this.#focus({type:event.focus}); // it already has the focus
+            this.#isMousing = false;         // let this.#focus() do it's thing
+            this.#focus(new Event(event.focus)); // #input might already have focus
             if (this.accounting && val[0] == "(")
                 ++range[0];
             input.setSelectionRange(range[0], range[0] + range[1], dir);
+            this.#dragEvents(false);
         }
-        else
-            this.#spin();
     }
-//  target is up or down <rect>:
-    #mouseEnter(evt) {
-        const id = evt.target.id;
-        let name,
-        state = "hover";
-        if (this.#hasFocus) {
-            if (this.confirms) {
-                name = this.#input.classList.contains(NAN)
-                     ? "cancel"
-                     : "confirm";
-                this.#showCtrls(true);
+//  target is up or down <rect>: must check classList.contains(NAN) because
+//         setting #up's pointer-events to "none" displays text I-beam cursor.
+    #click(evt) {                        // confirm only, not for spinner
+        if (evt.target.id == UP) {       // ok
+            if (this.classList.contains(NAN)) {
+                this.#input.focus();     // acts as if disabled
+                this.#isMousing = false; // must follow .focus()
+                return;
             }
-        }
-        else if (this.spins) {
-            name = "spinner";
-            this.#input.value = this.#getText(this.#hasFocus);
-            if (this.#isSpinning) {
-                state = "active";    // spin without delay
-                this.#spin(false, id == "up");
-            }
-        }
-        this._setHref(`#${name}-${state}-${id}`);
-    }
-    #mouseLeave(evt) { // doesn't bother to test (!this.spins && !this.confirms)
-        let name;      // doesn't bother to test relatedTarget here either
-        if (this.#hasFocus)
-            name = "confirm";
-        else {
-            name = "spinner";
-            this.#spin();            // cancel spin
-        }
-        if (evt.relatedTarget?.id == INPUT)
-            this._setHref(`#${name}-idle`);
-    }
-    #click(evt) {   // confirm only, not for spinner
-        if (evt.target.id == "up") { // OK
-            if (this.#input.classList.contains(NAN))
-                return;              // force user to cancel or change the value
             else
                 this.#apply();
-        }                            // else Cancel
+        }
         this.#blurMe(false);
     }
-//==============================================================================
+//  keydown and keyup --------------------------------------------------------
 //  target is this for keyboard because the svg buttons don't receive focus:
-    #keyDown(evt) {
-        const code = evt.code;  // document .activeElement === this
-        if (this.#hasFocus)     // this._dom.activeElement === this.#input
-            switch (code) {
-            case key.enter:     // apply user input (or not)
+    #keyDown(evt) {                 // document .activeElement === this
+        if (this.#inFocus)          // this._dom.activeElement === this.#input
+            switch (evt.code) {
+            case code.enter:        // apply user input (or not)
                 if (Number.isNaN(this.#toNumber(this.text))) {
                     this.classList.add(BEEP);
                     return;
                 } //----------
                 this.#apply();
-            case key.escape:    // exit user input mode
+            case code.escape:       // exit user input mode
                 this.#input.blur();
             default:
             }
         else
-            switch (code) {     // this._dom.activeElement === null
-            case key.enter: case key.escape:
-                this.#blurMe();
+            switch (evt.code) {     // this._dom.activeElement === null
+            case code.enter: case code.escape:
+                this.#blurMe(true);
                 return;
-            case key.up:
-                if (this.spin)
-                    this.#spin(null, true);
-                return;
-            case key.down:
-                if (this.spin)
-                    this.#spin(null, false);
-            default:            // keyboard repeat rate is an OS setting
+            // keyboard repeat rate is an OS setting that has it's own delay
+            // then interval, thus #spin(null). Separate href for delayed image
+            // because quick keydown/up sequences flicker, and using a delay can
+            // look just as flickery, depending on the timing. If it's only a
+            // slight difference from #spinner-idle, it looks good.
+            case code.down:
+            case code.up:   // #spin(null) doesn't set href or #spinId
+                const upDn = key[evt.code];
+                if (this.#isSpinning)
+                    this._setHref(`${SPINNER}${ACTIVE}${er[upDn]}`);
+                else {
+                    this._setHref(`${SPINNER}key-${upDn}`);
+                    this.#spinId = -1;
+                }
+                this.#spin(null, upDn == UP);
+            default:
             }
     }
     #keyUp(evt) {
-        if (evt.code == key.enter)
-            this.classList.remove(BEEP);
-        if (!this.#hasFocus && (evt.code == key.up || evt.code == key.down))
-            this.#spin();
-        else                            // alert user to NaN
-            this.classList.toggle(NAN, Number.isNaN(this.#toNumber(this.text)));
+        if (this.#inFocus) {
+            if (evt.code == code.enter)
+                this.classList.remove(BEEP);
+            else                  // inform user of NaN
+                this.classList.toggle(NAN, Number.isNaN(this.#toNumber(this.text)));
+        }
+        else if (evt.code == code.up || evt.code == code.down)
+            this.#spin(undefined, evt.code == code.up);
     }
 //==============================================================================
+// this.#inFocus returns true if #input has the focus
+    get #inFocus() { return this.#input === this._dom.activeElement; }
+
 //  #apply() consolidates some funk around setting VALUE from keyboard input
     #apply() {
         const val = this.#validate?.(this.text) ?? this.text;
@@ -466,63 +545,131 @@ class NumberInput extends BaseElement {
             this.dispatchEvent(new Event("change"));
         }
     }
+//  #blurMe() is only called when document.activeElement === this and
+//            _dom.activeElement === null, because this.blur() noops in Chrome.
+    #blurMe(b) {                       // b == true: #keyDown(), false: #click()
+        if (navigator.userAgentData) { // only Chrome-based browsers support it
+            this.#isBlurry  = b;       // only for keyboard
+            this.#input.focus();
+            this.#isMousing = false;   // must follow focus(), precede blur()...
+            this.#input.blur();
+            this.#isBlurry  = false;
+        }
+        else {
+            this.#isMousing = false;   // ...and only matters for #click()
+            this.#blur(new Event(event.blur));
+            this.blur();
+        }
+    }
+//==============================================================================
+//  #swapEvents() is better than converting mousedown/mouseup into click,
+//                and it simplifies focus and blur handlers. But mousedown for
+//                #btns must persist when !isBlur so as to exit #focus/blur()
+//                by setting #isMousing = true.
+    #swapEvents(isBlur) { // isBlur == !this.#inFocus
+        let elm;
+        const
+        downs = this.spins || this.confirms,
+        spins =  isBlur && this.spins,
+        firms = !isBlur && this.confirms,
+        keys  = !isBlur || spins;
+        for (elm of this.#btns) {                       // <rect>: #up and #down
+            this.#toggleEvent(mouse.down,  downs, elm);
+            this.#toggleEvent(mouse.up,    spins, elm);
+            this.#toggleEvent(mouse.click, firms, elm);
+        }
+        elm = this.#input;
+        this.#toggleEvent(mouse.down, spins, elm);
+        this.#toggleEvent(mouse.up,   spins, elm);
+                                                        // elm = this
+        this.#toggleEvent(key.down, keys, this.#keyDown);
+        this.#toggleEvent(key.up,   keys, this.#keyUp);
+
+        // Push #svg back (or front) so #input gets the mouse events (or not)
+        this.#svg.style.zIndex = (isBlur ? this.spins: this.confirms) ? 1 : -1;
+    }
+    #dragEvents(isDrag) {
+        this.#toggleEvent(mouse.up, isDrag, window);
+        this.#toggleEvent(mouse.up, isDrag, window);
+        for (const elm of [this.#input, ...this.#btns])
+            this.#toggleEvent(mouse.up, !isDrag, elm);
+    }
+    #toggleEvent(type, b, elmer) {  // elmer is an element or an event handler
+        const func = b ? "addEventListener"
+                       : "removeEventListener";
+        if (elmer.tagName || elmer === window)
+            elmer[func](type, this.#bound[type]);
+        else                        // #bound is for mousedown/up and click
+            this[func](type, elmer);
+    }
+    #addEvent(type, func, elm) {    // helps constructor only
+        if (elm)                    // not used for mousedown/up or click
+            func = func.bind(this);
+        else
+            elm = this;
+        elm.addEventListener(type, func);
+    }
+//==============================================================================
+// this.#isSpinning gives it a name
+    get #isSpinning() { return this.#spinId !== null; }
+
 //  #spin() controls the spinning process
-    #spin(state, isUp) {
+    #spin(state, isUp = this.#hoverIn == UP) {
         if (state === undefined) {           // cancel:
             if (this.#isSpinning) {
                 clearInterval(this.#spinId); // interchangeable w/clearTimeout()
-                this.#spinId = null;
-                clearTimeout(this.#erId);    // it can happen...
+                clearTimeout (this.#erId);
+                if (isUp !== null) {         // for mouseenter while spinning
+                    const state = this.#hoverIn ? `${HOVER}${this.#hoverIn}`
+                                                : IDLE;
+                    this._setHref(`${SPINNER}${state}`);
+                    this.#spinId = null;
+                }
                 this.#erId = null;
-                this._setHref(`#spinner-hover-${isUp ? "up" : "down"}`);
             }
         }
         else {                               // spin:
-            const val = this.#attrs[VALUE];  // if already clamped, skip it
+            let val = this.#attrs[VALUE];    // if already clamped, skip it
             if ((isUp && val != this.max) || (!isUp && val != this.min)) {
-                const
-                n   = val + (this.#attrs[STEP] * (isUp ? 1 : -1)),
+                const n = val + (this.#attrs[STEP] * (isUp ? 1 : -1));
                 val = this.#validate?.(n, true) ?? n; // true for isSpinning
                 if (val !== false) {         // clamp it between min and max:
-                    this.setAttribute(VALUE, Math.max(this.min, Math.min(this.max, n)));
+                    this.setAttribute(VALUE, Math.max(this.min, Math.min(this.max, val)));
                     this.#input.value = this.#getText(false); // false because #input w/focus does not spin
                     const evt = new Event("change");
                     evt.isUp  = isUp;
                     evt.isSpinning = true;
                     this.dispatchEvent(evt);
                 }
-                if (state) {
+                if (state) {                 // start spin with initial step
                     const
-                    pre   = "#spinner-active-",
-                    now   = `${pre}${isUp ? "up"    : "down"}`,
-                    later = `${pre}${isUp ? "upper" : "downer"}`;
+                    pre   = `${SPINNER}${ACTIVE}`,
+                    now   = `${pre}${isUp ? UP : DOWN}`,
+                    later = `${pre}${isUp ? er[UP] : er[DOWN]}`;
 
                     this._setHref(now);
                     this.#erId = setTimeout(this._setHref.bind(this), this.delay, later);
 
                     this.#spinId = setTimeout (this.#spin.bind(this), this.delay, false, isUp);
                 }
-                else if (state === false)
+                else if (state === false)    // start spinning full speed
                     this.#spinId = setInterval(this.#spin.bind(this), this.interval, null, isUp);
-                // else  state === null
-            }   // let #spinId persist past expiration, see #mouseEnter()
-            if (!this.#isSpinning)  // keeps #isSpinning true if user spins
-                this.#spinId = -1;  // clamped value, then toggles up|down.
+                // else  state === null >>>> continue spinning full speed
+            }
+            else // I prefer this to an expired id for a non-null value
+                this.#spinId = -1; // for keyboard spin, clamped values
         }
     }
-// this.#isSpinning gives it a name.
-    get #isSpinning() { return this.#spinId !== null; }
 // =============================================================================
 //  resize() calculates the correct width and applies it to this.#input
     resize(forceIt) {
         if (!this.autoResize && !forceIt) return;
-        //------------------------------------------------
-        let chars, diff, extra, id, isItalic, prop, style;
+        //-----------------------------------------
+        let btns, diff, extra, id, isItalic, prop, style;
         const
         px = "px",
         W  = "width",
         PR = "padding-right",
-        TA = "text-align",
         width   = {},
         states  = this.#states,
         isAlign = this.autoAlign,
@@ -540,17 +687,17 @@ class NumberInput extends BaseElement {
                 for (prop of ["height", "margin-left"])
                     style.removeProperty(prop);
 
-            width.svg = this.#svg.getBoundingClientRect().width;
-            if (this.autoScale)     // I don't trust this to work at -1em...
-                style.marginLeft = -width.svg;
+            btns = this.#svg.getBoundingClientRect().width;
+            if (this.autoScale)     // I don't trust marginLeft in -em units
+                style.marginLeft = -btns + px;
         }
-        else {
-            width.svg  = 0;         // no spinning, no confirming = no buttons
-            style.display = "none";
-        }
+        else
+            btns = 0;               // no spinning, no confirming = no buttons
+
         if (isWidth || isAlign) {
             let txt, type;
-            style = getComputedStyle(this.#input);
+            style    = getComputedStyle(this.#input);
+            isItalic = (style.fontStyle == "italic");
             for (txt of this.#texts) {
                 id = txt.id;
                 txt.innerHTML = this.#formatNumber(this[id]) ?? this.units;
@@ -561,41 +708,36 @@ class NumberInput extends BaseElement {
                 }
                 width[id] = txt.getBBox().width;
             }
-            chars = Math.max(width[MAX], width[MIN]);      // text width w/o units
-            extra = Math.max(width.svg,  width[UNITS]);    // the rest of the width
-            diff  = Math.max(0, width.svg - width[UNITS]); // 0 < width[UNITS] < svg
-            isItalic = (style.fontStyle == "italic");
+            extra = Math.max(btns,  width[UNITS]);    // the rest of the width
+            diff  = Math.max(btns - width[UNITS], 0); // 0 < width[UNITS] < svg
         }
         if (isWidth) {
-            const obj = {
+            const
+            chars = Math.max(width[MAX], width[MIN]), // text width w/o units
+            obj   = {
                 [event.blur] : chars + extra - diff,
-                [event.focus]: chars + extra,
-                [event.enter]: chars
+                [event.focus]: chars + btns,
+                [mouse.enter]: chars
             }
-            if (isItalic)            // ...does anyone use italics for number input??
-                for (id in obj)
+            if (isItalic)           // right-aligned italics often truncate
+                for (id in obj)     // #roundEven() mitigates it by 1px
                     obj[id] = this.#roundEven(obj[id]);
 
             for (id in obj)
                 states[id][W] = obj[id] + px;
         }
-        else
-            for (id of resizeEvents)
+        else {
+            for (id in states)
                 states[id][W] = "";
-
+        }
         if (isAlign) {
             states[event.blur] [PR] = this.#padRight + diff  + px;
-            states[event.focus][PR] = this.#padRight + px;
-            states[event.enter][PR] = this.#padRight + extra + px;
-            states[event.blur] [TA] = "right";
-            states[event.focus][TA] = "left";
-            states[event.enter][TA] = "right";
+            states[event.focus][PR] = this.#padRight + btns  + px;
+            states[mouse.enter][PR] = this.#padRight + extra + px;
         }
         else {
-            for (id of resizeEvents) {
+            for (id in states)
                 states[id][PR] = "";
-                states[id][TA] = "";
-            }
         }
         this.#assignCSS(event.blur); // assumes #input not focused or hovering!!
     }
@@ -608,17 +750,21 @@ class NumberInput extends BaseElement {
         ceil  = Math.ceil(n);
         return floor % 2 ? ceil : floor;
     }
+//==============================================================================
+//  #showCtrls() shows or hides the spin or confirm buttons
+    #showCtrls(b) {
+        this.#ctrls.style.visibility = b ? "visible" : "hidden";
+    }
 //  #assignCSS() is necessary because overriding ::part requires "important"
     #assignCSS(type) { // only used for width, padding-right, and text-align
         const style = this.#input.style;
         for (const [prop, val] of Object.entries(this.#states[type]))
             style.setProperty(prop, val, "important");
     }
-//==============================================================================
 //  #getText() gets the appropriate text for the #input
-    #getText(hasFocus, appendUnits) {
+    #getText(inFocus, appendUnits) {
         const n = this.#attrs[VALUE];
-        let txt = hasFocus ? n : this.#formatNumber(n);
+        let txt = inFocus ? n : this.#formatNumber(n);
         if (appendUnits)
             txt += this.units;
         return txt;
@@ -636,30 +782,19 @@ class NumberInput extends BaseElement {
     #toNumber(str) {                    // parseFloat() is too lenient
         return str ? Number(str) : NaN; // Number() converts "" and null to 0
     }
-//==============================================================================
-//  #showCtrls() shows or hides the spin or confirm buttons
-    #showCtrls(b) {
-        this.#controls.style.visibility = b ? "visible" : "hidden";
+//  #getButton() gets the first segment of the href id
+    #getButton(inFocus) {  // helps #mouseEnter() and #mouseLeave()
+        return !inFocus
+             ? SPINNER
+             : this.classList.contains(NAN)
+               ? "#cancel-"
+               : CONFIRM;
     }
-//  #addEvent() is a convenience
-    #addEvent(type, func, elm) {
-        if (elm)
-            func = func.bind(this);
-        else
-            elm = this;
-        elm.addEventListener(type, func);
-    }
-//==============================================================================
-// this.#hasFocus returns true if #input has the focus
-    get #hasFocus() { return this.#input === this._dom.activeElement; }
-//  could be written: return Boolean(this._dom.activeElement);
-
-//!! this.blur() doesn't work in Chrome (elsewhere?) when _dom.activeElement === null
-    #blurMe(b = true) {
-        this.#isBlurry = b;
-        this.#input.focus();
-        this.#input.blur();
-        this.#isBlurry = false;
+//  #getState() gets the second segment of the href id
+    #getState(id = this.#hoverIn) {
+        return this.#isSpinning ? `${ACTIVE}${id}`
+                           : id ? `${HOVER}${id}`
+                                : IDLE;
     }
 }
 customElements.define("input-num", NumberInput);

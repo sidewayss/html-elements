@@ -38,9 +38,9 @@ function load() {
   for (n = .1, i = 1; n >= 0.000001; n /= 10, i++)
     decimals.push(newOption(n, i));
 
-  ["autoWidth","autoAlign","autoScale","max","digits","spins","confirms",
-   "accounting","step","delay","interval","fontSize","fontWeight","fontStyle"
-  ].forEach(id => initElm(id, decimals));
+  ["autoWidth","autoAlign","autoScale","max","digits","accounting","spins",
+   "confirms","keyboards","step","delay","interval","fontSize","fontWeight",
+   "fontStyle"].forEach(id => initElm(id, decimals));
 
   const         // #min is a modified clone of #max
   min = "min",
@@ -191,12 +191,12 @@ function change(evt) {
     inNum[id] = isUser(tar) ? "" : val || null;
     updateText();               // display the updated HTML/JS
     switch (tar) {
-      case elms.max:            // validate
       case elms.min:
-        disable(elms.autoWidth, inNum.max == Infinity
-                            || inNum.min == -Infinity);
-        elms.max.nextElementSibling.innerHTML =
-          inNum.max <= inNum.min ? "Max/Min overlap!" : "";
+        minDigits();
+      case elms.max:            // validate
+      setInfo(elms.max, inNum.max <= inNum.min, "Max/Min overlap!");
+      disable(elms.autoWidth, inNum.max ==  Infinity
+                           || inNum.min == -Infinity);
         break;
       case elms.locale:
         disable(elms.currency,   !val);
@@ -204,49 +204,64 @@ function change(evt) {
         disable(elms.accounting, !val || !inNum.currency
                                       || !inNum.useLocale);
       case elms.units:          // display info
-        tar.nextElementSibling.innerHTML = val ? g[id][val] : "";
-        elms.digits.nextElementSibling.innerHTML =
-          inNum.units && inNum.currency && !inNum.useLocale
-            ? "Units & Currency don't mix"
-            : "";
+        setInfo(tar, val, g[id][val]);
+        setInfo(elms.digits,
+                inNum.units && inNum.currency && !inNum.useLocale,
+                "Units & Currency don't mix");
         break;
       case elms.spins:          // disable step, delay, interval
         spinner.forEach(elm => disable(elm, !val));
+      case elms.keyboards:
+        setInfo(elms.accounting,
+                !elms.spins.checked && !elms.keyboards.checked,
+                "!spins & !keys = disabled");
         break;
       case elms.digits:
+        minDigits();
         tar = elms.step;
         val = tar.value;
       case elms.step:
-        tar.nextElementSibling.textContent = val ? "" : `= ${inNum.step}`;
-        break;
+        setInfo(tar, !val, `= ${inNum.step}`);
       default:
     }
   }
 }
-//========================
-function disable(elm, b) {
+function setInfo(elm, b, text) { // sets info/warning text to the right of elm
+  elm.nextElementSibling.innerHTML = b ? text : "";
+}
+function disable(elm, b) {       // disables an element and its label
   elm.disabled = b;
   for (const lbl of [elm.previousElementSibling, elm.nextElementSibling])
     lbl?.classList.toggle("disabled", b);
 }
+function minDigits() {           // one alert set in two places
+  setInfo(elms.min,
+          inNum.min && Math.abs(inNum.min) < 1 / Math.pow(10, inNum.digits),
+          "Min < Digits!");
+}
 //==============================================================================
 // updateText() is generally helpful, along with its helper getText():
 function updateText() {
-  const ctrls = new Set(attrs);
   let attr, data, elm, prop,
   pre = "&lt;input-num",
   suf = "&gt;&lt;/input-num&gt",
   js  = "numby = doc.getElementById(id);<br>";
 
-  if (!inNum.confirms) {
-    suf = " data-no-confirm" + suf;
-    js += getText(null, "confirms", true, false);
-  }
-  if (!inNum.spins) {
-    suf = " data-no-spin" + suf;
-    js += getText(null, "spins", true, false);
-    for (elm of [elms.step, elms.delay, elms.interval])
-      ctrls.delete(elm);
+  const
+  ctrls = new Set(attrs), // max, min, units
+  opposites = [
+    ["data-no-keys",   "keyboards"],
+    ["data-no-spin",   "spins"],
+    ["data-no-confirm","confirms"],
+    ["data-no-scale",  "autoScale"],
+    ["data-no-width",  "autoWidth"],
+    ["data-no-align",  "autoAlign"],
+  ];
+  for ([attr, prop] of opposites) {
+    if (!inNum[prop]) {
+      suf = ` ${attr}` + suf;
+      js += getText(null, prop, true, false);
+    }
   }
   if (inNum.useLocale) {
     ctrls.add(elms.locale);
@@ -256,6 +271,10 @@ function updateText() {
         ctrls.add(elms.accounting);
     }
   }
+  if (inNum.spins)
+    for (elm of [elms.step, elms.delay, elms.interval])
+      ctrls.add(elm);
+
   for (elm of ctrls) {
     prop = elm.id;
     attr = prop;

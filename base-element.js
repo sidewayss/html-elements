@@ -62,9 +62,9 @@ class BaseElement extends HTMLElement {
 async function getTemplate(name) {
     const
     id   = `template-${name}`,
-    file = `${id}.html`;
+    file = `${id}.html`,
 
-    const response = await fetch(`/html-templates/${file}`)
+    response = await fetch(`/html-templates/${file}`)
      .then(rsp => rsp.ok && rsp.status != 202
                 ? rsp
                 : fallBack(file))   // fall back to the built-in template

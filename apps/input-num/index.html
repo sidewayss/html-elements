@@ -14,12 +14,12 @@
     <input-num id="number"></input-num>
     <div class="col" style="align-items:flex-start;">
       <div class="row mt1-2">
-        <label for="autoAlign" style="margin-right:0.75rem">Auto:</label>
-        <check-box id="autoAlign"  data-label="Align" class="row" checked
-                   title="Auto-align left or right, and auto-pad-right">
-        </check-box>
+        <label for="autoWidth" style="margin-right:0.75rem">Auto:</label>
         <check-box id="autoWidth"  data-label="Width" class="row" checked disabled
                    title="Auto-size width, disabled by infinite max or min value">
+        </check-box>
+        <check-box id="autoAlign"  data-label="Align" class="row" checked
+                   title="Auto-align left or right, and auto-pad-right">
         </check-box>
         <check-box id="autoScale"  data-label="Scale" class="row" checked
                    title="Auto-scale the buttons to fit the element size">
@@ -28,12 +28,12 @@
       <div class="row mt3-8">
         <label for="max">Max:&nbsp;&nbsp;&nbsp;</label>
         <select id="max" class="attr"></select>
-        <p class="info italic alert"></p>
+        <p class="info warning italic"></p>
       </div>
       <div class="row">
         <label for="digits">Digits:</label>
         <select id="digits" class="attr"></select>
-        <p class="info italic alert"></p>
+        <p class="info warning italic"></p>
       </div>
       <div class="row">
         <label for="units">Units:&nbsp;</label>
@@ -50,21 +50,27 @@
         <select id="currency" disabled></select>
         <p class="info"></p>
       </div>
-      <!-------------------------------------------------->
-      <div class="row mt1-2">
-        <check-box id="spins"      data-label="Spins"      class="row" checked
-                title="Displays spin buttons on hover when not inputting">
-        </check-box>
-        <check-box id="confirms"   data-label="Confirms"   class="row" checked
-                title="Displays confirm/cancel buttons on hover during input">
-        </check-box>
+      <div class="row">
         <check-box id="accounting" data-label="Accounting" class="row" disabled
                 title="Displays negative amounts in parentheses, e.g. ($100)">
+        </check-box>
+        <p class="info warning italic"style="align-self:flex-end"></p>
+      </div>
+      <!-------------------------------------------------->
+      <div class="row mt1-2">
+        <check-box id="spins"     data-label="Spins"     class="row" checked
+                title="Displays spin buttons on hover when not inputting">
+        </check-box>
+        <check-box id="confirms"  data-label="Confirms"  class="row" checked
+                title="Displays confirm/cancel buttons on hover during input">
+        </check-box>
+        <check-box id="keyboards" data-label="Keyboards" class="row" checked
+                title="Toggles the availability of keyboard input">
         </check-box>
       </div>
       <div class="row mt3-8">
         <label for="step">Step:&nbsp;&nbsp;&nbsp;&nbsp;</label>
-        <select id="step" class="attr">
+        <select id="step">
           <option value="">auto</option>
           <option>1000</option>
           <option >509</option> <!-- throw in some odd numbers for testing -->
@@ -79,11 +85,11 @@
       </div>
       <div class="row">
         <label for="delay">Delay:&nbsp;&nbsp;&nbsp;</label>
-        <select id="delay" class="attr"></select>
+        <select id="delay"></select>
       </div>
       <div class="row">
         <label for="interval">Interval:</label>
-        <select id="interval" class="attr">  <!-- include ~frame boundaries @60fps -->
+        <select id="interval">  <!-- include ~frame boundaries @60fps -->
           <option value= "10" >10ms</option> <!-- AFAICT no such thing as a hundreds separator -->
           <option value= "17" >17ms</option>
           <option value= "20" >20ms</option>

@@ -3,10 +3,14 @@
     <!-- <check-box> and <check-tri> template -->
     <template id="template-check">
       <style>
-        pre { /* I use <pre> instead of labels w/o for attribute */
-          margin: 0;
+        pre {         /* I use <pre> instead of labels w/o for attribute */
+          margin: 0;  /* label.htmlFor can't be an SVG element id */
           padding:0;
           font-family:inherit;
+          user-select:none;
+          -webkit-user-select:none;
+          -moz-user-select:none;
+          -ms-user-select:none;
         }
         .checkMark {
           fill:none;

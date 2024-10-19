@@ -16,6 +16,9 @@
 @media (height < 340px) {
   * { font-family:monospace; }
 }
+@media (hover:none) {
+  input-num::part(buttons) { display:none }
+}
 p {
   font-family:sans-serif;
   white-space:nowrap;
@@ -45,8 +48,9 @@ select    {
   margin-left:0.25rem;
   border-color:#0002;
 }
-check-box   { margin-right: 1rem }
-#accounting { margin-right: 0    } /* exception to check-box margin */
+check-box    { margin-right:1rem }
+#accounting,
+#keyboards   { margin-right:0 } /* exceptions to check-box margin */
 
 select:disabled, .disabled {
   opacity:1;
@@ -54,9 +58,9 @@ select:disabled, .disabled {
   background-color:transparent;
 }
 
-.info   { margin:0 0 0 0.25rem }
-.italic { font-style:italic }
-.alert  { color:#900; }
+.info    { margin:0 0 0 0.25rem }
+.warning { color:#800; }
+.italic  { font-style:italic }
 .copied {
   opacity:0;
   font-size:0.875rem;
