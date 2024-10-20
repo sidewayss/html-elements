@@ -33,3 +33,6 @@
     padding: 0 0.0625rem 0.0625rem 0.125rem;
     background-color:white; /* same as default, afaik */
   }
+  @media (hover:none) {
+    input-num::part(buttons) { display:none }
+  }

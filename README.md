@@ -1,7 +1,7 @@
 # `html-elements` contains four custom HTML elements
 - [`check-box`](#check-box) emulates `<input type="checkbox">` plus additional features.
-- [`check-tri`](#check-tri) is a tri-state checkbox, integrating [`indeterminate`](https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/indeterminate) as the third state.
-- [`state-btn`](#state-btn) is a multi-state button with user-defined states and toggle order.
+- [`check-tri`](#check-tri) is a tri-state checkbox, adding a form of [`indeterminate`](https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/indeterminate) as the third state.
+- [`state-btn`](#state-btn) is a multi-state button with user-defined states and shapes.
 - [`input-num`](#input-num) is a numeric input that emulates a spreadsheet.
 
 ## Usage
@@ -13,9 +13,9 @@ There are three JavaScript files for the four elements. `check-box` and `check-t
     <script src="/html-elements/input-num.js"    type="module"></script>
 </head>
 ```
-NOTE: `html-elements` uses `await` at the top level of modules. The browser support grid is [here](https://caniuse.com/mdn-javascript_operators_await_top_level). The workaround is messy enough that I'm not inclined to make any changes. Current global support is 92.93%, and while support for `await` without this feature goes back another 4 or 5 years, it only increases the global support to 94.66%. That's a mere 1.73% difference.
+NOTE: `html-elements` uses `await` at the top level of modules. The browser support grid is [here](https://caniuse.com/mdn-javascript_operators_await_top_level). The workaround is funky enough that I'm not inclined to make any changes. Current global support is 92.93%, and while support for `await` without this feature goes back another 4 or 5 years, it only increases the global support to 94.66%.
 
-It also uses [private properties](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes/Private_properties), which have a similar [support grid](https://caniuse.com/?search=private%20class), but can be transpiled out without too much trouble.  If you wants to use `html-elements` but needs either of these workarounds, please let me know.
+`html-elements` also uses [private properties](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes/Private_properties), which also have [~93% support](https://caniuse.com/?search=private%20class), but can be transpiled out without too much trouble.  If you want to use `html-elements` but require either of these workarounds, please submit an issue or a pull request.
 
 ### Managing Template Files
 There are built-in template files in the root directory:
@@ -23,7 +23,9 @@ There are built-in template files in the root directory:
 - **template-button.html** for `state-btn`
 - **template-number.html** for `input-num`
 
-Instead of modifying those, you should create an `/html-templates` directory as a sibling of your `/html-elements` directory. Store your template files there. If the element doesn't find a file there when it's loading, it generates an HTML 404 "file not found" error, then falls back to the built-in template file. I would suggest copying the built-in files to your templates directory as a starting point. Then edit them to create your own design within the template structure.
+Instead of modifying those, you should create an `/html-templates` directory as a sibling of your `/html-elements` directory. Store your template files there. That keeps the source and user files separate and preserves the source files as fallbacks.
+
+When the page is loading, if the element doesn't find its template file in `/html-templates`, the DOM generates an unsupressable HTML 404 "file not found" error. Then it falls back to the built-in template file. I would suggest copying the built-in files to your templates directory as a starting point. Then edit them to create your own designs within the template structure.
 
 NOTE: The CSS files in the `css` sub-directory are samples. They are not used directly by the elements, as the template files are.
 
@@ -36,7 +38,7 @@ NOTE: The CSS files in the `css` sub-directory are samples. They are not used di
 ## `input-num`
 If you want to jump right in, the test/demo app is [here](https://sidewayss.github.io/html-elements/apps/input-num).
 
-Based on an informal survey and my own repeated frustrations, it became clear to me that not only is `<input type="number"/>` truly ["the worst" HTML input](https://www.google.com/search?q=the+worst+html+input), but that I could no longer continue to use it. I spent over a decade programming for finance executives and financial analysts, so I spent a lot of time in Excel. Regardless of the brand, spreadsheets have a model for inputting numbers that is tried and true. I decided to create a custom element that imitates a spreadsheet, while maintaining consistency with the default `<input type="number"/>` as implemented by the major browsers.
+Based on an informal survey and my own repeated frustrations, it became clear to me that `<input type="number"/>` isn't just ["the worst"](https://www.google.com/search?q=the+worst+html+input) HTML input, it's a complete waste of time. I needed an alternative. I spent over a decade programming for finance executives and financial analysts, so I spent a lot of time in Excel. Regardless of the brand, spreadsheets have a model for inputting numbers that is tried and true. I decided to create a custom element that imitates a spreadsheet, while maintaining consistency with the default `<input type="number"/>` as implemented by the major browsers.
 
 ### Features
 `<input type="number"/>` emulation:
@@ -120,6 +122,14 @@ The available parts:
 - `buttons` is the container for the spinner and confirm buttons.
 - `border` is the vertical border between the input and the buttons.
 
+My preference, as illustrated in the sample `css/input-num.css` file, is to *not* display the spinner or confirm buttons on devices that can't hover:
+```css
+@media (hover:none) {
+  input-num::part(buttons) { display:none }
+}
+```
+Those devices are all touchscreen, and focusing the element will focus the `<input>`, which will display the appropriate virtual keyboard. Touch and hold has system meanings on touch devices, which conflicts with spinning. At `font-size:1rem` the buttons are smaller than recommended for touch. So unless you create oversized buttons or use a much larger font size, it's best not to display them at all.
+
 NOTE: Auto-sizing only works if the element is displayed. If the element or any of it's ancestors is set to `display:none`, the element and its shadow DOM have a width and height of zero. During page load, don't set `display:none` until after your elements have resized.
 
 NOTE: If you load the font for your element in JavaScript using `document.fonts.add()`, it will probably not load before the element. So `resize()` won't be using the correct font, and you'll have to run it again after the fonts have loaded.  Something like this:
@@ -148,38 +158,42 @@ Then turn on the `autoResize` property prior to calling `resize()` :
 ### The Template: `template-number.html`
 I am more familiar with SVG than other image formats, so the spin and confirm buttons in the [built-in template](https://github.com/sidewayss/html-elements/blob/main/template-number.html) are in SVG. You can create your own template file that uses JPEG or whatever image format you prefer.
 
-There are two pairs of buttons that occupy the same space at the right of the element:
-- up/down spinners
-- ok/cancel confirmers
+The core of the template is a flex `<div>`, with three children:
+- `<input type="text" id="input" part="input"/>` - the text input
+- `<svg part="buttons">` - the spinner and confirm buttons
+- `<svg viewBox="0 0 0 0">` - three `<text>` elements used to calculate auto-width
 
-The definitions for the buttons are done as a single block that contains the pair. This allows you to create a single image that responds differently when interacting with the top or bottom button. That kind of design makes more sense for the spinner than the confirm buttons...
+Do not modify:
+- `<input>`
+- `<svg viewBox="0 0 0 0">`
+- `<g id="controls">` and its child `<use>`
+- The two `<rect class="events/>`
 
-The file contains 17 SVG definitions for the buttons. The `idle` defs are for hovering over the `<input>` vs over the buttons. These are the ids:<br>
-spinner:
-```
-spinner-idle
-spinner-key-up
-spinner-key-down
-spinner-hover-up
-spinner-hover-down
-spinner-active-up
-spinner-active-down
-spinner-active-upper
-spinner-active-downer
-```
-The `upper` and `downer` defs are extra images for auto-spinning vs `up` and `down` for one-at-a-time click spinning. When you hold the mouse down for longer than `data-delay` milliseconds, the `er` def kicks in.
+Everything else is user-configurable, though you'll probably want to keep the flex container:
+- `<style>` (optional, but recommended)
+- `<defs>`
+- <polyline part="border"/> (optional)
 
-confirm:
-```
-confirm-idle
-confirm-hover-up
-confirm-hover-down
-confirm-active-up
-confirm-active-down
-cancel-idle
-cancel-hover-up
-cancel-hover-down
-cancel-active-up
-cancel-active-down
-```
-The `cancel` defs are for when the user input is `NaN` and the OK button is disabled.
+`<defs>` defines the shapes, and `<style>` formats them. There are two pairs of buttons:
+- spinner: up/down
+- confirm: ok/cancel
+
+The definitions are setup as a single block containing each pair. This allows you to create a single image that responds differently when interacting with the top or bottom button. That kind of design makes more sense for the spinner than the confirm buttons...
+
+There is a definition for each cell in this matrix for a total of 19 ids. Confirm has an additional set of definitions for when the ok button is disabled due to user input == `NaN`. Those are labeled `cancel`. The `<rect>` elements that handle events have the ids "top" and "bot" (for "bottom"):
+| Pair | State | #id/href |
+| ---- | ----- | -------- |
+| spinner | idle | `#spinner-idle` |
+| spinner | keydown*| `#spinner-key-top`<br>`#spinner-key-bot` |
+| spinner | hover | `#spinner-hover-top`<br>`#spinner-hover-bot` |
+| spinner | active | `#spinner-active-top`<br>`#spinner-active-bot` |
+| spinner | spin | `#spinner-spin-top`&#x2020;<br>`#spinner-spin-bot` |
+| confirm | idle | `#confirm-idle` |
+| confirm | hover  | `#confirm-hover-top`<br>`#confirm-hover-bot` |
+| confirm | active | `#confirm-active-top`<br>`#confirm-active-bot` |
+| cancel | idle | `#cancel-idle` |
+| cancel | hover  | `#cancel-hover-top`<br>`#cancel-hover-bot` |
+| cancel | active | `#cancel-active-top`<br>`#cancel-active-bot` |
+
+\* *ArrowUp or ArrowDown key, initial image is state:key, full-speed spin uses `spin-`*<br>
+&#x2020; *`spin-top` and `spin-bot` are the full-speed spin images, used after `data-delay` expires*

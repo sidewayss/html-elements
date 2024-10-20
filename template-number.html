@@ -2,6 +2,10 @@
   <body>
     <template id="template-number"> <!-- the <number-in> template -->
       <style>
+        :host {
+          --height:1.375rem; /* 22px */
+          --half-height:calc(var(--height) / 2);
+        }
         input {
           font:inherit;
           font-kerning:inherit;
@@ -12,25 +16,22 @@
         }
         #buttons {
           pointer-events:none;
-          height:1.375rem;
+          height:var(--height);
           width: auto;
           margin-left:-1rem; /* offsets width */
-      /* position:relative;
-          left: -1rem;
-          margin-right:-1rem; */
         }
         rect {
           stroke:none;
         }
         rect, use {
           width: 1rem;
-          height:1.375rem;  /* 22px */
+          height:var(--height);
         }
         rect.spin  { fill:#EEE }
         .events {
           pointer-events:visible;
           fill:none;
-          height:11px; /* 11px */
+          height:var(--half-height); /* 11px */
         }
         .black     { fill:#000; }
         .darkgray  { fill:#333; }
@@ -51,8 +52,8 @@
           fill:  #000;
           stroke:#000;
         }
-        .one80 {
-            transform-origin:8.5px 11px;
+        .one80 {             /* width is 17px, center is 8.5px, why not 16/8px?? */
+            transform-origin:calc(1.0625rem / 2) var(--half-height); /* 8.5px 11px */
             transform:rotate(180deg);
         }
 
@@ -76,58 +77,58 @@
       </style>
       <!--------------------------------------------------------------->
       <div style="display:flex; align-items:center;">
-        <input part="input" id="input" type="text" inputmode="numeric"/>
-        <svg id="buttons" part="buttons" viewbox="0 0 16 22">
+        <input id="input"   part="input" type="text" inputmode="numeric"/>
+        <svg   id="buttons" part="buttons" viewbox="0 0 16 22">
           <defs>
             <!-- spinner buttons -->
             <rect id="bg" fill="#EEE"/>
             <rect id="rect1" style="width:5px; height:1px;" x="6"/>
             <rect id="rect2" style="width:5px; height:2px;" x="6"/>
-            <path id="idle-up"   class="idle" d="M4.5, 9.5 L8.5, 4 12.5, 9.5"/>
-            <path id="idle-down" class="idle" d="M4.5,12.5 L8.5,18 12.5,12.5"/>
-            <path id="active-up" d="M4,9.5 L8.5,4 13,9.5 H10.5 V10.5 H6.5 V9.5Z"/>
+            <path id="idle-top"   class="idle" d="M4.5, 9.5 L8.5, 4 12.5, 9.5"/>
+            <path id="idle-bot" class="idle" d="M4.5,12.5 L8.5,18 12.5,12.5"/>
+            <path id="active-top" d="M4,9.5 L8.5,4 13,9.5 H10.5 V10.5 H6.5 V9.5Z"/>
 
             <g id="spinner-idle">
               <use href="#bg"/>
-              <use href="#idle-up"/>
-              <use href="#idle-down"/>
+              <use href="#idle-top"/>
+              <use href="#idle-bot"/>
             </g>
-            <g id="spinner-key-up">
+            <g id="spinner-key-top">
               <use href="#bg"/>
-              <use href="#idle-up" y="-1"/>
-              <use href="#idle-down"/>
+              <use href="#idle-top" y="-1"/>
+              <use href="#idle-bot"/>
             </g>
-            <g id="spinner-key-down">
+            <g id="spinner-key-bot">
               <use href="#bg"/>
-              <use href="#idle-up"/>
-              <use href="#idle-down" y="1"/>
+              <use href="#idle-top"/>
+              <use href="#idle-bot" y="1"/>
             </g>
-            <g id="spinner-hover-up">
+            <g id="spinner-hover-top">
               <use href="#bg"/>
               <path class="arrow-hover" d="M4,9.5 L8.5,4 13,9.5Z
                                            M6.5,12.5 H10.5 V17.5 H6.5Z"/>
             </g>
-            <g id="spinner-active-up">
+            <g id="spinner-active-top">
               <use href="#bg"/>
               <g transform="translate(0 -1)" class="darkgray">
-                <use href="#active-up" class="arrow-active"/>
+                <use href="#active-top" class="arrow-active"/>
                 <use href="#rect2" y="12"/>
                 <use href="#rect2" y="15"/>
                 <use href="#rect1" y="18"/>
               </g>
             </g>
-            <g id="spinner-active-upper">
+            <g id="spinner-spin-top">
               <use href="#bg"/>
               <g transform="translate(0 -2)">
-                <use href="#active-up" class="arrow-er"/>
+                <use href="#active-top" class="arrow-er"/>
                 <use href="#rect2" class="darkgray"  y="12"/>
                 <use href="#rect2" class="gray"      y="15"/>
                 <use href="#rect2" class="lightgray" y="18"/>
               </g>
             </g>
-            <use id="spinner-hover-down"    href="#spinner-hover-up"     class="one80"/>
-            <use id="spinner-active-down"   href="#spinner-active-up"    class="one80"/>
-            <use id="spinner-active-downer" href="#spinner-active-upper" class="one80"/>
+            <use id="spinner-hover-bot"  href="#spinner-hover-top"  class="one80"/>
+            <use id="spinner-active-bot" href="#spinner-active-top" class="one80"/>
+            <use id="spinner-spin-bot"   href="#spinner-spin-top"   class="one80"/>
 
             <!-- confirm buttons: ok and cancel -->
             <rect id="confirm-rect" style="width:15px; height:11px;" x="1"/>
@@ -142,26 +143,26 @@
               <use href="#ok"     class="okc-idle"/>
               <use href="#cancel" class="okc-idle"/>
             </g>
-            <g id="confirm-hover-up">
+            <g id="confirm-hover-top">
               <use href="#bg"/>
               <use href="#confirm-hover"/>
               <use href="#ok"     class="okc-hover onePoint5"/>
               <use href="#cancel" class="okc-idle"/>
             </g>
-            <g id="confirm-active-up">
+            <g id="confirm-active-top">
               <use href="#bg"/>
               <use href="#confirm-active"/>
               <use href="#midline"/>
               <use href="#ok"     class="ok-active onePoint5"/>
               <use href="#cancel" class="okc-idle"/>
             </g>
-            <g id="confirm-hover-down">
+            <g id="confirm-hover-bot">
               <use href="#bg"/>
               <use href="#confirm-hover" y="11"/>
               <use href="#ok"     class="okc-idle"/>
               <use href="#cancel" class="okc-hover onePoint5"/>
             </g>
-            <g id="confirm-active-down">
+            <g id="confirm-active-bot">
               <use href="#bg"/>
               <use href="#confirm-active" y="11"/>
               <use href="#midline"/>
@@ -175,25 +176,25 @@
               <use href="#ok"     class="ok-disabled"/>
               <use href="#cancel" class="okc-idle"/>
             </g>
-            <g id="cancel-hover-up">
+            <g id="cancel-hover-top">
               <use href="#bg"/>
               <use href="#midline"/>
               <use href="#ok"     class="ok-disabled"/>
               <use href="#cancel" class="okc-idle"/>
             </g>
-            <g id="cancel-active-up">
+            <g id="cancel-active-top">
               <use href="#bg"/>
               <use href="#midline"/>
               <use href="#ok"     class="ok-disabled"/>
               <use href="#cancel" class="okc-idle"/>
             </g>
-            <g id="cancel-hover-down">
+            <g id="cancel-hover-bot">
               <use href="#bg"/>
               <use href="#confirm-hover" y="11"/>
               <use href="#ok"     class="ok-disabled"/>
               <use href="#cancel" class="okc-hover onePoint5"/>
             </g>
-            <g id="cancel-active-down">
+            <g id="cancel-active-bot">
               <use href="#bg"/>
               <use href="#confirm-active" y="11"/>
               <use href="#midline"/>
@@ -203,15 +204,15 @@
           </defs>
           <!-------------->
           <g id="controls">
-            <use href="#spinner-idle"/>     <!-- initial state -->
+            <use href="#spinner-idle"/>   <!-- initial state -->
             <polyline part="border" points="0.5,0 0.5,22"/>
           </g>
-          <rect id="up"   class="events"/>  <!-- invisible event catchers  -->
-          <rect id="down" class="events" y="11"/>
+          <rect id="top" class="events"/> <!-- invisible event catchers  -->
+          <rect id="bot" class="events" y="11"/>
         </svg>
         <!-------------------->
-        <svg viewBox="0 0 0 0" visibility="hidden" width="0" height="0">
-          <text id="max"></text>            <!-- invisible width measurers -->
+        <svg viewBox="0 0 0 0" width="0" height="0" visibility="hidden">
+          <text id="max"></text>          <!-- invisible width measurers -->
           <text id="min"></text>
           <text id="data-units"></text>
         </svg>

@@ -218,7 +218,7 @@ function change(evt) {
         break;
       case elms.digits:
         minDigits();
-        tar = elms.step;
+        tar = elms.step;        // fall-through fakery
         val = tar.value;
       case elms.step:
         setInfo(tar, !val, `= ${inNum.step}`);

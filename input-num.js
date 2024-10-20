@@ -30,13 +30,10 @@ SPINNER = "#spinner-",  // Each def id has two or three segments:
 CONFIRM = "#confirm-",
 HOVER   = "hover-",     // second segments:
 ACTIVE  = "active-",
+SPIN    = "spin-",      // for full-speed spinning
 IDLE    = "idle",       // no third segment for idle
-UP      = "up",         // third segments:
-DOWN    = "down",
-er = {
-    [UP]:  "upper",
-    [DOWN]:"downer"
-},
+TOP     = "top",        // third segments:
+BOT     = "bot",
 
 minimums = {
     [DIGITS]:   0,
@@ -49,15 +46,15 @@ code = {
     up:    "ArrowUp",
     down:  "ArrowDown"
 },
-key = {
+key = {                 // Events types:
     down: "keydown",
     up:   "keyup",
-    [code.up]:   UP,
-    [code.down]: DOWN
+    [code.up]:   TOP,   // ArrowUp   = TOP button
+    [code.down]: BOT    // ArrowDown = BOT button
 },
 mouse = {
-    enter:"mouseenter",
-    leave:"mouseleave",
+    over: "mouseover",
+    out:  "mouseout",
     down: "mousedown",
     up:   "mouseup",
     click:"click",
@@ -66,7 +63,7 @@ event = {
     blur: "blur",
     focus:"focus"
 },
-resizeEvents = [event.blur, event.focus, mouse.enter],
+resizeEvents = [event.blur, event.focus, mouse.over],
 
 textAlign = ["text-align","right","important"],
 template  = await getTemplate("number");
@@ -98,8 +95,8 @@ class NumberInput extends BaseElement {
 
         this.#addEvent(key.down,    this.#keyDown);
         this.#addEvent(key.up,      this.#keyUp);
-        this.#addEvent(mouse.enter, this.#hover);
-        this.#addEvent(mouse.leave, this.#hover);
+        this.#addEvent(mouse.over,  this.#hover);
+        this.#addEvent(mouse.out,   this.#hover);
         this.#addEvent(event.focus, this.#active);
         this.#addEvent(event.blur,  this.#active);
 
@@ -116,8 +113,8 @@ class NumberInput extends BaseElement {
         this._use   = this.#ctrls.getElementsByTagName("use")[0];
 
         for (elm of this.#btns) {
-            this.#addEvent(mouse.enter, this.#mouseEnter, elm);
-            this.#addEvent(mouse.leave, this.#mouseLeave, elm);
+            this.#addEvent(mouse.over, this.#mouseOver, elm);
+            this.#addEvent(mouse.out,  this.#mouseOut,  elm);
         }
         this.#bound = {         // for removeEventListener()
             [mouse.down]: this.#mouseDown.bind(this),
@@ -129,7 +126,7 @@ class NumberInput extends BaseElement {
         const obj = {};         // #states are #input styles for each state
         for (const evt of resizeEvents)
             obj[evt] = {};
-        obj[mouse.leave] = obj[event.blur];
+        obj[mouse.out] = obj[event.blur];
         this.#states = obj;
         this.#spinId = null;
         this.#isLoading = true; // prevents double-setting of values during load
@@ -322,48 +319,48 @@ class NumberInput extends BaseElement {
     }
 //==============================================================================
 //  Event Handlers
-//  Both this and #up, #down listen for mouseenter, mouseleave, focus and blur.
+//  Both this and #up, #down listen for mouseover, mouseout, focus and blur.
 //  this handles both mouse events with #hover, and focus/blur with #active().
 //  #up, #down handle each event separately, handler is named after the event.
-//  mouseenter and mouseleave ------------------------------------------------
+//  mouseover and mouseout ---------------------------------------------------
 //  target is this: shows/hides controls and formats #input for spinner
     #hover(evt) {
         const
-        isEnter = (evt.type == mouse.enter),
+        isOver = (evt.type == mouse.over),
         inFocus = this.#inFocus;
-        this.#hoverOut = isEnter;
+        this.#hoverOut = isOver;
         if (!this.#hoverIn)
             this._setHref(`${this.#getButton(inFocus)}${IDLE}`);
 
         if (inFocus) {
             if (this.confirms)
-                this.#showCtrls(isEnter);
+                this.#showCtrls(isOver);
         }
         else if (this.spins) {
             this.#assignCSS(evt.type);
-            this.#input.value = this.#getText(false, !isEnter);
-            this.#showCtrls(isEnter || this.#outFocus);
+            this.#input.value = this.#getText(false, !isOver);
+            this.#showCtrls(isOver || this.#outFocus);
         }
     }
 //  target is up or down <rect>: starts/stops spin, sets href
-    #mouseEnter(evt) {
-        let args
+    #mouseOver(evt) {
+        let args;
         const id = evt.target.id;
         if (this.#isSpinning) {          // if spinning, spin the other way
             this.#spin(undefined, null); // cancel w/o href or #spinId = null
-            args = [false, id == UP];    // restart at full speed
+            args = [false, id == TOP];    // restart at full speed
         }
-        this.#enterLeave(id, true, `${this.#getState(id)}`, args);
+        this.#overOut(id, true, `${this.#getState(id)}`, args);
     }
-    #mouseLeave(evt) {
+    #mouseOut(evt) {
         const
         id   = evt.relatedTarget?.id,
-        args = !this.#isSpinning || id == UP || id == DOWN
+        args = !this.#isSpinning || id == TOP || id == BOT
              ? undefined  // don't call #spin()
              : [];        // cancel spinning
-        this.#enterLeave("", id == INPUT, IDLE, args);
+        this.#overOut("", id == INPUT, IDLE, args);
     }
-    #enterLeave(hoverIn, setHref, state, args) {
+    #overOut(hoverIn, setHref, state, args) {
         this.#hoverIn = hoverIn;
         if (setHref)
             this._setHref(`${this.#getButton(this.#inFocus)}${state}`);
@@ -373,7 +370,8 @@ class NumberInput extends BaseElement {
 //  focus and blur -----------------------------------------------------------
 //  target is this:
     #active(evt) {
-        console.log("active", this.#isMousing);
+        if (this.#isMousing) return;
+        //-----------------------------------------
         this.#outFocus = (evt.type == event.focus);
         const
         inFocus = this.#inFocus,
@@ -385,17 +383,13 @@ class NumberInput extends BaseElement {
     }
 //  target is #input:
     #focus(evt) {
-        console.log("focus", this.#isMousing);
-        if (this.#isBlurry)
-            return;
-        else if (this.#isMousing) // wait for mouseup to run #fur()
-            evt.stopPropagation;  // don't run #active()
-        else
-            this.#fur(evt, false, CONFIRM, false,
-                      this.#attrs[VALUE].toFixed(this.digits));
+        // stopPropagation() here doesn't prevent #active()...
+        if (this.#isBlurry || this.#isMousing) return;
+        //---------------------------------------------------
+        this.#fur(evt, false, CONFIRM, false,
+                    this.#attrs[VALUE].toFixed(this.digits));
     };
     #blur(evt) {
-        console.log("blur", this.#isMousing);
         if (this.#isBlurry || this.#isMousing) return;
         //==========================================================
         // When #input has the focus and the user presses Shift+Tab:
@@ -424,7 +418,7 @@ class NumberInput extends BaseElement {
 //  mousedown, mouseup, and click --------------------------------------------
 //  target is #input or up or down <rect>:
 //  #isMousing is because in #input the user can mousedown & drag to select,
-//  even trigger mouseleave, and because preventDefault() doesn't prevent blur.
+//  even trigger mouseout, and because preventDefault() doesn't prevent blur.
     #mouseDown(evt) {
         if (evt.target === this.#input) {
             if (!this.#inFocus) {             // about to get focus, not yet
@@ -472,7 +466,7 @@ class NumberInput extends BaseElement {
 //  target is up or down <rect>: must check classList.contains(NAN) because
 //         setting #up's pointer-events to "none" displays text I-beam cursor.
     #click(evt) {                        // confirm only, not for spinner
-        if (evt.target.id == UP) {       // ok
+        if (evt.target.id == TOP) {       // ok
             if (this.classList.contains(NAN)) {
                 this.#input.focus();     // acts as if disabled
                 this.#isMousing = false; // must follow .focus()
@@ -510,14 +504,14 @@ class NumberInput extends BaseElement {
             // slight difference from #spinner-idle, it looks good.
             case code.down:
             case code.up:   // #spin(null) doesn't set href or #spinId
-                const upDn = key[evt.code];
+                const topBot = key[evt.code];
                 if (this.#isSpinning)
-                    this._setHref(`${SPINNER}${ACTIVE}${er[upDn]}`);
+                    this._setHref(`${SPINNER}${SPIN}${topBot}`);
                 else {
-                    this._setHref(`${SPINNER}key-${upDn}`);
+                    this._setHref(`${SPINNER}key-${topBot}`);
                     this.#spinId = -1;
                 }
-                this.#spin(null, upDn == UP);
+                this.#spin(null, topBot == TOP);
             default:
             }
     }
@@ -614,12 +608,12 @@ class NumberInput extends BaseElement {
     get #isSpinning() { return this.#spinId !== null; }
 
 //  #spin() controls the spinning process
-    #spin(state, isUp = this.#hoverIn == UP) {
+    #spin(state, isUp = (this.#hoverIn == TOP)) {
         if (state === undefined) {           // cancel:
             if (this.#isSpinning) {
                 clearInterval(this.#spinId); // interchangeable w/clearTimeout()
                 clearTimeout (this.#erId);
-                if (isUp !== null) {         // for mouseenter while spinning
+                if (isUp !== null) {         // for mouseover while spinning
                     const state = this.#hoverIn ? `${HOVER}${this.#hoverIn}`
                                                 : IDLE;
                     this._setHref(`${SPINNER}${state}`);
@@ -643,9 +637,9 @@ class NumberInput extends BaseElement {
                 }
                 if (state) {                 // start spin with initial step
                     const
-                    pre   = `${SPINNER}${ACTIVE}`,
-                    now   = `${pre}${isUp ? UP : DOWN}`,
-                    later = `${pre}${isUp ? er[UP] : er[DOWN]}`;
+                    topBot = isUp ? TOP : BOT,
+                    now    = `${SPINNER}${ACTIVE}${topBot}`,
+                    later  = `${SPINNER}${SPIN}${topBot}`;
 
                     this._setHref(now);
                     this.#erId = setTimeout(this._setHref.bind(this), this.delay, later);
@@ -716,8 +710,8 @@ class NumberInput extends BaseElement {
             chars = Math.max(width[MAX], width[MIN]), // text width w/o units
             obj   = {
                 [event.blur] : chars + extra - diff,
-                [event.focus]: chars + btns,
-                [mouse.enter]: chars
+                [event.focus]: chars,
+                [mouse.over] : chars
             }
             if (isItalic)           // right-aligned italics often truncate
                 for (id in obj)     // #roundEven() mitigates it by 1px
@@ -733,7 +727,7 @@ class NumberInput extends BaseElement {
         if (isAlign) {
             states[event.blur] [PR] = this.#padRight + diff  + px;
             states[event.focus][PR] = this.#padRight + btns  + px;
-            states[mouse.enter][PR] = this.#padRight + extra + px;
+            states[mouse.over] [PR] = this.#padRight + extra + px;
         }
         else {
             for (id in states)
@@ -783,7 +777,7 @@ class NumberInput extends BaseElement {
         return str ? Number(str) : NaN; // Number() converts "" and null to 0
     }
 //  #getButton() gets the first segment of the href id
-    #getButton(inFocus) {  // helps #mouseEnter() and #mouseLeave()
+    #getButton(inFocus) {  // helps #mouseOver() and #mouseOut()
         return !inFocus
              ? SPINNER
              : this.classList.contains(NAN)
