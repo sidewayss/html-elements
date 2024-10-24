@@ -1,29 +1,53 @@
 export {VALUE, BaseElement, getTemplate};
 const
 DISABLED  = "disabled", // DOM attributes
-TAB_INDEX = "tab-index",
+TAB_INDEX = "tabindex",
 VALUE     = "value";    // const exported, but not handled here
+
 // =============================================================================
 // The custom base class, direct sub-class of HTMLElement
 class BaseElement extends HTMLElement {
-    #tabIndex;
+    #name; #tabIndex;
     static observedAttributes = [DISABLED, TAB_INDEX];
-    constructor(template) { // <template> as DocumentFragment
-        super();            // emulates change (not input) event
-        this._fragment = template.cloneNode(true);
+    static promises = new Map;      // for noAwait
 
-        this._dom = this.attachShadow({mode:"open"});
-        this._dom.appendChild(this._fragment);
+    constructor(template, noAwait) {
+        super();
+        if (noAwait) {
+            this.#name = template;  // the template name as String
+            BaseElement.promises.set(this, promise());
+        }
+        else
+            this.#attach(template); // the <template> as DocumentFragment
 
         if (this.tabIndex < 0)
             this.tabIndex = 0;
         this.#tabIndex = this.tabIndex;
     }
+    #attach(template) {
+        this._dom = this.attachShadow({mode:"open"});
+        this._dom.appendChild(template.cloneNode(true));
+    }
+//  connectedCallback() exists for noAwait. It runs a zig-zag cascade of every
+//  sub-class's _init(), calling it in the bottom-level class, which calls
+//  super._init() as necessary for mid-level classes. If (!noAwait) it must call
+//  a pseudo-connectedCallback() because a real one prevents this one running.
+    connectedCallback() {
+        if (this.#name) {
+            getTemplate(this.#name).then(tmp => {
+                this.#attach(tmp);
+                this._init();
+                BaseElement.promises.get(this).resolve();
+            });
+        }
+        else
+            this._connected?.();
+    }
 //  attributeChangedCallback() handles changes to the observed attributes
     attributeChangedCallback(name, _, val) {
         switch (name) {
         case DISABLED:
-            if (val !== null) {    // null == removeAttribute()
+            if (val !== null) {     // null == removeAttribute()
                 this.tabIndex = -1;
                 this.style.pointerEvents = "none";
             }
@@ -33,7 +57,7 @@ class BaseElement extends HTMLElement {
             }
             break;
         case TAB_INDEX:
-            this.#tabIndex = val;  // to restore post-disable
+            this.#tabIndex = val;   // to restore post-disable
         default:
         }
     }
@@ -85,4 +109,14 @@ function fallBack(file) {
 }
 function catchError(err) {
     console.error(err.stack ?? err);
+}
+// promise() returns a new Promise, extended with resolve & reject,
+//           borrowed from raf/ez.js to support noAwait.
+function promise() {
+    let resolve, reject;
+    const promise = new Promise((res, rej) => {
+        resolve = res;
+        reject  = rej;
+    });
+    return Object.assign(promise, {resolve, reject});
 }

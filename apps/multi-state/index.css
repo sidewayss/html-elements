@@ -3,33 +3,13 @@
   font-weight:400;
   src:url("/fonts/RobotoMono.ttf") format("truetype");
 }
-@font-face { /* because user can select bold & italic for input-num */
-  font-family:"Roboto Mono";
-  font-weight:700;
-  src:url("/fonts/RobotoMono.ttf") format("truetype");
-}
-@font-face {
-  font-family:"Roboto Mono";
-  font-weight:400;
-  font-style:italic;
-  src:url("/fonts/RobotoMono.ttf") format("truetype");
-}
-@font-face { /* because user can select bold for input-num */
-  font-family:"Roboto Mono";
-  font-weight:700;
-  font-style:italic;
-  src:url("/fonts/RobotoMono.ttf") format("truetype");
-}
 * {
   font-family:"Roboto Mono", monospace;
   font-size:1rem;
   color:#272727;
 }
-@media (height < 340px) {
-  * { font-family:monospace; }
-}
-@media (hover:none) {
-  input-num::part(buttons) { display:none }
+label {
+  margin-right:0.25rem;
 }
 p {
   font-family:sans-serif;
@@ -40,6 +20,8 @@ p.header {
   font-weight:bold;
   margin-top:0;
 }
+span[id] { min-width:5ch }
+
 button    {
   width:  1rem;
   height: 1rem;
@@ -57,13 +39,8 @@ button:active {
   background-image:url("../clipboard-active.png");
 }
 select    {
-  margin-left:0.25rem;
   border-color:#0002;
 }
-check-box    { margin-right:1rem }
-#accounting,
-#keyboards   { margin-right:0 } /* exceptions to check-box margin */
-
 select:disabled, .disabled {
   opacity:1;
   color:gray;
@@ -87,25 +64,29 @@ select:disabled, .disabled {
 .row {
   display:flex;
   align-items:center;
+  margin-top:0.125rem;
 }
-div.row    { margin-top:0.125rem; }
-div.mt1-2  { margin-top:0.5rem }
-div.mb3-16 { margin-bottom:0.1875rem }
-div.between {
+.mt1-2  { margin-top:0.5rem }
+.mb3-16 { margin-bottom:0.1875rem }
+.between {
   justify-content:space-between;
 }
+.separator { margin-top:0.75rem }
+.chk-val { margin-top:0.25rem }
 div.header {
   align-items:stretch;
   align-self: stretch;
+  margin-top:  0.1875rem;
   margin-right:0.125rem;
 }
-#max, #min, #step, #delay, #interval {
-  text-align:right
-}
-#html, #script {
+.html { /* the only elements in this page that stretch */
+  width:328px;
   font-family:monospace;
   padding:0.25rem 0.5rem;
   border:1px solid #000;
   background-color:#444;
   color:white;
+}
+@media (width < 360px) {
+  .html { max-width:288px; }
 }

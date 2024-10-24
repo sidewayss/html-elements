@@ -12,23 +12,38 @@ const DEFAULT   = "data-default";   // custom attributes
 const SHOW_DEF  = "data-show-default";
 const LABEL     = "data-label";
 
-const CHECK    = "check";
-const template = await getTemplate(CHECK);
+const CHECK = "check";
+let template, noAwait;
+try {
+    template = await getTemplate(CHECK);
+} catch {
+    template = CHECK;
+    noAwait  = true;
+}
 // =============================================================================
 // The checkbox base class
 class MultiCheck extends MultiState {
     #label;
     static observedAttributes = [LABEL, ...MultiState.observedAttributes];
     constructor() {
-        super(template);
+        super(template, noAwait);
+        this._keyCodes.add("Space");                   // spacebar = click
+        if (!noAwait)
+            this._init();
+    }
+//  _init() exists for old browsers w/o await at module top level
+    _init() {
         this._use   = this._dom.getElementById(CHECK_BOX);
         this.#label = this._dom.getElementById(LABEL); // optional <pre>
-        this._keyCodes.add("Space");                   // spacebar = click
+        if (noAwait)
+            this.label = this.label; // attributeChangedCallback did nothing
     }
 //  attributeChangedCallback() handles changes to the observed attributes
     attributeChangedCallback(name, _, val) {
-        if (name == LABEL)
-            this.#label.innerHTML = (val === null) ? "" : val;
+        if (name == LABEL) {
+            if (this.#label)
+                this.#label.innerHTML = (val === null) ? "" : val;
+        }
         else
             super.attributeChangedCallback(name, _, val);
     }
@@ -44,15 +59,20 @@ class CheckBox extends MultiCheck {
     static observedAttributes = [CHECKED, ...MultiCheck.observedAttributes];
     constructor() {
         super();
-        const def = this._dom.getElementById(DEF_BOX);
-        def.parentNode.removeChild(def);    // used exclusively by CheckTri
         Object.defineProperty(this, "isCheckBox", {value:true});
-        Object.seal(this);
+    }
+//  _init() exists for noAwait
+    _init() {
+        super._init();
+        if (this.checked)
+            this._setHref(CheckBox.hrefs[1]);
     }
 //  attributeChangedCallback() handles changes to the observed attributes
     attributeChangedCallback(name, _, val) {
-        if (name == CHECKED)
-            this._setHref(CheckBox.hrefs[Number(val !== null)]);
+        if (name == CHECKED) {
+            if (this._use)
+                this._setHref(CheckBox.hrefs[Number(val !== null)]);
+        }
         else
             super.attributeChangedCallback(name, _, val);
     }
@@ -83,7 +103,14 @@ class CheckTri extends MultiCheck {
                                  ...MultiCheck.observedAttributes];
     constructor() {
         super();
-        this.#svg     = this._dom.getElementById(CHECK);
+        if (!noAwait)
+            this._init();
+        Object.defineProperty(this, "isCheckTri", {value:true});
+    }
+//  _init() exists for noAwait
+    _init() {
+        super._init();
+        this.#svg     = this._dom.getElementById("shapes");
         this.#def     = this.#svg.getElementById(DEF_BOX);
         this.#viewBox = this.#svg.getAttribute("viewBox")
                                  .split(" ")
@@ -91,29 +118,36 @@ class CheckTri extends MultiCheck {
         if (!CheckTri.#w)
             CheckTri.#w = this.#viewBox[CheckTri.#vbW]; // baseline width
 
-        this._setHref(CheckTri.hrefs.get(null));         // it needs a default
-        Object.defineProperty(this, "isCheckTri", {value:true});
-        Object.seal(this);
+        this._setHref(CheckTri.hrefs.get(this.value));
+        if (noAwait) {
+            this.default = this.default; // attributeChangedCallback did nothing
+            this.showDefault = this.showDefault;
+        }
     }
 //  attributeChangedCallback() handles changes to the observed attributes
     attributeChangedCallback(name, _, val) {
-        const b = (val !== null);   // two out of three ain't bad
+        const b = (val !== null);
         switch (name) {
         case VALUE:
-            this._setHref(CheckTri.hrefs.get(val));
+            if (this._dom)
+                this._setHref(CheckTri.hrefs.get(val));
             break;
         case DEFAULT:
-            this._setHref(CheckBox.hrefs[Number(b)], this.#def);
+            if (this._dom)
+                this._setHref(CheckBox.hrefs[Number(b)], this.#def);
             break;
         case SHOW_DEF:
+            if (!this._dom) return;
+            //------------------
             let w = CheckTri.#w;
             if (b)
                 w *= 2;
             this.#viewBox[CheckTri.#vbW] = w;
+            this.#def.setAttribute("visibility", b ? "" : "hidden");
             this.#svg.setAttribute("viewBox", this.#viewBox.join(" "));
             this.#svg.setAttribute("width", w);
             this._use.setAttribute("x",     w - CheckTri.#w);
-            this.#def.setAttribute("visibility", b ? "" : "hidden");
+            break;
         default:
             super.attributeChangedCallback(name, _, val);
         }

@@ -1,0 +1,31 @@
+<html>
+  <body>
+    <!-- <check-box> and <check-tri> template -->
+    <template id="template-check">
+      <style>
+        .check-mark { /* because Firefox doesn't recognize ::part inside defs */
+          fill:none;
+          stroke-width:2px;
+          stroke-linecap :round;
+          stroke-linejoin:round;
+        }
+      </style>
+      <svg id="shapes" part="shapes" viewbox="0 0 18 15" width="18" height="15">
+        <defs>
+          <rect id="box" part="box" x="0.5" y="1.5" width="13" height="13" rx="2" ry="2"/>
+          <g id="chk"> <!-- checked state -->
+            <use href="#box"/>
+            <path d="M3.5,8.5 L6,11 10,4.5" part="check_mark" class="check-mark"/>
+          </g>
+          <g id="ind"> <!-- indeterminate state -->
+            <use href="#box"/>
+            <path d="M4,8 H10" part="null_mark" class="check-mark"/>
+          </g>
+        </defs>
+        <use id="default-box" href="#box" part="default" pointer-events="none"/>
+        <use id="check-box"   href="#box" part="check"/>
+      </svg>
+      <pre id="data-label" part="label"></pre>
+    </template>
+  </body>
+</html>

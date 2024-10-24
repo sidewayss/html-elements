@@ -23,6 +23,7 @@ NO_ALIGN   = "data-no-align",   // don't auto-align or auto-pad
 NO_RESIZE  = "data-no-resize",  // don't run resize(), for page load efficiency
 
 NAN   = "NaN",          // class names:
+OOB   = "OoB",          // Out of Bounds
 BEEP  = "beep",
 INPUT = "input",        // <input> element id, and coincidentally its tagName
 
@@ -40,13 +41,14 @@ minimums = {
     [DELAY]:    1,
     [INTERVAL]: 1
 },
-code = {
+
+code = {                // KeyboardEvent.prototype.code values
     enter: "Enter",
     escape:"Escape",
     up:    "ArrowUp",
     down:  "ArrowDown"
 },
-key = {                 // Events types:
+key = {                 // Event types:
     down: "keydown",
     up:   "keyup",
     [code.up]:   TOP,   // ArrowUp   = TOP button
@@ -65,8 +67,15 @@ event = {
 },
 resizeEvents = [event.blur, event.focus, mouse.over],
 
-textAlign = ["text-align","right","important"],
-template  = await getTemplate("number");
+textAlign = ["text-align","right","important"];
+
+let template, noAwait;
+try {
+    template = await getTemplate("number");
+} catch {
+    template = "number";
+    noAwait  = true;
+}
 // =============================================================================
 class NumberInput extends BaseElement {
     static observedAttributes = [
@@ -90,9 +99,21 @@ class NumberInput extends BaseElement {
     #locale = {currencyDisplay:"narrowSymbol"};
 // =============================================================================
     constructor() {
-        super(template);
-        this.#attrs = Object.assign({}, NumberInput.defaults);
+        super(template, noAwait);
 
+        const obj = {};         // #states are #input styles for each state
+        for (const evt of resizeEvents)
+            obj[evt] = {};
+        obj[mouse.out] = obj[event.blur];
+
+        this.#states = obj;
+        this.#spinId = null;
+        this.#attrs  = Object.assign({}, NumberInput.defaults);
+        this.#bound  = {        // #swapEvents adds/removes #bound events
+            [mouse.down]: this.#mouseDown.bind(this),
+            [mouse.up]:   this.#mouseUp  .bind(this),
+            [mouse.click]:this.#click    .bind(this)
+        };
         this.#addEvent(key.down,    this.#keyDown);
         this.#addEvent(key.up,      this.#keyUp);
         this.#addEvent(mouse.over,  this.#hover);
@@ -100,8 +121,15 @@ class NumberInput extends BaseElement {
         this.#addEvent(event.focus, this.#active);
         this.#addEvent(event.blur,  this.#active);
 
+        this.#isLoading = true; // prevents double-setting of values during load
+        if (!noAwait)
+            this._init();
+    }
+//==============================================================================
+//  _init() exists for noAwait, part of it belongs in a connectedCallback()
+    _init() {
         this.#input = this._dom.getElementById(INPUT);
-        this.#input.style.setProperty(...textAlign);
+        this.#input.style.setProperty(...textAlign);   // default is right-align
         this.#addEvent(event.focus, this.#focus, this.#input);
         this.#addEvent(event.blur,  this.#blur , this.#input);
 
@@ -116,34 +144,25 @@ class NumberInput extends BaseElement {
             this.#addEvent(mouse.over, this.#mouseOver, elm);
             this.#addEvent(mouse.out,  this.#mouseOut,  elm);
         }
-        this.#bound = {         // for removeEventListener()
-            [mouse.down]: this.#mouseDown.bind(this),
-            [mouse.up]:   this.#mouseUp  .bind(this),
-            [mouse.click]:this.#click    .bind(this)
-        };                      // #swapEvents adds/removes #bound events
-        this.#swapEvents(true); // must follow this.#bound initialization
+        this.#swapEvents(true);
 
-        const obj = {};         // #states are #input styles for each state
-        for (const evt of resizeEvents)
-            obj[evt] = {};
-        obj[mouse.out] = obj[event.blur];
-        this.#states = obj;
-        this.#spinId = null;
-        this.#isLoading = true; // prevents double-setting of values during load
-    }
-//==============================================================================
-//  connectedCallback()
-    connectedCallback() {
-        if (this.getAttribute(VALUE) === null) {  // no initial value set
-            const val = this.#attrs[VALUE];       // try to leave it at zero
-            if (val > this.max || val < this.min) // else split the difference
-                this.value = this.min + ((this.max - this.min) / 2);
+        if (noAwait) {              // skipped when noAwait:
+            this.#input.inputMode = this.digits ? "decimal" : "numeric";
+            this.#input.disabled = !this.keyboards;
+            if (!this.autoAlign)    // default set above
+                this.#input.style.setProperty(textAlign[0], null);
+            this._connected();
         }
-        // wait until all attributes set and styles loaded for these three:
-        this.#padRight = parseFloat(getComputedStyle(this.#input).paddingRight);
-        this.#input.value = this.#getText(false, true);
-        this.resize();
+    }
+//  _connected() is the pseudo-connectedCallback(), see BaseElement.
+    _connected() {
+        const val = this.#attrs[VALUE];
+        if (val > this.max || val < this.min)   // clamp value, even the default
+            this.value = Math.max(this.min, Math.min(this.max, val));
 
+        this.#input.value = this.#getText(false, true);
+        this.#padRight = parseFloat(getComputedStyle(this.#input).paddingRight);
+        this.resize();
         this.#isLoading = false;
     }
 //  attributeChangedCallback() runs after the attribute has been set. There is
@@ -154,8 +173,8 @@ class NumberInput extends BaseElement {
         if (name in this.#attrs) {  // numeric attributes
             const n = this.#toNumber(val);
             if (Number.isNaN(n) && name != STEP) {
-                this.#revert(name);         // null and "" are not valid values
-                return;                     // you can't remove these attributes
+                this.#revert(name); // null and "" are not valid values
+                return;             // you can't remove these attributes
             } //-----------
             switch (name) {
             case STEP:
@@ -163,14 +182,15 @@ class NumberInput extends BaseElement {
                     this.#attrs[STEP] = this.#autoStep(this.#attrs[DIGITS]);
                 else if (n)
                     this.#accept(name, n);
-                else                        // can't be zero
+                else                // can't be zero
                     this.#revert(name);
                 return;
             //----------
             case DIGITS:            // runs twice if #revert(), but simpler
                 isResize = true;
                 isUpdate = true;
-                this.#input.inputMode = n ? "decimal" : "numeric";
+                if (this.#input)    // for noAwait
+                    this.#input.inputMode = n ? "decimal" : "numeric";
                 this.#locale.maximumFractionDigits = n;
                 this.#locale.minimumFractionDigits = n;
                 if (!this.hasAttribute(STEP)) // auto-step default:
@@ -204,16 +224,19 @@ class NumberInput extends BaseElement {
             isResize = true;
             switch(name) {          // booleans:
             case NO_KEYS:
-                this.#input.disabled = (val !== null);
                 isResize = false;
+                if (this.#input)    // for noAwait
+                    this.#input.disabled = (val !== null);
                 break;
             case NO_CONFIRM:
             case NO_SPIN:           // assume element does not have focus
                 this.#swapEvents(true);
                 break;
             case NO_ALIGN:
-                const args = (val === null) ? textAlign : [textAlign[0], null];
-                this.#input.style.setProperty(...args);
+                if (this.#input) {  // for noAwait
+                    const args = (val === null) ? textAlign : [textAlign[0], null];
+                    this.#input.style.setProperty(...args);
+                }
             case NO_WIDTH:
             case NO_SCALE:
                 break;
@@ -241,8 +264,10 @@ class NumberInput extends BaseElement {
             if (isResize)
                 this.resize();
             if (isUpdate) {
-                const b = this.#inFocus;
-                this.#input.value = this.#getText(b, !b);
+                if (this.#input) {  // for noAwait
+                    const b = this.#inFocus;
+                    this.#input.value = this.#getText(b, !b);
+                }
             }
         }
     }
@@ -399,8 +424,10 @@ class NumberInput extends BaseElement {
         showIt = (evt.relatedTarget === this),
         value  = this.#getText(false, true);
 
-        if (this.#fur(evt, true, SPINNER, showIt, value))
+        if (this.#fur(evt, true, SPINNER, showIt, value)) {
             this.classList.remove(NAN);
+            this.classList.remove(OOB);
+        }
     }
     #fur(evt, isBlur, name, showIt, value) {
         this.#input.value = value;
@@ -515,13 +542,18 @@ class NumberInput extends BaseElement {
             default:
             }
     }
-    #keyUp(evt) {
-        if (this.#inFocus) {
+    #keyUp(evt) {                   // Esc key never makes it this far
+        if (this.#inFocus) {        // any character accepted
             if (evt.code == code.enter)
                 this.classList.remove(BEEP);
-            else                  // inform user of NaN
-                this.classList.toggle(NAN, Number.isNaN(this.#toNumber(this.text)));
-        }
+            else {
+                const               // inform user of NaN or OoB (Out of Bounds)
+                n   =this.#toNumber(this.text),
+                nan = Number.isNaN(n);
+                this.classList.toggle(NAN, nan);
+                this.classList.toggle(OOB, !nan && (n > this.max || n < this.min));
+            }
+        }                           // only two keys respond, always a number:
         else if (evt.code == code.up || evt.code == code.down)
             this.#spin(undefined, evt.code == code.up);
     }

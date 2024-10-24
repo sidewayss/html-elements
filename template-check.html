@@ -1,40 +1,23 @@
-<html>
+<html>   <!-- <check-box> and <check-tri> template -->
   <body>
-    <!-- <check-box> and <check-tri> template -->
     <template id="template-check">
-      <style>
-        pre {         /* I use <pre> instead of labels w/o for attribute */
-          margin: 0;  /* label.htmlFor can't be an SVG element id */
-          padding:0;
-          font-family:inherit;
-          user-select:none;
-          -webkit-user-select:none;
-          -moz-user-select:none;
-          -ms-user-select:none;
-        }
-        .checkMark {
-          fill:none;
-          stroke-width:2px;
-          stroke-linecap :round;
-          stroke-linejoin:round;
-        }
-      </style>
-      <svg id="check" part="box" viewbox="0 0 18 15" width="18" height="15">
-        <defs>
+      <svg id="shapes" part="shapes" viewbox="0 0 18 15" width="18" height="15">
+        <defs> <!-- this template doesn't define #false -->
           <rect id="box" x="0.5" y="1.5" width="13" height="13" rx="2" ry="2"/>
-          <g id="chk"> <!-- checked state -->
-            <use href="#box"/>
-            <path d="M3.5,8.5 L6,11 10,4.5" class="checkMark"/>
-          </g>
-          <g id="ind"> <!-- indeterminate state -->
-            <use href="#box"/>
-            <path d="M4,8 H10" class="checkMark"/>
-          </g>
+          <path id="true" d="M3.5,8.5 L6,11 10,4.5"/>
+          <path id="null" d="M4,8 H10"/>
         </defs>
-        <use id="default-box" href="#box" part="default" pointer-events="none"/>
-        <use id="check-box"   href="#box" part="check"/>
+        <!-- #mark and #default-mark must be refer to #false -->
+        <g id="default" part="default" pointer-events="none">
+          <use href="#box" part="default-box"/>
+          <use href="#false" id="default-mark" part="default-mark"/>
+        </g>
+        <g part="check">
+          <use href="#box" part="box"/>
+          <use href="#false" id="mark" part="mark"/>
+        </g>
       </svg>
-      <pre id="data-label"></pre>
+      <pre id="data-label" part="label"></pre>
     </template>
   </body>
 </html>

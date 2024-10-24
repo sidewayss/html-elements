@@ -1,3 +1,5 @@
+import {BaseElement} from "../../base-element.js";
+
 let attrs, defaults, html, inNum, script, spinners, userLocale;
 const
 g       = {},
@@ -7,7 +9,9 @@ spinner = [];
 document.addEventListener("DOMContentLoaded", load);
 function load() {
   let btn, f, i, n;
-  const promises = [];
+  const
+  json   = [],
+  custom = [];
 
   inNum      = document.getElementById("number"); // the <input-num>
   userLocale = navigator.language;
@@ -16,13 +20,16 @@ function load() {
   ["units","locale","currency","fontFamily"].forEach(key => {
     elms[key] = document.getElementById(key);
     addChangeEvent(elms[key]);
-    promises.push(fetch(key + ".json").then (rsp => loadJSON(rsp, key))
-                                      .catch(alert));
+    json.push(fetch(key + ".json").then (rsp => loadJSON(rsp, key))
+                                 .catch(alert));
   });
   ["input-num","check-box"].forEach(  // custom element tags
-    key => promises.push(customElements.whenDefined(key))
+    key => custom.push(customElements.whenDefined(key))
   );
-  Promise.all(promises).then(allResolved);
+  Promise.all(custom).then(() =>      // necessary to support noAwait
+    Promise.all([...json, ...BaseElement.promises.values()])
+           .then(allResolved)
+  );
 
   // Initialize elements and related variables
   const fonts = ["monospace","sans-serif","serif",
@@ -91,7 +98,7 @@ function allResolved() {
   // stays centered on the page. If there's a CSS solution, please let me know...
   elm.style.width = w;
 
-  // These three look better all the same size
+  // These three look better json the same size
   w = Math.max(parseFloat(getComputedStyle(elms.step) .width),
                parseFloat(getComputedStyle(elms.delay).width)) + px;
   for (elm of [elms.step, elms.delay, elms.interval])
@@ -244,7 +251,7 @@ function minDigits() {           // one alert set in two places
 function updateText() {
   let attr, data, elm, prop,
   pre = "&lt;input-num",
-  suf = "&gt;&lt;/input-num&gt",
+  suf = "&gt;&lt;/input-num&gt;",
   js  = "numby = doc.getElementById(id);<br>";
 
   const
