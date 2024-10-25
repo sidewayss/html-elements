@@ -1,10 +1,10 @@
 export {NumberInput};
-import {VALUE, BaseElement, getTemplate} from "./base-element.js";
+import {VALUE, BaseElement, getTemplate, splitDash} from "./base-element.js";
 const
 MAX   = "max",                  // DOM attributes
 MIN   = "min",
 STEP  = "step",
-                                // custom attributes:
+                                // custom attributes: numbers and strings
 DELAY      = "data-delay",      // millisecond delay between mousedown and spin
 INTERVAL   = "data-interval",   // millisecond interval for spin
 DIGITS     = "data-digits",     // Number.prototype.toFixed(digits)
@@ -36,12 +36,11 @@ IDLE    = "idle",       // no third segment for idle
 TOP     = "top",        // third segments:
 BOT     = "bot",
 
-minimums = {
+minimums = {            // some attributes have hard minimum values
     [DIGITS]:   0,
     [DELAY]:    1,
     [INTERVAL]: 1
 },
-
 code = {                // KeyboardEvent.prototype.code values
     enter: "Enter",
     escape:"Escape",
@@ -252,7 +251,7 @@ class NumberInput extends BaseElement {
                 case CURRENCY:
                     this.#locale.style = val ? "currency" : undefined;
                 case NOTATION:      // convert null to undefined
-                    this.#locale[name.split("-")[1]] = val ?? undefined;
+                    this.#locale[splitDash(name)[1]] = val ?? undefined;
                     break;
                 default:            // handled by BaseElement
                     super.attributeChangedCallback(name, _, val);

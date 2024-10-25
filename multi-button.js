@@ -28,7 +28,8 @@ class StateButton extends MultiState {
 //  _init() exists for noAwait
     _init() {
         this._use = this._dom.getElementById(BTN);
-        this._setHref(this.#lookup[this.value].href);
+        if (noAwait)
+            this._setHref(this.#lookup[this.value].href);
     }
 //  attributeChangedCallback() handles changes to the observed attributes
     attributeChangedCallback(name, _, val) {

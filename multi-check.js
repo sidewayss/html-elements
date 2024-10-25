@@ -5,8 +5,6 @@ import {MultiState}         from "./multi-state.js";
 const TRUE  = "1";
 const FALSE = "";
 
-const DEF_BOX   = "default-box";    // element  ids
-const CHECK_BOX = "check-box";
 const CHECKED   = "checked";        // built-in attribute
 const DEFAULT   = "data-default";   // custom attributes
 const SHOW_DEF  = "data-show-default";
@@ -28,12 +26,10 @@ class MultiCheck extends MultiState {
     constructor() {
         super(template, noAwait);
         this._keyCodes.add("Space");                   // spacebar = click
-        if (!noAwait)
-            this._init();
     }
 //  _init() exists for old browsers w/o await at module top level
-    _init() {
-        this._use   = this._dom.getElementById(CHECK_BOX);
+    _initSuper() {
+        this._use   = this._dom.getElementById("mark");
         this.#label = this._dom.getElementById(LABEL); // optional <pre>
         if (noAwait)
             this.label = this.label; // attributeChangedCallback did nothing
@@ -55,16 +51,18 @@ class MultiCheck extends MultiState {
 // =============================================================================
 // Two-state checkbox
 class CheckBox extends MultiCheck {
-    static hrefs = ["#box","#chk"];
+    static hrefs = ["#false","#true"];
     static observedAttributes = [CHECKED, ...MultiCheck.observedAttributes];
     constructor() {
         super();
         Object.defineProperty(this, "isCheckBox", {value:true});
+        if (!noAwait)
+            this._init();
     }
 //  _init() exists for noAwait
     _init() {
-        super._init();
-        if (this.checked)
+        this._initSuper();
+        if (noAwait && this.checked)
             this._setHref(CheckBox.hrefs[1]);
     }
 //  attributeChangedCallback() handles changes to the observed attributes
@@ -98,20 +96,22 @@ class CheckTri extends MultiCheck {
     #def; #svg; #viewBox;
     static #w;
     static #vbW  = 2;  // viewBox array index for width
-    static hrefs = new Map([[null,"#ind"],[FALSE,"#box"],[TRUE,"#chk"]]);
+    static hrefs = new Map([[null,  "#null"],
+                            [FALSE, CheckBox.hrefs[0]],
+                            [TRUE,  CheckBox.hrefs[1]]]);
     static observedAttributes = [VALUE, DEFAULT, SHOW_DEF,
                                  ...MultiCheck.observedAttributes];
     constructor() {
         super();
+        Object.defineProperty(this, "isCheckTri", {value:true});
         if (!noAwait)
             this._init();
-        Object.defineProperty(this, "isCheckTri", {value:true});
     }
 //  _init() exists for noAwait
     _init() {
-        super._init();
+        this._initSuper();
         this.#svg     = this._dom.getElementById("shapes");
-        this.#def     = this.#svg.getElementById(DEF_BOX);
+        this.#def     = this.#svg.getElementById("default-mark");
         this.#viewBox = this.#svg.getAttribute("viewBox")
                                  .split(" ")
                                  .map(v => Number(v));
@@ -138,15 +138,20 @@ class CheckTri extends MultiCheck {
             break;
         case SHOW_DEF:
             if (!this._dom) return;
-            //------------------
-            let w = CheckTri.#w;
+            //--------------
+            let v,
+            w = CheckTri.#w;
             if (b)
                 w *= 2;
             this.#viewBox[CheckTri.#vbW] = w;
-            this.#def.setAttribute("visibility", b ? "" : "hidden");
-            this.#svg.setAttribute("viewBox", this.#viewBox.join(" "));
             this.#svg.setAttribute("width", w);
-            this._use.setAttribute("x",     w - CheckTri.#w);
+            this.#svg.setAttribute("viewBox", this.#viewBox.join(" "));
+
+            v = b ? "visible" : "hidden";
+            this.#def.parentNode.setAttribute("visibility", v);
+
+            v = b ? `translate(${CheckTri.#w})` : "";
+            this._use.parentNode.setAttribute("transform", v);
             break;
         default:
             super.attributeChangedCallback(name, _, val);
@@ -198,5 +203,5 @@ class CheckTri extends MultiCheck {
         }
     }
 }
-customElements.define(CHECK_BOX,   CheckBox);
+customElements.define("check-box", CheckBox);
 customElements.define("check-tri", CheckTri);

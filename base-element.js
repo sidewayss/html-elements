@@ -1,4 +1,4 @@
-export {VALUE, BaseElement, getTemplate};
+export {VALUE, BaseElement, getTemplate, splitDash};
 const
 DISABLED  = "disabled", // DOM attributes
 TAB_INDEX = "tabindex",
@@ -28,10 +28,10 @@ class BaseElement extends HTMLElement {
         this._dom = this.attachShadow({mode:"open"});
         this._dom.appendChild(template.cloneNode(true));
     }
-//  connectedCallback() exists for noAwait. It runs a zig-zag cascade of every
-//  sub-class's _init(), calling it in the bottom-level class, which calls
-//  super._init() as necessary for mid-level classes. If (!noAwait) it must call
-//  a pseudo-connectedCallback() because a real one prevents this one running.
+//  connectedCallback() exists for noAwait. It calls this._init(), which resides
+//  in the bottom-level class. Classes with intermediate superclasses might call
+//  this._initSuper(). If (!noAwait) it must call a pseudo-connectedCallback()
+//  because a real one prevents this one from running.
     connectedCallback() {
         if (this.#name) {
             getTemplate(this.#name).then(tmp => {
@@ -70,7 +70,6 @@ class BaseElement extends HTMLElement {
         b ? this.setAttribute(attr, "")
           : this.removeAttribute(attr);
     }
-
 //  _setHref() changes the image for this._use or another element
     _setHref(href, elm = this._use) {
         elm.setAttribute("href", href);
@@ -110,6 +109,10 @@ function fallBack(file) {
 function catchError(err) {
     console.error(err.stack ?? err);
 }
+//==============================================================================
+// splitDash() is a convenience that splits hyphenated attribute names or ids
+function splitDash(name) { return name.split("-"); }
+//==============================================================================
 // promise() returns a new Promise, extended with resolve & reject,
 //           borrowed from raf/ez.js to support noAwait.
 function promise() {

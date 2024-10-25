@@ -8,7 +8,8 @@
           <path id="null" d="M4,8 H10"/>
         </defs>
         <!-- #mark and #default-mark must be refer to #false -->
-        <g id="default" part="default" pointer-events="none">
+        <!-- #default hidden because default is !showDefault -->
+        <g id="default" part="default" pointer-events="none" visibility="hidden">
           <use href="#box" part="default-box"/>
           <use href="#false" id="default-mark" part="default-mark"/>
         </g>

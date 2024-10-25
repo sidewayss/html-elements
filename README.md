@@ -9,7 +9,7 @@ The first three share a single [test/demo app](https://sidewayss.github.io/html-
 `input-num` has [its own app page](https://sidewayss.github.io/html-elements/apps/input-num) because it has a lot more to test and demonstrate.
 
 ## Usage
-There are three JavaScript files for the four elements. `check-box` and `check-tri` fit into one file. Here is some sample HTML that includes all four elements in a page:
+There are three JavaScript files for the four elements. `check-box` and `check-tri` fit into one file. Here is sample HTML that includes all four elements in a page:
 ```html
 <head>
     <script src="/html-elements/multi-check.js"  type="module"></script>
@@ -17,7 +17,9 @@ There are three JavaScript files for the four elements. `check-box` and `check-t
     <script src="/html-elements/input-num.js"    type="module"></script>
 </head>
 ```
-NOTE: `html-elements` uses [private properties](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes/Private_properties), which have [~93% global support](https://caniuse.com/?search=private%20class), but can be transpiled out without too much trouble. Please submit an issue if you need assistance with that.
+NOTE: `html-elements` uses [private properties](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes/Private_properties), which have [93% global support](https://caniuse.com/?search=private%20class).<br>*Minified files without private properties will be available in release 1.0.*
+
+Of course `html-elements` uses the [`template`](https://caniuse.com/template) element. Beyond that, it uses dynamic [`import()`](https://caniuse.com/es6-module-dynamic-import) and [`fetch()`](https://caniuse.com/fetch). These three are not going to change, so you're stuck with 96% global support as of October, 2024. But it's only going up.
 
 ### Managing Template Files
 There are built-in template files in the root directory:

@@ -1,7 +1,11 @@
-import {BaseElement} from "../../base-element.js";
+import {BaseElement, splitDash} from "../../base-element.js";
 
-let attrs, defaults, html, inNum, script, spinners, userLocale;
+let attrs, defaults, html, inNum, script;
 const
+base = 10,
+expo = 6,
+high = Math.pow(base, expo),
+low  = Math.pow(base, -(expo + 1)),
 g       = {},
 elms    = {},
 spinner = [];
@@ -12,23 +16,22 @@ function load() {
   const
   json   = [],
   custom = [];
-
-  inNum      = document.getElementById("number"); // the <input-num>
-  userLocale = navigator.language;
+  inNum  = document.getElementById("number"); // the <input-num>
 
   // Async processes // forEach maintains the value of key in fetch.then():
   ["units","locale","currency","fontFamily"].forEach(key => {
     elms[key] = document.getElementById(key);
     addChangeEvent(elms[key]);
-    json.push(fetch(key + ".json").then (rsp => loadJSON(rsp, key))
-                                 .catch(alert));
+    f = `${key}.json`;
+    json.push(fetch(f).then (rsp => loadJSON(rsp, key))
+                      .catch(err => console.error(`${err.msg}: ${f}`)));
   });
   ["input-num","check-box"].forEach(  // custom element tags
     key => custom.push(customElements.whenDefined(key))
   );
-  Promise.all(custom).then(() =>      // necessary to support noAwait
+  Promise.all(custom).then(() =>      // necessary to support noAwait because of
     Promise.all([...json, ...BaseElement.promises.values()])
-           .then(allResolved)
+           .then(allResolved)         // allResolved()=>getBoundingClientRect().
   );
 
   // Initialize elements and related variables
@@ -41,15 +44,15 @@ function load() {
 
   elms.fontFamily.selectedIndex = 3;  // the current font, hosted by me
 
-  const decimals = [];
-  for (n = .1, i = 1; n >= 0.000001; n /= 10, i++)
+  const decimals = [];                // range 0.1 to low, descending
+  for (n = .1, i = 1; n >= low; n /= base, i++)
     decimals.push(newOption(n, i));
+                                      // init these remaining elements by id:
+  ["autoWidth","autoAlign","autoScale","max","digits","accounting",
+   "spins","confirms","keyboards","step","delay","interval",
+   "fontSize","fontWeight","fontStyle"].forEach(id => initElm(id, decimals));
 
-  ["autoWidth","autoAlign","autoScale","max","digits","accounting","spins",
-   "confirms","keyboards","step","delay","interval","fontSize","fontWeight",
-   "fontStyle"].forEach(id => initElm(id, decimals));
-
-  const         // #min is a modified clone of #max
+  const                               // #min is a modified clone of #max
   min = "min",
   par = elms.max.parentNode,
   div = par.cloneNode(true),
@@ -84,7 +87,7 @@ function newOption(n, digits = 0, value, units = "") {
   const
   localeOptions = { maximumFractionDigits:digits,
                     minimumFractionDigits:digits },
-  text = n.toLocaleString(userLocale, localeOptions);
+  text = n.toLocaleString(navigator.language, localeOptions);
   return new Option(text + units, value);
 }
 //======================
@@ -109,7 +112,7 @@ function allResolved() {
   delete defaults.step            // default auto-step precludes this
   delete defaults.value           // value is not an option
   for (key in defaults)           // some keys have "data-" prefix
-    elms[key.split("-").at(-1)].value = defaults[key];
+    elms[splitDash(key).at(-1)].value = defaults[key];
 
   updateText();                   // must be last
 }
@@ -125,7 +128,7 @@ function loadJSON(rsp, key) {
       else {
         elm.add(new Option("none", ""));
         if (key == "locale")
-          elm.add(new Option("user", userLocale));
+          elm.add(new Option("user", navigator.language));
         for (val in json)
           elm.add(new Option(val));
         g[key] = json;
@@ -165,16 +168,17 @@ function initElm(id, decimals) {
       spinner.push(elm);
       break;
     case "max":
-      elm.add(new Option(Infinity));
-      for (n = 1000000; n >= 1; n /= 10)
+      elm.add(new Option(Infinity));  // positive integers high to 1
+      for (n = high; n >= 1; n /= base)
         elm.add(new Option(n));
-      for (opt of decimals)
+      for (opt of decimals)           // positive decimals: 1 < n > 0
         elm.add(opt.cloneNode(true)); // gotta clone after first use
-      elm.add(new Option(0));
-      for (n = -0.000001, i = 6; n >= -0.1; n *= 10, i--)
+
+      elm.add(new Option(0));         // zero, then negative decimals
+      for (n = -low, i = expo; n >= -0.1; n *= base, i--)
         elm.add(new Option(n.toFixed(i)));
-      for (n = -1; n >= -1000000; n *= 10)
-        elm.add(new Option(n));
+      for (n = -1; n >= -high; n *= base)
+        elm.add(new Option(n));       // then negative integers
     default:
   }
   return elm;
@@ -243,7 +247,7 @@ function disable(elm, b) {       // disables an element and its label
 }
 function minDigits() {           // one alert set in two places
   setInfo(elms.min,
-          inNum.min && Math.abs(inNum.min) < 1 / Math.pow(10, inNum.digits),
+          inNum.min && Math.abs(inNum.min) < 1 / Math.pow(base, inNum.digits),
           "Min < Digits!");
 }
 //==============================================================================
