@@ -1,4 +1,7 @@
-import {splitDash} from "../../base-element.js";
+import {nullish} from "../../base-element.js";
+
+import {writeText, toHTML, fromHTML} from "../common.js";
+
 const
 BOX = "box",
 TRI = "tri",
@@ -10,37 +13,42 @@ function load() {
   let elm;
   const
   body  = document.body,
-  tags  = ["check-box","check-tri","state-btn","input","select","span"],
+  tags  = ["check-box","check-tri","state-btn","input","select"],
   byTag = tags.map(tag => [...body.getElementsByTagName(tag)]);
 
-  for (elm of byTag.flat())
-    if (elm.id)               // some <span>s have no id
-      elms[elm.id] = elm;
-
-  byTag.splice(-1, 1);        // remove <span>s
-  for (elm of byTag.flat())
+  let arr;
+  const flat = [];
+  for (arr of byTag)
+    flat.push(...arr);
+//~for (elm of byTag.flat())
+  for (elm of flat) {
     elm.addEventListener("change", change);
+    elms[elm.id] = elm;
+  }
+  for (elm of body.getElementsByTagName("span"))
+    if (elm.id)               // some <span>s have no id
+      elms[elm.id] = elm;     // none of them listen for events
 
-  elms.keyCodes = {};
-  for (elm of byTag.at(-1))   // 3 x <select>
+  elms.keyCodes = {};         // 3 x <select>:
+  for (elm of byTag[byTag.length -1]) //@ https://github.com/sidewayss/html-elements/issues/10
     elms.keyCodes[splitDash(elm.id)[0]] = elm;
 
-  elms.html = {};
+  elms.html = {};             // 3 x <div>:
   for (elm of body.getElementsByClassName("html"))
     elms.html[splitDash(elm.id)[0]] = elm;
-
-  for (elm of body.getElementsByTagName("button")) // 3 x <button>
+                              // 3 x <button>:
+  for (elm of body.getElementsByTagName("button"))
     elm.addEventListener("click", copyToClipboard);
 
   Promise.all(tags.slice(0, 3).map(v => customElements.whenDefined(v)))
-  .then(() => {
-    change({target:elms[BOX]});
-    for (const id of [TRI, BTN]) {
-      elm = elms[id];
-      change({target:elm});
-      elms[`${id}-label`].value = elm.label; // test it the other way around
-    }
-  });
+    .then(() => {             // 3 x custom element definitions
+      for (const id of [BOX, TRI]) {
+        elm = elms[id];
+        change({target:elm});
+        elms[`${id}-label`].value = elm.label; // test it the other way around
+      }
+      change({target:elms[BTN]});
+    });
 }
 //==============================================================================
 // Event handler (there's only one) and helpers:
@@ -66,7 +74,7 @@ function change(evt) {
       elms[`${tag}-checked`].textContent = elm.checked;
 
     // must follow setting of elm.value:
-    elms[`${tag}-value`].textContent = elm.value ?? "null";
+    elms[`${tag}-value`].textContent = nullish(elm.value,  "null");//?? https://github.com/sidewayss/html-elements/issues/10
   }
   else if (prop == "keyCodes") {
     let arr;
@@ -120,8 +128,7 @@ function updateText(elm, id) {
     if (sel.length != 1 || sel[0].value != "Enter")
       txt += sel.length ? textKeyCodes(elm) : ' data-key-codes=""';
   }
-  elms.html[id].innerHTML = `&lt;${tag}${txt}&gt;&lt;/${tag}&gt;`
-                            .replaceAll("-", "&#x2011;");
+  elms.html[id].innerHTML = toHTML(`&lt;${tag}${txt}&gt;&lt;/${tag}&gt;`);
 }
 function textKeyCodes(elm) {
   return ` data-key-codes=${JSON.stringify(elm.keyCodes)}`;
@@ -134,12 +141,7 @@ function textLabel(elm) {
 // character, so it must be replaced with a regular hyphen.
 function copyToClipboard(evt) {
   const tar = evt.target;
-  navigator.clipboard.writeText(elms.html[splitDash(tar.id)[0]]
-                                    .textContent.replaceAll("‑", "-"))
-  .then (() => {
-    const sib = tar.previousElementSibling;
-    setTimeout(() => sib.style.opacity = 1,  100);
-    setTimeout(() => sib.style.opacity = 0, 1100);
-  })
-  .catch(alert);
+  writeText(tar, fromHTML(elms.html[splitDash(tar.id)[0]].textContent));
 }
+// splitDash() is a convenience that splits hyphenated attribute names or ids
+function splitDash(name) { return name.split("-"); }

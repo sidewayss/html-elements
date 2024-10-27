@@ -1,5 +1,6 @@
 export {NumberInput};
-import {VALUE, BaseElement, getTemplate, splitDash} from "./base-element.js";
+
+import {VALUE, BaseElement, getTemplate, nullish} from "./base-element.js";
 const
 MAX   = "max",                  // DOM attributes
 MIN   = "min",
@@ -66,31 +67,11 @@ event = {
 },
 resizeEvents = [event.blur, event.focus, mouse.over],
 
-textAlign = ["text-align","right","important"];
-
-let template, noAwait;
-try {
-    template = await getTemplate("number");
-} catch {
-    template = "number";
-    noAwait  = true;
-}
+textAlign = ["text-align","right","important"],
+template  = "number", // see https://github.com/sidewayss/html-elements/issues/8
+noAwait   = true;
 // =============================================================================
 class NumberInput extends BaseElement {
-    static observedAttributes = [
-        VALUE, MAX, MIN, STEP, DELAY, INTERVAL, DIGITS, UNITS, LOCALE, CURRENCY,
-        ACCOUNTING, NOTATION, NO_KEYS, NO_SPIN, NO_CONFIRM, NO_WIDTH, NO_ALIGN,
-        NO_SCALE, ...BaseElement.observedAttributes
-    ];
-    static defaults = {
-        [VALUE]:  0,       // attribute values as numbers, not strings
-        [DIGITS]: 0,       // defaults to integer formatting
-        [MAX]:  Infinity,
-        [MIN]: -Infinity,
-        [STEP]:     1,
-        [DELAY]:  500,
-        [INTERVAL]:33      // ~2 frames at 60fps
-    };
     #attrs; #bound; #btns; #ctrls; #erId; #hoverIn; #hoverOut; #input;
     #isBlurring; #isLoading; #isMousing; #outFocus; #padRight; #spinId; #states;
     #svg; #texts; #validate;
@@ -251,7 +232,7 @@ class NumberInput extends BaseElement {
                 case CURRENCY:
                     this.#locale.style = val ? "currency" : undefined;
                 case NOTATION:      // convert null to undefined
-                    this.#locale[splitDash(name)[1]] = val ?? undefined;
+                    this.#locale[name.split("-")[1]] = nullish(val, undefined);
                     break;
                 default:            // handled by BaseElement
                     super.attributeChangedCallback(name, _, val);
@@ -292,7 +273,7 @@ class NumberInput extends BaseElement {
     get accounting() { return  this.hasAttribute(ACCOUNTING); }
     get useLocale()  { return  this.hasAttribute(LOCALE);     } // read-only
 
-    get units()    { return this.getAttribute(UNITS)  ?? ""; }  // strings:
+    get units()    { return nullish(this.getAttribute(UNITS), ""); } // strings:
     get locale()   { return this.getAttribute(LOCALE) || undefined; }
     get currency() { return this.getAttribute(CURRENCY); }
     get notation() { return this.getAttribute(NOTATION); }
@@ -378,7 +359,7 @@ class NumberInput extends BaseElement {
     }
     #mouseOut(evt) {
         const
-        id   = evt.relatedTarget?.id,
+        id   = evt.relatedTarget ? evt.relatedTarget.id : undefined, //?. https://github.com/sidewayss/html-elements/issues/10
         args = !this.#isSpinning || id == TOP || id == BOT
              ? undefined  // don't call #spin()
              : [];        // cancel spinning
@@ -562,7 +543,8 @@ class NumberInput extends BaseElement {
 
 //  #apply() consolidates some funk around setting VALUE from keyboard input
     #apply() {
-        const val = this.#validate?.(this.text) ?? this.text;
+//?.    const val = this.#validate?.(this.text) ?? this.text;
+        const val = this._validate ? this._validate(this.text) : this.text;//?. https://github.com/sidewayss/html-elements/issues/10
         if (val !== false) {
             this.#isBlurring = true;
             this.setAttribute(VALUE, val);
@@ -657,7 +639,8 @@ class NumberInput extends BaseElement {
             let val = this.#attrs[VALUE];    // if already clamped, skip it
             if ((isUp && val != this.max) || (!isUp && val != this.min)) {
                 const n = val + (this.#attrs[STEP] * (isUp ? 1 : -1));
-                val = this.#validate?.(n, true) ?? n; // true for isSpinning
+            //?.val = this.#validate?.(n, true) ?? n; // true for isSpinning
+                val = this._validate ? this._validate(n, true) : n; //?. https://github.com/sidewayss/html-elements/issues/10
                 if (val !== false) {         // clamp it between min and max:
                     this.setAttribute(VALUE, Math.max(this.min, Math.min(this.max, val)));
                     this.#input.value = this.#getText(false); // false because #input w/focus does not spin
@@ -725,7 +708,7 @@ class NumberInput extends BaseElement {
             isItalic = (style.fontStyle == "italic");
             for (txt of this.#texts) {
                 id = txt.id;
-                txt.innerHTML = this.#formatNumber(this[id]) ?? this.units;
+                txt.innerHTML = nullish(this.#formatNumber(this[id]), this.units); //?? https://github.com/sidewayss/html-elements/issues/10
                 for (type of ["","-kerning","-size-adjust","-synthesis",
                               "-optical-sizing",-"palette"]) {
                     prop = "font" + type;
@@ -822,4 +805,20 @@ class NumberInput extends BaseElement {
                                 : IDLE;
     }
 }
+//$ https://github.com/sidewayss/html-elements/issues/10:
+NumberInput.observedAttributes = [
+    VALUE, MAX, MIN, STEP, DELAY, INTERVAL, DIGITS, UNITS, LOCALE, CURRENCY,
+    ACCOUNTING, NOTATION, NO_KEYS, NO_SPIN, NO_CONFIRM, NO_WIDTH, NO_ALIGN,
+    NO_SCALE, ...BaseElement.observedAttributes
+];
+NumberInput.defaults = {
+    [VALUE]:  0,       // attribute values as numbers, not strings
+    [DIGITS]: 0,       // defaults to integer formatting
+    [MAX]:  Infinity,
+    [MIN]: -Infinity,
+    [STEP]:     1,
+    [DELAY]:  500,
+    [INTERVAL]:33      // ~2 frames at 60fps
+};
+//==============================================
 customElements.define("input-num", NumberInput);

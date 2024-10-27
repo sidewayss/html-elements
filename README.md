@@ -17,9 +17,11 @@ There are three JavaScript files for the four elements. `check-box` and `check-t
     <script src="/html-elements/input-num.js"    type="module"></script>
 </head>
 ```
-NOTE: `html-elements` uses [private properties](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes/Private_properties), which have [93% global support](https://caniuse.com/?search=private%20class).<br>*Minified files without private properties will be available in release 1.0.*
+Compatibility across the browsers is good. The main issues are with older versions of iOS/Safari. Current support goes back to iOS 12.2. [Suport for iOS 12](https://apple.fandom.com/wiki/IOS_12#Supported_Devices) goes back to iPhone 5s, which is the first 64bit iPhone. See [here](https://github.com/sidewayss/html-elements/issues/10) and [here](https://github.com/sidewayss/html-elements/issues/8) for details of changes to the code for backwards compatibility. Support could go back as far as iOS 10.3, when support for custom HTML elements began, but the pre-12.2 issue requires changes to the template structure. Please submit an issue or a pull request if you really need 10.3 support.
 
-Of course `html-elements` uses the [`template`](https://caniuse.com/template) element. Beyond that, it uses dynamic [`import()`](https://caniuse.com/es6-module-dynamic-import) and [`fetch()`](https://caniuse.com/fetch). These three are not going to change, so you're stuck with 96% global support as of October, 2024. But it's only going up.
+NOTE: `html-elements` uses [private properties](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes/Private_properties), which have [~93% global support](https://caniuse.com/?search=private%20class).<br>*Minified files without private properties will be available in release 1.0.*
+
+At some point I hope to get webpack building minified files as a GitHub Action. Any help with that would be appreciated.
 
 ### Managing Template Files
 There are built-in template files in the root directory:
@@ -31,13 +33,15 @@ Instead of modifying those, you should create an **/html-templates** directory a
 
 When the page is loading, if the element doesn't find its template file in **/html-templates**, the DOM generates an unsupressable HTML 404 "file not found" error. Then it falls back to the built-in template file. I would suggest copying the built-in files to your templates directory as a starting point. Then edit them to create your own designs within the template structure.
 
-NOTE: Using the `part` attribute inside `defs` is unreliable across browsers. Firefox doesn't recognize it. Chrome doesn't allow hyphenated part names. I haven't gotten past those two yet. The built-in template files avoid doing this, which limits their internal structure and complicates their external styling.
+NOTE: The [`part`](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/part) attribute and CSS [`::part`](https://developer.mozilla.org/en-US/docs/Web/CSS/::part) are new enough that it's worth reviewing the [current support grid]((https://caniuse.com/mdn-html_global_attributes_part)) (the two grids are identical). The built-in templates have fallback styles to support older browsers. Remember that `::part` overrides the element's style unless you specify `!important`.
+
+Also note: Using the `part` attribute inside [`defs`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/defs) is unreliable across browsers. Firefox doesn't recognize it. Chrome doesn't allow hyphenated part names. I haven't gotten past those two yet. The built-in template files avoid doing this, which limits their internal structure and complicates their external styling.
 
 NOTE: The CSS files in the `css` sub-directory are samples. They are not used directly by the elements, as the template files are.
 
 ## Base Classes
 #### `class BaseElement`
-`BaseElement` is the superclass for `<input-num>` and `MultiState`. It manages two DOM attributes: `disabled` and `tabindex`. See `base-element.js`.
+`BaseElement` is the superclass for `input-num` and `MultiState`. It manages two DOM attributes: `disabled` and `tabindex`. See `base-element.js`.
 
 #### `class MultiState`
 `MultiState` is the superclass for `state-btn` and `MultiCheck`. It manages the `data-key-codes` attribute, which contains a JSON array of [keycodes](https://developer.mozilla.org/en-US/docs/Web/API/UI_Events/Keyboard_event_code_values) that act like a mouse click.  It converts `click` and `keyup` to `change` for compatibility with `<input type="checkbox">`. See `multi-state.js`.
@@ -49,7 +53,7 @@ NOTE: The CSS files in the `css` sub-directory are samples. They are not used di
 
 &ZeroWidthSpace;
 
-## `check-box`
+## `<check-box>`
 I created `check-box` because I needed `check-tri` and I wanted all my checkboxes to look and act alike. It's the same as `<input type="checkbox">` except:
 - The label is built-in through the `data-label` attribute.
 - It has a JavaScript `value` property that is identical to `checked`, to normalize it with other types of `input` and elements like `select` when iterating over or switching through groups of elements.
@@ -122,13 +126,13 @@ An alternative is to put a flex container inside the template, as the template f
 - Any other keyboard keys you want to use
 
 ### Additional Attributes / Properties (and a method)
-- `data-states` / `states` is a two-dimensional array, where each outer element is `[state, href, title]`.
+- `data-states` / `states` is a two-dimensional array. As an attribute the array is in JSON format. Each outer element is `[state, href, title]`:
     - `state` is the `value` attribute/property. It can be any string. I use enumerated numbers.
-    - `href` is the `id` attribute of the SVG image, but without the `btn-` prefix.
+    - `href` is the root `id` attribute of the SVG image, without the `btn-` prefix.
     - `title` is the `title` attribute for this state. It defaults to `Href`.
 - `data-auto-increment` / `auto` is a boolean (the attribute does not take a value) that turns the auto-increment feature on/off. Auto-increment uses the declared order of `data-states` to cycle through all the states upon every `change` event.
 - `data-key-codes` defaults to `["Enter"]`.
-- The `index` property gets/sets the index of the current state. Setting it changes `value` and thus the image and title too.
+- The `index` property gets/sets the `value`attribute by states array index.
 - The `reset()` method is equivalent to: `element.index = 0;`
 
 NOTE: The default value on initial page load is the first state defined. I see no need to set the `value` attribute in HTML. The toggle order is completely user-controlled, so just make your default state the first one. If you *really need* to declare the value in HTML, you must do it after `data-states` or the value won't validate. I did not see the value in adding code to make it order-independent.
@@ -172,9 +176,15 @@ To match this template:
 &ZeroWidthSpace;
 
 ## `input-num`
-Based on an informal survey and my own repeated frustrations, I came to the conculsion that `<input type="number"/>` isn't just ["the worst HTML input"](https://www.google.com/search?q=the+worst+html+input), it's a total waste of time. I needed an alternative. I spent over a decade programming for finance executives and financial analysts, so I spent a lot of time in Excel. Regardless of the brand, spreadsheets all use the same, well-established paradigm for inputting and displaying numbers. I decided to create a custom element that imitates a spreadsheet, while maintaining consistency with the default `<input type="number"/>` as implemented by the major browsers.
+Based on an informal survey and my own repeated frustrations, I came to the conculsion that `<input type="number"/>` isn't just [the worst HTML input](https://www.google.com/search?q=the+worst+html+input), it's a total waste of time. I needed an alternative. I spent over a decade programming for finance executives and financial analysts, so I spent a lot of time in Excel. Regardless of the brand, spreadsheets all use the same, well-established paradigm for inputting and displaying numbers. I decided to create a custom element that imitates a spreadsheet, while maintaining consistency with the default `<input type="number"/>` as implemented by the major browsers.
 
 ### Features
+Spreadsheet emulation:
+- It stores an underlying `Number` separate from the formatted display, which is a `String` that includes non-numeric characters. Inputting via keyboard reveals the underlying, unformatted value.
+- Keyboard input requires user confirmation via the `Enter` key or `OK` button. The user can cancel the input via the `Esc` key, the `Cancel` button, or by setting the focus elsewhere. Cancelling reverts to the previous value.
+- Spreadsheets have their own number formatting lingo. `input-num` uses [Intl.NumberFormat](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/NumberFormat), which is wrapped up in [locales](https://en.wikipedia.org/wiki/Locale_(computer_software)). `data-digits`,  `data-units`, `data-locale`, `data-currency`, `data-accounting`, and `data-notation` attributes are currently available. I have not implemented any of the `Intl.NumberFormat` rounding options yet.
+- Optional (default is on) right-alignment of numbers. If you want to view a group of numbers in a vertical list, right-alignment is essential. Financials require it. Spreadsheets right-align the display and input of numbers.
+
 `<input type="number"/>` emulation:
 - The `max` and `min` attributes prevent committing a value outside their range.
 - Spinner buttons appear on hover (though not while inputting via keyboard).
@@ -184,13 +194,7 @@ Based on an informal survey and my own repeated frustrations, I came to the conc
 A non-number is defined as:<br>
 &emsp;`!Number.isNaN(val ? Number(val) : NaN)`<br>
 Where `val` is the attribute value: a string or `null`. It allows any number, but it's strict about the conversion, excluding `""`, `null`, and numbers with text prefixes or suffixes that `parseFloat()` converts.<br>
-Additionally there is an "OoB" (Out of Bounds) class that you can use to style the element when the user has keyed in an out-of-bounds value.
-
-Spreadsheet emulation:
-- It stores an underlying `Number` separate from the formatted display, which is a `String` that includes non-numeric characters. Inputting via keyboard reveals the underlying, unformatted value.
-- Keyboard input requires user confirmation via the `Enter` key or `OK` button. The user can cancel the input via the `Esc` key, the `Cancel` button, or by setting the focus elsewhere. Cancelling reverts to the previous value.
-- Spreadsheets have their own number formatting lingo. JavaScript provides [Intl.NumberFormat](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/NumberFormat), which is wrapped up in [locales](https://en.wikipedia.org/wiki/Locale_(computer_software)).<br>`input-num` has `data-digits`, `data-locale`, `data-currency`,`data-accounting`, and `data-units` attributes for formatting. I have not implemented any of the `Intl.NumberFormat` rounding options yet.
-- Optional (default is on) right-alignment of numbers. If you want to view a group of numbers in a vertical list, right-alignment is essential. Financials require it. Spreadsheets right-align the display and input of numbers.
+Additionally there is an "OoB" (Out of Bounds) class for styling the element when the user has keyed in an out-of-bounds value: > max or < min.
 
 Additional features:
 - Optional (default is on) auto-width based on `max`, `min`, `digits`, `units`, `locale`, `currency`, `accounting`, and CSS font properties.
@@ -233,7 +237,9 @@ JavaScript only:
 - `resize(forceIt)` forces the element to resize. When `autoResize` is `true`, it runs automatically after setting any attribute that affects the element's width or alignment. When `autoResize` is `false`, you must set `forceIt` to `true` or the function won't run.  Call it after you change CSS font properties, for example.
 
 ### Events
-The only event that you can listen to is `change`. There is no need for an `input` event, as the element does not enforce any limitations on keyboard entry as it happens, it only formats via the `"NaN"` class. I don't see the need for any other events. If you need some, e.g. `input`, `keydown`, or `keyup` attached to the inner `<input type="text"/>`, submit an issue or a pull request.
+The only event that you can listen to is `change`. I don't see a need for any other events. If you need some, e.g. `input`, `keydown`, or `keyup` attached to the inner `<input type="text"/>`, then please submit an issue or a pull request.
+
+The only event I've considered adding is an `endspin` event for when spinning cancels (`this.#spin(undefined)`). It would fire on every `mouseup` or `keyup` when spinning. It could be useful for throttling external changes based on the value.
 
 The `change` event fires every time the value changes:
 - When the user confirms keyboard input.

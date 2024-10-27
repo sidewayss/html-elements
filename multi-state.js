@@ -1,13 +1,12 @@
 export {MultiState};
-import {BaseElement} from "./base-element.js";
 
+import {BaseElement} from "./base-element.js";
 const KEY_CODES = "data-key-codes";
 // =============================================================================
 // The multi-state base class, emulates change (not input) event, this.change
 // declared in sub-classes, all of them dispatch a change event to the client.
 // It has no references to the shadow DOM (this._dom).
 class MultiState extends BaseElement {
-    static observedAttributes = [KEY_CODES, ...BaseElement.observedAttributes];
     constructor(template, noAwait) {
         super(template, noAwait);
         this._keyCodes = new Set;
@@ -40,4 +39,5 @@ class MultiState extends BaseElement {
         if (document.activeElement === this) // don't prevent setting of focus
             evt.preventDefault();
     }
-}
+} //$ https://github.com/sidewayss/html-elements/issues/10:
+MultiState.observedAttributes = [KEY_CODES, ...BaseElement.observedAttributes];

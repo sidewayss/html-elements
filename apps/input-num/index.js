@@ -1,4 +1,6 @@
-import {BaseElement, splitDash} from "../../base-element.js";
+import {BaseElement, nullish} from "../../base-element.js";
+
+import {writeText, toHTML, fromHTML} from "../common.js";
 
 let attrs, defaults, html, inNum, script;
 const
@@ -38,7 +40,7 @@ function load() {
   const fonts = ["monospace","sans-serif","serif",
                  getComputedStyle(inNum).fontFamily
                                         .split(",")[0]
-                                        .replaceAll(/["']/g, "")];
+                                        .replace(/["']/g, "")]; //& replaceAll()
   for (f of fonts)
     elms.fontFamily.add(new Option(f));
 
@@ -93,7 +95,7 @@ function newOption(n, digits = 0, value, units = "") {
 //======================
 function allResolved() {
   const px = "px";
-  let key,
+  let arr, key,
   elm = inNum.nextElementSibling, // the containing <div>
   w   = Math.ceil(elm.getBoundingClientRect().width) + 1 + px;
 
@@ -111,9 +113,11 @@ function allResolved() {
   elms.step.nextElementSibling.textContent = `= ${defaults.step}`;
   delete defaults.step            // default auto-step precludes this
   delete defaults.value           // value is not an option
-  for (key in defaults)           // some keys have "data-" prefix
-    elms[splitDash(key).at(-1)].value = defaults[key];
-
+  for (key in defaults) {         // some keys have "data-" prefix
+//@ elms[key.split("-").at(-1)].value =  defaults[key];
+    arr = key.split("-");         //@ https://github.com/sidewayss/html-elements/issues/10
+    elms[nullish(arr[1], arr[0])].value = defaults[key]; //?? https://github.com/sidewayss/html-elements/issues/10
+  }
   updateText();                   // must be last
 }
 //===========================
@@ -138,7 +142,8 @@ function loadJSON(rsp, key) {
 }
 //=====================
 function getFontKey() {     // fonts are by pseudo-platform
-  const src = (navigator.userAgentData?.platform ?? navigator.userAgent);
+//?.const src = (navigator.userAgentData?.platform ?? navigator.userAgent);
+  const src = navigator.userAgentData ? navigator.userAgentData.platform : navigator.userAgent; //?. https://github.com/sidewayss/html-elements/issues/10
 
   for (const key of ["Android","Apple","Linux","Windows"])
     if (src.includes(key))  // Linux must follow Android because they overlap
@@ -242,8 +247,10 @@ function setInfo(elm, b, text) { // sets info/warning text to the right of elm
 }
 function disable(elm, b) {       // disables an element and its label
   elm.disabled = b;
-  for (const lbl of [elm.previousElementSibling, elm.nextElementSibling])
-    lbl?.classList.toggle("disabled", b);
+  for (const lbl of [elm.previousElementSibling, elm.nextElementSibling]) {
+    if (lbl)
+      lbl.classList.toggle("disabled", b); //?. https://github.com/sidewayss/html-elements/issues/10
+  }
 }
 function minDigits() {           // one alert set in two places
   setInfo(elms.min,
@@ -290,7 +297,7 @@ function updateText() {
     prop = elm.id;
     attr = prop;
     data = "data-" + attr;
-    if (elm.value && elm.value != (defaults[prop] ?? defaults[data])) {
+    if (elm.value && elm.value != nullish(defaults[prop], defaults[data])) { //?? https://github.com/sidewayss/html-elements/issues/10
       pre += " ";
       switch (elm) {
         case elms.digits: case elms.units: case elms.currency:
@@ -318,7 +325,7 @@ function updateText() {
       }
     }
   }
-  html  .innerHTML = `${pre}${suf}`.replaceAll("-", "&#x2011;");
+  html  .innerHTML = toHTML(`${pre}${suf}`);
   script.innerHTML = js;
 }
 //======================================
@@ -343,7 +350,7 @@ function getText(elm, prop, isJS, val) {
 }
 //====================
 function isUser(elm) { // for <select id="locale">
-  return elm.selectedOptions?.[0].text == "user";
+  return elm.selectedOptions ? elm.selectedOptions[0].text == "user" : undefined;//?. https://github.com/sidewayss/html-elements/issues/10
 }
 //==============================================================================
 // HTML displays using non-breaking hyphen U+2011, which is not a valid HTML
@@ -353,14 +360,8 @@ function copyToClipboard(evt) {
   const
   tar = evt.target,
   txt = tar.id.endsWith("HTML")
-      ? html  .textContent.replaceAll("‑", "-")
-      : script.textContent.replaceAll(";", ";\n");
+      ? fromHTML(html.textContent)
+      : script.textContent.replace(/;/g, ";\n");
 
-  navigator.clipboard.writeText(txt)
-  .then (() => {
-    const sib = tar.previousElementSibling;
-    setTimeout(() => sib.style.opacity = 1,  100);
-    setTimeout(() => sib.style.opacity = 0, 1100);
-  })
-  .catch(alert);
+  writeText(tar, txt);
 }

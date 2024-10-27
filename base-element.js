@@ -1,16 +1,12 @@
-export {VALUE, BaseElement, getTemplate, splitDash};
+export {VALUE, BaseElement, getTemplate, nullish};
 const
 DISABLED  = "disabled", // DOM attributes
 TAB_INDEX = "tabindex",
 VALUE     = "value";    // const exported, but not handled here
-
 // =============================================================================
 // The custom base class, direct sub-class of HTMLElement
 class BaseElement extends HTMLElement {
     #name; #tabIndex;
-    static observedAttributes = [DISABLED, TAB_INDEX];
-    static promises = new Map;      // for noAwait
-
     constructor(template, noAwait) {
         super();
         if (noAwait) {
@@ -40,8 +36,8 @@ class BaseElement extends HTMLElement {
                 BaseElement.promises.get(this).resolve();
             });
         }
-        else
-            this._connected?.();
+        else if (this._connected) //?. https://github.com/sidewayss/html-elements/issues/10
+            this._connected();
     }
 //  attributeChangedCallback() handles changes to the observed attributes
     attributeChangedCallback(name, _, val) {
@@ -75,6 +71,8 @@ class BaseElement extends HTMLElement {
         elm.setAttribute("href", href);
     }
 }
+BaseElement.observedAttributes = [DISABLED, TAB_INDEX]; //$ https://github.com/sidewayss/html-elements/issues/10
+BaseElement.promises = new Map; // for noAwait
 // =============================================================================
 // getTemplate() gets the template as a new document fragment. Users store their
 //               templates in the /html-templates directory. If no template file
@@ -82,37 +80,40 @@ class BaseElement extends HTMLElement {
 //               {headers:{"suppress-errors":""}} doesn't supress 404. To avoid
 //               404 errors, put your templates in /html-templates. If you are
 //               using the built-in templates, copy the files there.
-async function getTemplate(name) {
+function getTemplate(name) {
     const
     id   = `template-${name}`,
-    file = `${id}.html`,
+    file = `${id}.html`;
 
-    response = await fetch(`/html-templates/${file}`)
+    return fetch(`/html-templates/${file}`)
      .then(rsp => rsp.ok && rsp.status != 202
-                ? rsp
-                : fallBack(file))   // fall back to the built-in template
-     .catch(() => fallBack(file));  // regardless of the reason for failure
-
-    return await response.text()
+                ? parseIt(rsp, id)
+                : fallBack(file, id))   // fall back to the built-in template
+     .catch(() => fallBack(file, id));  // regardless of the reason for failure
+}
+function parseIt(rsp, id) {
+    return rsp.text()
      .then(txt => new DOMParser().parseFromString(txt, "text/html")
                                  .getElementById(id).content)
      .catch(err => catchError(err));
 }
-function fallBack(file) {
+function fallBack(file, id) {
     const url = `/html-elements/${file}`; // built-in template file
     return fetch(url)
-     .then (rsp => rsp.ok
-                 ? rsp
-                 : console.error(`HTTP error fetching ${url}: ${rsp.status} ${rsp.statusText}`))
+     .then(rsp => rsp.ok
+                ? parseIt(rsp, id)
+                : console.error(`HTTP error fetching ${url}: ${rsp.status} ${rsp.statusText}`))
      .catch(err => catchError(err));
 }
 function catchError(err) {
-    console.error(err.stack ?? err);
+    console.error(nullish(err.stack, err)); //?? https://github.com/sidewayss/html-elements/issues/10
 }
 //==============================================================================
-// splitDash() is a convenience that splits hyphenated attribute names or ids
-function splitDash(name) { return name.split("-"); }
-//==============================================================================
+// nullish() is for older browsers that don't support ??, the nullish coalescing
+//           assignment operator.
+function nullish(val, alt) {
+    return (val === undefined || val === null) ? alt : val;
+}
 // promise() returns a new Promise, extended with resolve & reject,
 //           borrowed from raf/ez.js to support noAwait.
 function promise() {

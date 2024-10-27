@@ -1,22 +1,17 @@
-export {StateButton};
-import {VALUE, getTemplate} from "./base-element.js";
+export {StateBtn};
+
+import {VALUE, getTemplate, nullish} from "./base-element.js";
 import {MultiState}         from "./multi-state.js";
+const
+STATES = "data-states",
+AUTO   = "data-auto-increment",
+BTN    = "btn",
 
-const STATES = "data-states";
-const AUTO   = "data-auto-increment"
-const BTN    = "btn";
-
-let template, noAwait;
-try {
-    template = await getTemplate("button");
-} catch {
-    template = "button";
-    noAwait  = true;
-}
+template = "button", // see https://github.com/sidewayss/html-elements/issues/8
+noAwait  = true;
 // =============================================================================
-class StateButton extends MultiState {
+class StateBtn extends MultiState {
     #index; #lookup; #states; #value; #values;
-    static observedAttributes = [VALUE, STATES, ...MultiState.observedAttributes];
     constructor() {
         super(template, noAwait);
         this.#lookup = {};
@@ -55,13 +50,13 @@ class StateButton extends MultiState {
             for (var arr of this.#states)
                 lookup[arr[0]] = {
                     href : `#${BTN}-${arr[1]}`,
-                    title: arr[2] ?? arr[1][0].toUpperCase() + arr[1].slice(1)
+                    title: nullish(arr[2], arr[1][0].toUpperCase() + arr[1].slice(1)) //?? https://github.com/sidewayss/html-elements/issues/10
                 };
             this.#lookup = lookup;
             this.#values = Object.keys(lookup);
             this.value   = this.#values.includes(this.value)
                          ? this.value         // same value exists in new states
-                         : (this.#values[this.#index] ?? this.#values[0]);
+                         : nullish(this.#values[this.#index], this.#values[0]); //?? https://github.com/sidewayss/html-elements/issues/10
             break;
         default:
             super.attributeChangedCallback(name, _, val);
@@ -107,4 +102,7 @@ class StateButton extends MultiState {
         }
     }
 }
-customElements.define("state-btn", StateButton);
+//$ https://github.com/sidewayss/html-elements/issues/10:
+StateBtn.observedAttributes = [VALUE, STATES, ...MultiState.observedAttributes];
+//===========================================
+customElements.define("state-btn", StateBtn);

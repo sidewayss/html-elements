@@ -1,28 +1,22 @@
 export {CheckBox, CheckTri};
+
 import {VALUE, getTemplate} from "./base-element.js";
 import {MultiState}         from "./multi-state.js";
+const
+TRUE  = "1",
+FALSE = "",
 
-const TRUE  = "1";
-const FALSE = "";
+CHECKED   = "checked",        // built-in attribute
+DEFAULT   = "data-default",   // custom attributes
+SHOW_DEF  = "data-show-default",
+LABEL     = "data-label",
 
-const CHECKED   = "checked";        // built-in attribute
-const DEFAULT   = "data-default";   // custom attributes
-const SHOW_DEF  = "data-show-default";
-const LABEL     = "data-label";
-
-const CHECK = "check";
-let template, noAwait;
-try {
-    template = await getTemplate(CHECK);
-} catch {
-    template = CHECK;
-    noAwait  = true;
-}
+template = "check", // see https://github.com/sidewayss/html-elements/issues/8
+noAwait  = true;
 // =============================================================================
 // The checkbox base class
 class MultiCheck extends MultiState {
     #label;
-    static observedAttributes = [LABEL, ...MultiState.observedAttributes];
     constructor() {
         super(template, noAwait);
         this._keyCodes.add("Space");                   // spacebar = click
@@ -46,13 +40,17 @@ class MultiCheck extends MultiState {
     get labelElement() {return this.#label; }
 
     get label()    { return this.getAttribute(LABEL); }
-    set label(val) { this.setAttribute(LABEL, val);   }
-}
+    set label(val) {
+        if (!val)       // consolidate empty label values to null
+            this.removeAttribute(LABEL);
+        else
+            this.setAttribute(LABEL, val);
+    }
+} //$ https://github.com/sidewayss/html-elements/issues/10:
+MultiCheck.observedAttributes = [LABEL, ...MultiState.observedAttributes];
 // =============================================================================
 // Two-state checkbox
 class CheckBox extends MultiCheck {
-    static hrefs = ["#false","#true"];
-    static observedAttributes = [CHECKED, ...MultiCheck.observedAttributes];
     constructor() {
         super();
         Object.defineProperty(this, "isCheckBox", {value:true});
@@ -89,18 +87,13 @@ class CheckBox extends MultiCheck {
             this.dispatchEvent(new Event("change")); // emulate HTML checkbox
         }
     }
-}
+} //$ https://github.com/sidewayss/html-elements/issues/10:
+CheckBox.observedAttributes = [CHECKED, ...MultiCheck.observedAttributes];
+CheckBox.hrefs = ["#false","#true"];
 // =============================================================================
 // Three-state checkbox: true, false, indeterminate (null)
 class CheckTri extends MultiCheck {
     #def; #svg; #viewBox;
-    static #w;
-    static #vbW  = 2;  // viewBox array index for width
-    static hrefs = new Map([[null,  "#null"],
-                            [FALSE, CheckBox.hrefs[0]],
-                            [TRUE,  CheckBox.hrefs[1]]]);
-    static observedAttributes = [VALUE, DEFAULT, SHOW_DEF,
-                                 ...MultiCheck.observedAttributes];
     constructor() {
         super();
         Object.defineProperty(this, "isCheckTri", {value:true});
@@ -115,8 +108,8 @@ class CheckTri extends MultiCheck {
         this.#viewBox = this.#svg.getAttribute("viewBox")
                                  .split(" ")
                                  .map(v => Number(v));
-        if (!CheckTri.#w)
-            CheckTri.#w = this.#viewBox[CheckTri.#vbW]; // baseline width
+        if (!CheckTri._w)
+            CheckTri._w = this.#viewBox[CheckTri._vbW]; // baseline width //$ used to be private...
 
         this._setHref(CheckTri.hrefs.get(this.value));
         if (noAwait) {
@@ -140,17 +133,17 @@ class CheckTri extends MultiCheck {
             if (!this._dom) return;
             //--------------
             let v,
-            w = CheckTri.#w;
+            w = CheckTri._w;
             if (b)
                 w *= 2;
-            this.#viewBox[CheckTri.#vbW] = w;
+            this.#viewBox[CheckTri._vbW] = w;
             this.#svg.setAttribute("width", w);
             this.#svg.setAttribute("viewBox", this.#viewBox.join(" "));
 
             v = b ? "visible" : "hidden";
             this.#def.parentNode.setAttribute("visibility", v);
 
-            v = b ? `translate(${CheckTri.#w})` : "";
+            v = b ? `translate(${CheckTri._w})` : "";
             this._use.parentNode.setAttribute("transform", v);
             break;
         default:
@@ -203,5 +196,13 @@ class CheckTri extends MultiCheck {
         }
     }
 }
+//$ https://github.com/sidewayss/html-elements/issues/10:
+CheckTri.observedAttributes = [VALUE, DEFAULT, SHOW_DEF,
+                               ...MultiCheck.observedAttributes];
+CheckTri.hrefs = new Map([[null,  "#null"],
+                        [FALSE, CheckBox.hrefs[0]],
+                        [TRUE,  CheckBox.hrefs[1]]]);
+CheckTri._vbW  = 2;  // viewBox array index for width //$ used to be private...
+//===========================================
 customElements.define("check-box", CheckBox);
 customElements.define("check-tri", CheckTri);
