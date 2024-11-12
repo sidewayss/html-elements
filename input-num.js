@@ -1,27 +1,28 @@
-export {NumberInput};
+export {InputNum};
 
-import {VALUE, BaseElement, getTemplate, nullish} from "./base-element.js";
+import {VALUE, BaseElement} from "./base-element.js";
 const
-MAX   = "max",                  // DOM attributes
+MAX   = "max",                   // DOM attributes
 MIN   = "min",
 STEP  = "step",
-                                // custom attributes: numbers and strings
-DELAY      = "data-delay",      // millisecond delay between mousedown and spin
-INTERVAL   = "data-interval",   // millisecond interval for spin
-DIGITS     = "data-digits",     // Number.prototype.toFixed(digits)
-UNITS      = "data-units",      // units string suffix
-LOCALE     = "data-locale",     // locale string: "aa-AA", "" = user locale
-NOTATION   = "data-notation",   // Intl.NumberFormat() options notation property
-CURRENCY   = "data-currency",   // ditto: currency property
-                                // booleans:
-ACCOUNTING = "data-accounting", // {currencySign:"accounting"}
-NO_KEYS    = "data-no-keys",    // no keyboard/pad input, only spinning
-NO_SPIN    = "data-no-spin",    // hide spinner, no keyboard spinning
-NO_CONFIRM = "data-no-confirm", // hide confirm/cancel buttons
-NO_SCALE   = "data-no-scale",   // don't scale the buttons to match font size
-NO_WIDTH   = "data-no-width",   // don't auto-size width
-NO_ALIGN   = "data-no-align",   // don't auto-align or auto-pad
-NO_RESIZE  = "data-no-resize",  // don't run resize(), for page load efficiency
+                                  // custom attributes: numbers and strings
+DELAY       = "data-delay",       // millisecond delay between mousedown & spin
+INTERVAL    = "data-interval",    // millisecond interval for spin
+DIGITS      = "data-digits",      // Number.prototype.toFixed(digits)
+UNITS       = "data-units",       // units string suffix
+LOCALE      = "data-locale",      // locale string: "aa-AA", "" = user locale
+NOTATION    = "data-notation",    // Intl.NumberFormat() options notation prop
+CURRENCY    = "data-currency",    // ditto: currency property
+                                  // booleans:
+ACCOUNTING  = "data-accounting",  // {currencySign:"accounting"}
+BLUR_CANCEL = "data-blur-cancel", // Blur = <Esc> key, else Blur = <Enter> key
+NO_KEYS     = "data-no-keys",     // no keyboard/pad input, only spinning
+NO_SPIN     = "data-no-spin",     // hide spinner, no keyboard spinning
+NO_CONFIRM  = "data-no-confirm",  // hide confirm/cancel buttons
+NO_SCALE    = "data-no-scale",    // don't scale the buttons to match font size
+NO_WIDTH    = "data-no-width",    // don't auto-size width
+NO_ALIGN    = "data-no-align",    // don't auto-align or auto-pad
+NO_RESIZE   = "data-no-resize",   // don't run resize(), used during page load
 
 NAN   = "NaN",          // class names:
 OOB   = "OoB",          // Out of Bounds
@@ -68,27 +69,35 @@ event = {
 resizeEvents = [event.blur, event.focus, mouse.over],
 
 textAlign = ["text-align","right","important"],
-template  = "number", // see https://github.com/sidewayss/html-elements/issues/8
-noAwait   = true;
+noAwait   = true; // see https://github.com/sidewayss/html-elements/issues/8
 // =============================================================================
-class NumberInput extends BaseElement {
-    #attrs; #bound; #btns; #ctrls; #erId; #hoverIn; #hoverOut; #input;
-    #isBlurring; #isLoading; #isMousing; #outFocus; #padRight; #spinId; #states;
-    #svg; #texts; #validate;
-    #isBlurry;             // a kludge for this._dom.activeElement === null
-    #locale = {currencyDisplay:"narrowSymbol"};
+class InputNum extends BaseElement {
+    #attrs; #bound; #btns; #confirmIt; #ctrls; #erId; #hoverIn; #hoverOut;
+    #input; #isBlurring; #isLoading; #isMousing; #locale; #outFocus; #padRight;
+    #spinId; #states; #svg; #texts; #validate;
+    #isBlurry;         // kludge for this._dom.activeElement === null
+
+static defaults = {
+    [VALUE]:  0,       // attribute values as numbers, not strings
+    [DIGITS]: 0,       // defaults to integer formatting
+    [MAX]:  Infinity,
+    [MIN]: -Infinity,
+    [STEP]:     1,
+    [DELAY]:  500,
+    [INTERVAL]:33      // ~2 frames at 60fps
+};
+static observedAttributes = [
+    VALUE, MAX, MIN, STEP, DELAY, INTERVAL, DIGITS, UNITS, LOCALE, CURRENCY,
+    ACCOUNTING, NOTATION, NO_KEYS, NO_SPIN, NO_CONFIRM, NO_WIDTH, NO_ALIGN,
+    NO_SCALE, ...BaseElement.observedAttributes
+];
 // =============================================================================
     constructor() {
-        super(template, noAwait);
-
-        const obj = {};         // #states are #input styles for each state
-        for (const evt of resizeEvents)
-            obj[evt] = {};
-        obj[mouse.out] = obj[event.blur];
-
-        this.#states = obj;
+        super(import.meta, InputNum, noAwait);
+        //   #attrs caches numbers for revert on NaN
+        this.#attrs  = Object.assign({}, InputNum.defaults);
+        this.#locale = {currencyDisplay:"narrowSymbol"};
         this.#spinId = null;
-        this.#attrs  = Object.assign({}, NumberInput.defaults);
         this.#bound  = {        // #swapEvents adds/removes #bound events
             [mouse.down]: this.#mouseDown.bind(this),
             [mouse.up]:   this.#mouseUp  .bind(this),
@@ -100,6 +109,12 @@ class NumberInput extends BaseElement {
         this.#addEvent(mouse.out,   this.#hover);
         this.#addEvent(event.focus, this.#active);
         this.#addEvent(event.blur,  this.#active);
+
+        const obj = {};         // #states are #input styles for each state
+        for (const evt of resizeEvents)
+            obj[evt] = {};
+        obj[mouse.out] = obj[event.blur];
+        this.#states   = obj;
 
         this.#isLoading = true; // prevents double-setting of values during load
         if (!noAwait)
@@ -200,7 +215,7 @@ class NumberInput extends BaseElement {
                 }
             }
         }
-        else {                      // string and boolean attributes:
+        else {                      // boolean and string attributes:
             isResize = true;
             switch(name) {          // booleans:
             case NO_KEYS:
@@ -232,7 +247,7 @@ class NumberInput extends BaseElement {
                 case CURRENCY:
                     this.#locale.style = val ? "currency" : undefined;
                 case NOTATION:      // convert null to undefined
-                    this.#locale[name.split("-")[1]] = nullish(val, undefined);
+                    this.#locale[name.split("-")[1]] = val ?? undefined;
                     break;
                 default:            // handled by BaseElement
                     super.attributeChangedCallback(name, _, val);
@@ -246,7 +261,7 @@ class NumberInput extends BaseElement {
             if (isUpdate) {
                 if (this.#input) {  // for noAwait
                     const b = this.#inFocus;
-                    this.#input.value = this.#getText(b, !b);
+                    this.#input.value = this.#getText(b, !b && this.units);
                 }
             }
         }
@@ -263,52 +278,54 @@ class NumberInput extends BaseElement {
     }
 //==============================================================================
 //  Getters/setters reflect the HTML attributes, see attributeChangedCallback()
-    get keyboards()  { return !this.hasAttribute(NO_KEYS);    } // booleans:
-    get spins()      { return !this.hasAttribute(NO_SPIN);    }
-    get confirms()   { return !this.hasAttribute(NO_CONFIRM); }
-    get autoWidth()  { return !this.hasAttribute(NO_WIDTH);   }
-    get autoAlign()  { return !this.hasAttribute(NO_ALIGN);   }
-    get autoResize() { return !this.hasAttribute(NO_RESIZE);  }
-    get autoScale()  { return !this.hasAttribute(NO_SCALE);   }
-    get accounting() { return  this.hasAttribute(ACCOUNTING); }
-    get useLocale()  { return  this.hasAttribute(LOCALE);     } // read-only
+    get keyboards()  { return !this.hasAttribute(NO_KEYS);     } // booleans:
+    get spins()      { return !this.hasAttribute(NO_SPIN);     }
+    get confirms()   { return !this.hasAttribute(NO_CONFIRM);  }
+    get autoWidth()  { return !this.hasAttribute(NO_WIDTH);    }
+    get autoAlign()  { return !this.hasAttribute(NO_ALIGN);    }
+    get autoResize() { return !this.hasAttribute(NO_RESIZE);   }
+    get autoScale()  { return !this.hasAttribute(NO_SCALE);    }
+    get blurEsc()    { return  this.hasAttribute(BLUR_CANCEL); }
+    get accounting() { return  this.hasAttribute(ACCOUNTING);  }
+    get useLocale()  { return  this.hasAttribute(LOCALE);      } // read-only
 
-    get units()    { return nullish(this.getAttribute(UNITS), ""); } // strings:
+    get units()    { return this.getAttribute(UNITS)  ?? ""; }   // strings:
     get locale()   { return this.getAttribute(LOCALE) || undefined; }
     get currency() { return this.getAttribute(CURRENCY); }
     get notation() { return this.getAttribute(NOTATION); }
-    get text()     { return this.#input.value; }                // read-only
+    get text()     { return this.#input.value; }                 // read-only
 
-    get value()    { return this.#attrs[VALUE];    }            // numbers:
-    get digits()   { return this.#attrs[DIGITS];   }            // cached for
-    get max()      { return this.#attrs[MAX];      }            // revert on NaN
+    get value()    { return this.#attrs[VALUE];    }             // numbers:
+    get digits()   { return this.#attrs[DIGITS];   }
+    get max()      { return this.#attrs[MAX];      }
     get min()      { return this.#attrs[MIN];      }
     get step()     { return this.#attrs[STEP];     }
     get delay()    { return this.#attrs[DELAY];    }
     get interval() { return this.#attrs[INTERVAL]; }
 
-    get validate()    { return this.#validate; }                // function:
+    get validate()    { return this.#validate; }                 // function:
     set validate(val) {
         if (val === undefined || (val instanceof Function))
             this.#validate = val;
         else
             throw new Error("validate must be an instance of Function or undefined.");
     }
-    set keyboards (val) { this._setBool(NO_KEYS,    !val); }    // booleans:
+    set keyboards (val) { this._setBool(NO_KEYS,    !val); }     // booleans:
     set spins     (val) { this._setBool(NO_SPIN,    !val); }
     set confirms  (val) { this._setBool(NO_CONFIRM, !val); }
     set autoWidth (val) { this._setBool(NO_WIDTH,   !val); }
     set autoAlign (val) { this._setBool(NO_ALIGN,   !val); }
     set autoResize(val) { this._setBool(NO_RESIZE,  !val); }
     set autoScale (val) { this._setBool(NO_SCALE,   !val); }
+    set blurEsc   (val) { this._setBool(BLUR_CANCEL, val); }
     set accounting(val) { this._setBool(ACCOUNTING,  val); }
 
-    set units   (val) { this.#setRemove(UNITS,    val); }       // strings:
+    set units   (val) { this.#setRemove(UNITS,    val); }        // strings:
     set locale  (val) { this.#setRemove(LOCALE,   val); }
     set currency(val) { this.#setRemove(CURRENCY, val); }
     set notation(val) { this.#setRemove(NOTATION, val); }
 
-    set value   (val) { this.setAttribute(VALUE,    val); }     // numbers:
+    set value   (val) { this.setAttribute(VALUE,    val); }      // numbers:
     set digits  (val) { this.setAttribute(DIGITS,   val); }
     set max     (val) { this.setAttribute(MAX,      val); }
     set min     (val) { this.setAttribute(MIN,      val); }
@@ -353,13 +370,13 @@ class NumberInput extends BaseElement {
         const id = evt.target.id;
         if (this.#isSpinning) {          // if spinning, spin the other way
             this.#spin(undefined, null); // cancel w/o href or #spinId = null
-            args = [false, id == TOP];    // restart at full speed
+            args = [false, id == TOP];   // restart at full speed
         }
         this.#overOut(id, true, `${this.#getState(id)}`, args);
     }
     #mouseOut(evt) {
         const
-        id   = evt.relatedTarget ? evt.relatedTarget.id : undefined, //?. https://github.com/sidewayss/html-elements/issues/10
+        id   = evt.relatedTarget?.id,
         args = !this.#isSpinning || id == TOP || id == BOT
              ? undefined  // don't call #spin()
              : [];        // cancel spinning
@@ -369,7 +386,7 @@ class NumberInput extends BaseElement {
         this.#hoverIn = hoverIn;
         if (setHref)
             this._setHref(`${this.#getButton(this.#inFocus)}${state}`);
-       if (args !== undefined)
+        if (args !== undefined)
             this.#spin(...args);
     }
 //  focus and blur -----------------------------------------------------------
@@ -388,22 +405,37 @@ class NumberInput extends BaseElement {
     }
 //  target is #input:
     #focus(evt) {
-        // stopPropagation() here doesn't prevent #active()...
+        // stopPropagation() here doesn't prevent #active()
         if (this.#isBlurry || this.#isMousing) return;
         //---------------------------------------------------
         this.#fur(evt, false, CONFIRM, false,
-                    this.#attrs[VALUE].toFixed(this.digits));
-    };
+                  this.#attrs[VALUE].toFixed(this.digits));
+    }
     #blur(evt) {
         if (this.#isBlurry || this.#isMousing) return;
-        //==========================================================
+        //---------------------------------------------------------------------
+        // The default behavior is to confirm the value onblur() when the user
+        // presses the Tab key or clicks elsewhere on the page. To cancel input
+        // onblur(), set the data-blur-cancel attribute. Either way, the blur
+        // event handler is where we "confirm it" i.e. set the value attribute.
+        // #confirmIt: true = Enter/OK, false = Esc/Cancel, undefined = Tab/etc.
+        if (this.#confirmIt ?? !this.blurCancel) {
+            const val = this.#validate?.(this.text) ?? this.text;
+            if (val !== false) {     // set VALUE from keyboard input is funky
+                this.#isBlurring = true;
+                this.setAttribute(VALUE, val);
+                this.#isBlurring = false;
+                this.dispatchEvent(new Event("change"));
+            }
+        }
+        this.#confirmIt = undefined; // undefined falls back to !blurCancel
+
         // When #input has the focus and the user presses Shift+Tab:
-        //    evt.relatedTarget === this and #active does not run
-        // because this === document.activeElement before and after
+        //   evt.relatedTarget === this and #active does not run
+        //   because this === document.activeElement before and after
         const
         showIt = (evt.relatedTarget === this),
         value  = this.#getText(false, true);
-
         if (this.#fur(evt, true, SPINNER, showIt, value)) {
             this.classList.remove(NAN);
             this.classList.remove(OOB);
@@ -434,9 +466,11 @@ class NumberInput extends BaseElement {
             }
         }
         else if (this.#inFocus) {             // clicking ok/cancel blurs #input
+            const id = evt.target.id;
             this.#isMousing = true;           // #blur() = noop
-            this._setHref(this.#getButton(this.#inFocus)
-                        + ACTIVE + evt.target.id);
+            this._setHref(this.#getButton(this.#inFocus) + ACTIVE + id);
+            if (id == TOP && this.classList.contains(NAN))
+                this.classList.add(BEEP);
         }
         else {
             this.#spin(true);
@@ -445,10 +479,13 @@ class NumberInput extends BaseElement {
         }                                     // but allow focus to happen first
     }
     #mouseUp(evt) {
-        if (evt.currentTarget !== window)
-            this.#spin();   // safe to cancel regardless of #isSpinning
+        if (evt.currentTarget !== window) {
+            this.#spin();                 // not worth checking if (#isSpinning)
+            this.classList.remove(BEEP);  // ditto if (BEEP)
+        }
         else {
-            const           // end a text selection drag
+            let match, obj;               // end a text selection drag
+            const
             range = [],
             input = this.#input,
             dir   = input.selectionDirection,
@@ -457,83 +494,82 @@ class NumberInput extends BaseElement {
             val   = input.value,
             orig  = [{num:start, str:val.slice(0, start)},
                      {num:dist,  str:val.slice(start, dist)}];
-            let match, obj;
             for (obj of orig) {
                 match = obj.str.match(/[^\d-.eE]/g);
                 range.push(obj.num - (match ? match.length : 0))
             }
-            this.#isMousing = false;         // let this.#focus() do it's thing
-            this.#focus(new Event(event.focus)); // #input might already have focus
+            this.#isMousing = false;      // let #focus() do it's thing, #input
+            this.#focus(new Event(event.focus));    // might already have focus.
             if (this.accounting && val[0] == "(")
                 ++range[0];
             input.setSelectionRange(range[0], range[0] + range[1], dir);
             this.#dragEvents(false);
         }
     }
-//  target is up or down <rect>: must check classList.contains(NAN) because
-//         setting #up's pointer-events to "none" displays text I-beam cursor.
-    #click(evt) {                        // confirm only, not for spinner
-        if (evt.target.id == TOP) {       // ok
-            if (this.classList.contains(NAN)) {
-                this.#input.focus();     // acts as if disabled
-                this.#isMousing = false; // must follow .focus()
-                return;
-            }
-            else
-                this.#apply();
+//  target is up or down <rect>: confirm only, not spinner. It must check
+//  classList.contains(NAN) because setting #up's pointer-events to "none"
+//  displays text I-beam cursor.
+    #click(evt) {
+        this.#confirmIt = (evt.target.id == TOP); // TOP == OK, else Cancel
+        if (this.#confirmIt && this.classList.contains(NAN)) {
+            this.#input.focus();                  // mousedown/up handles BEEP
+            this.#isMousing = false;              // must follow #input.focus()
         }
-        this.#blurMe(false);
+        else
+            this.#blurMe(false);
     }
 //  keydown and keyup --------------------------------------------------------
-//  target is this for keyboard because the svg buttons don't receive focus:
+//  keyboard target is this, because the svg buttons don't receive focus.
     #keyDown(evt) {                 // document .activeElement === this
         if (this.#inFocus)          // this._dom.activeElement === this.#input
             switch (evt.code) {
-            case code.enter:        // apply user input (or not)
-                if (Number.isNaN(this.#toNumber(this.text))) {
-                    this.classList.add(BEEP);
-                    return;
-                } //----------
-                this.#apply();
-            case code.escape:       // exit user input mode
+            case code.enter:
+                if (this.classList.contains(NAN)) // force the user to input
+                    this.classList.add(BEEP);     // a valid number or cancel.
+                else {
+                    this.#confirmIt = true;       // apply the user input
+                    this.#input.blur();
+                }
+                break;
+            case code.escape:
+                this.#confirmIt = false;          // user is cancelling
                 this.#input.blur();
             default:
             }
         else
             switch (evt.code) {     // this._dom.activeElement === null
             case code.enter: case code.escape:
+                this.#confirmIt = false;          // value already confirmed
                 this.#blurMe(true);
                 return;
-            // keyboard repeat rate is an OS setting that has it's own delay
-            // then interval, thus #spin(null). Separate href for delayed image
-            // because quick keydown/up sequences flicker, and using a delay can
-            // look just as flickery, depending on the timing. If it's only a
-            // slight difference from #spinner-idle, it looks good.
             case code.down:
-            case code.up:   // #spin(null) doesn't set href or #spinId
+            case code.up:
+            // Keyboard repeat rate is an OS setting that has it's own delay
+            // then interval, thus #spin(null). Separate href for delayed image
+            // because quick keydown/up sequences flicker, and a delay can look
+            // just as flickery, depending on the timing. If it's only a slight
+            // difference from #spinner-idle, it looks good.
                 const topBot = key[evt.code];
                 if (this.#isSpinning)
                     this._setHref(`${SPINNER}${SPIN}${topBot}`);
                 else {
                     this._setHref(`${SPINNER}key-${topBot}`);
                     this.#spinId = -1;
-                }
+                } // #spin(null) doesn't set href or #spinId
                 this.#spin(null, topBot == TOP);
             default:
             }
     }
-    #keyUp(evt) {                   // Esc key never makes it this far
-        if (this.#inFocus) {        // any character accepted
+    #keyUp(evt) {                            // Esc key never makes it this far
+        if (this.#inFocus) {                 // any character accepted...
             if (evt.code == code.enter)
                 this.classList.remove(BEEP);
-            else {
-                const               // inform user of NaN or OoB (Out of Bounds)
-                n   =this.#toNumber(this.text),
-                nan = Number.isNaN(n);
-                this.classList.toggle(NAN, nan);
-                this.classList.toggle(OOB, !nan && (n > this.max || n < this.min));
+            else {                           // ...but style erroneous values:
+                const n = this.#toNumber(this.text);
+                this.classList.toggle(NAN, Number.isNaN(n));
+                this.classList.toggle(OOB, n > this.max || n < this.min);
             }
-        }                           // only two keys respond, always a number:
+        }                                    // else spin it:
         else if (evt.code == code.up || evt.code == code.down)
             this.#spin(undefined, evt.code == code.up);
     }
@@ -541,22 +577,11 @@ class NumberInput extends BaseElement {
 // this.#inFocus returns true if #input has the focus
     get #inFocus() { return this.#input === this._dom.activeElement; }
 
-//  #apply() consolidates some funk around setting VALUE from keyboard input
-    #apply() {
-//?.    const val = this.#validate?.(this.text) ?? this.text;
-        const val = this._validate ? this._validate(this.text) : this.text;//?. https://github.com/sidewayss/html-elements/issues/10
-        if (val !== false) {
-            this.#isBlurring = true;
-            this.setAttribute(VALUE, val);
-            this.#isBlurring = false;
-            this.dispatchEvent(new Event("change"));
-        }
-    }
-//  #blurMe() is only called when document.activeElement === this and
-//            _dom.activeElement === null, because this.blur() noops in Chrome.
-    #blurMe(b) {                       // b == true: #keyDown(), false: #click()
+//  #blurMe() is because this.blur() noops in Chrome when:
+//            document.activeElement === this && _dom.activeElement === null
+    #blurMe(isKey) {
         if (navigator.userAgentData) { // only Chrome-based browsers support it
-            this.#isBlurry  = b;       // only for keyboard
+            this.#isBlurry  = isKey;   // isKey == #keyDown(), else #click()
             this.#input.focus();
             this.#isMousing = false;   // must follow focus(), precede blur()...
             this.#input.blur();
@@ -639,8 +664,7 @@ class NumberInput extends BaseElement {
             let val = this.#attrs[VALUE];    // if already clamped, skip it
             if ((isUp && val != this.max) || (!isUp && val != this.min)) {
                 const n = val + (this.#attrs[STEP] * (isUp ? 1 : -1));
-            //?.val = this.#validate?.(n, true) ?? n; // true for isSpinning
-                val = this._validate ? this._validate(n, true) : n; //?. https://github.com/sidewayss/html-elements/issues/10
+                val = this.#validate?.(n, true) ?? n; // true for isSpinning
                 if (val !== false) {         // clamp it between min and max:
                     this.setAttribute(VALUE, Math.max(this.min, Math.min(this.max, val)));
                     this.#input.value = this.#getText(false); // false because #input w/focus does not spin
@@ -672,7 +696,7 @@ class NumberInput extends BaseElement {
 //  resize() calculates the correct width and applies it to this.#input
     resize(forceIt) {
         if (!this.autoResize && !forceIt) return;
-        //-----------------------------------------
+        //-----------------------------------------------
         let btns, diff, extra, id, isItalic, prop, style;
         const
         px = "px",
@@ -708,7 +732,7 @@ class NumberInput extends BaseElement {
             isItalic = (style.fontStyle == "italic");
             for (txt of this.#texts) {
                 id = txt.id;
-                txt.innerHTML = nullish(this.#formatNumber(this[id]), this.units); //?? https://github.com/sidewayss/html-elements/issues/10
+                txt.innerHTML = this.#formatNumber(this[id]) ?? this.units;
                 for (type of ["","-kerning","-size-adjust","-synthesis",
                               "-optical-sizing",-"palette"]) {
                     prop = "font" + type;
@@ -773,52 +797,33 @@ class NumberInput extends BaseElement {
     #getText(inFocus, appendUnits) {
         const n = this.#attrs[VALUE];
         let txt = inFocus ? n : this.#formatNumber(n);
-        if (appendUnits)
+        if (appendUnits) {
+            if (this.#locale.currency)
+                txt += "/";     // currency && units displays currency per unit
             txt += this.units;
+        }
         return txt;
     }
 //  #formatNumber() formats a number for display as text
     #formatNumber(n) {
-        if (n === undefined) return;  // helps resize()
-        //-----------------------------------------------------
-        return this.useLocale
-             ? new Intl.NumberFormat(this.locale, this.#locale)
-                       .format(n)
-             : n.toFixed(this.#attrs[DIGITS]);
+        if (n !== undefined)
+            return this.useLocale
+                 ? new Intl.NumberFormat(this.locale, this.#locale).format(n)
+                 : n.toFixed(this.#attrs[DIGITS]);
     }
 //  #toNumber() converts string to number, str never equals 0
     #toNumber(str) {                    // parseFloat() is too lenient
         return str ? Number(str) : NaN; // Number() converts "" and null to 0
     }
 //  #getButton() gets the first segment of the href id
-    #getButton(inFocus) {  // helps #mouseOver() and #mouseOut()
-        return !inFocus
-             ? SPINNER
-             : this.classList.contains(NAN)
-               ? "#cancel-"
-               : CONFIRM;
+    #getButton(inFocus) {
+        return !inFocus ? SPINNER : CONFIRM;
     }
-//  #getState() gets the second segment of the href id
+//  #getState() gets the second-third segments of the href id
     #getState(id = this.#hoverIn) {
         return this.#isSpinning ? `${ACTIVE}${id}`
                            : id ? `${HOVER}${id}`
-                                : IDLE;
+                                : IDLE; // idle only has two segments
     }
 }
-//$ https://github.com/sidewayss/html-elements/issues/10:
-NumberInput.observedAttributes = [
-    VALUE, MAX, MIN, STEP, DELAY, INTERVAL, DIGITS, UNITS, LOCALE, CURRENCY,
-    ACCOUNTING, NOTATION, NO_KEYS, NO_SPIN, NO_CONFIRM, NO_WIDTH, NO_ALIGN,
-    NO_SCALE, ...BaseElement.observedAttributes
-];
-NumberInput.defaults = {
-    [VALUE]:  0,       // attribute values as numbers, not strings
-    [DIGITS]: 0,       // defaults to integer formatting
-    [MAX]:  Infinity,
-    [MIN]: -Infinity,
-    [STEP]:     1,
-    [DELAY]:  500,
-    [INTERVAL]:33      // ~2 frames at 60fps
-};
-//==============================================
-customElements.define("input-num", NumberInput);
+BaseElement.define(InputNum);

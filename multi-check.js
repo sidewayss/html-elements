@@ -1,6 +1,6 @@
 export {CheckBox, CheckTri};
 
-import {VALUE, getTemplate} from "./base-element.js";
+import {VALUE, BaseElement} from "./base-element.js";
 import {MultiState}         from "./multi-state.js";
 const
 TRUE  = "1",
@@ -11,14 +11,14 @@ DEFAULT   = "data-default",   // custom attributes
 SHOW_DEF  = "data-show-default",
 LABEL     = "data-label",
 
-template = "check", // see https://github.com/sidewayss/html-elements/issues/8
-noAwait  = true;
+noAwait = true; // see https://github.com/sidewayss/html-elements/issues/8
 // =============================================================================
 // The checkbox base class
 class MultiCheck extends MultiState {
     #label;
-    constructor() {
-        super(template, noAwait);
+    static observedAttributes = [LABEL, ...MultiState.observedAttributes];
+    constructor() {     // this is not available yet, but MultiCheck is
+        super(import.meta, MultiCheck, noAwait);
         this._keyCodes.add("Space");                   // spacebar = click
     }
 //  _init() exists for old browsers w/o await at module top level
@@ -46,11 +46,12 @@ class MultiCheck extends MultiState {
         else
             this.setAttribute(LABEL, val);
     }
-} //$ https://github.com/sidewayss/html-elements/issues/10:
-MultiCheck.observedAttributes = [LABEL, ...MultiState.observedAttributes];
+}
 // =============================================================================
 // Two-state checkbox
 class CheckBox extends MultiCheck {
+    static hrefs = ["#false","#true"];
+    static observedAttributes = [CHECKED, ...MultiCheck.observedAttributes];
     constructor() {
         super();
         Object.defineProperty(this, "isCheckBox", {value:true});
@@ -80,20 +81,25 @@ class CheckBox extends MultiCheck {
     get value()    { return this.checked; }
     set value(val) { this.checked = val;  }
 
-//  change() converts click and spacebar-up to a self-inflicted change event
-    change(evt) {
+//  _change() converts click and spacebar-up to a self-inflicted change event
+    _change(evt) {
         if (this._handleEvent(evt)) {
             this.checked = !this.checked;
             this.dispatchEvent(new Event("change")); // emulate HTML checkbox
         }
     }
-} //$ https://github.com/sidewayss/html-elements/issues/10:
-CheckBox.observedAttributes = [CHECKED, ...MultiCheck.observedAttributes];
-CheckBox.hrefs = ["#false","#true"];
+}
 // =============================================================================
 // Three-state checkbox: true, false, indeterminate (null)
 class CheckTri extends MultiCheck {
     #def; #svg; #viewBox;
+    static #vbW  = 2;  // viewBox array index for width
+    static hrefs = new Map([[null,  "#null"],
+                            [FALSE, CheckBox.hrefs[0]],
+                            [TRUE,  CheckBox.hrefs[1]]]);
+
+    static observedAttributes = [VALUE, DEFAULT, SHOW_DEF,
+                                 ...MultiCheck.observedAttributes];
     constructor() {
         super();
         Object.defineProperty(this, "isCheckTri", {value:true});
@@ -109,7 +115,7 @@ class CheckTri extends MultiCheck {
                                  .split(" ")
                                  .map(v => Number(v));
         if (!CheckTri._w)
-            CheckTri._w = this.#viewBox[CheckTri._vbW]; // baseline width //$ used to be private...
+            CheckTri._w = this.#viewBox[CheckTri.#vbW]; // baseline width //$ used to be private...
 
         this._setHref(CheckTri.hrefs.get(this.value));
         if (noAwait) {
@@ -136,7 +142,7 @@ class CheckTri extends MultiCheck {
             w = CheckTri._w;
             if (b)
                 w *= 2;
-            this.#viewBox[CheckTri._vbW] = w;
+            this.#viewBox[CheckTri.#vbW] = w;
             this.#svg.setAttribute("width", w);
             this.#svg.setAttribute("viewBox", this.#viewBox.join(" "));
 
@@ -176,8 +182,8 @@ class CheckTri extends MultiCheck {
         return this.value === null ? this.default : Boolean(this.value);
     }
 
-//  change() converts click and spacebar-up to a self-inflicted change event
-    change(evt) {
+//  _change() converts click and spacebar-up to a self-inflicted change event
+    _change(evt) {
         // The 3 states are TRUE = "1", FALSE = "", and null.
         // The 3-way rotation order depends on boolean data-default attribute.
         // Start null, then rotate to the opposite of data-default:
@@ -196,13 +202,5 @@ class CheckTri extends MultiCheck {
         }
     }
 }
-//$ https://github.com/sidewayss/html-elements/issues/10:
-CheckTri.observedAttributes = [VALUE, DEFAULT, SHOW_DEF,
-                               ...MultiCheck.observedAttributes];
-CheckTri.hrefs = new Map([[null,  "#null"],
-                        [FALSE, CheckBox.hrefs[0]],
-                        [TRUE,  CheckBox.hrefs[1]]]);
-CheckTri._vbW  = 2;  // viewBox array index for width //$ used to be private...
-//===========================================
-customElements.define("check-box", CheckBox);
-customElements.define("check-tri", CheckTri);
+BaseElement.define(CheckBox);
+BaseElement.define(CheckTri);

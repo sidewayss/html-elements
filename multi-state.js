@@ -7,11 +7,12 @@ const KEY_CODES = "data-key-codes";
 // declared in sub-classes, all of them dispatch a change event to the client.
 // It has no references to the shadow DOM (this._dom).
 class MultiState extends BaseElement {
-    constructor(template, noAwait) {
-        super(template, noAwait);
+    static observedAttributes = [KEY_CODES, ...BaseElement.observedAttributes];
+    constructor(meta, template, noAwait) {
+        super(meta, template, noAwait);
         this._keyCodes = new Set;
-        this.addEventListener("keyup", this.change, false);
-        this.addEventListener("click", this.change, false);
+        this.addEventListener("keyup", this._change, false);
+        this.addEventListener("click", this._change, false);
         this.addEventListener("mousedown", this.#kludge, false); // Chrome issue
     }
 //  attributeChangedCallback() handles changes to the observed attributes
@@ -20,7 +21,7 @@ class MultiState extends BaseElement {
             if (!val)                   // null or ""
                 this._keyCodes.clear();
             else
-                this._keyCodes = new Set(JSON.parse(val)) //??validation??
+                this._keyCodes = new Set(JSON.parse(val)) //!!validation??
         }
         else
             super.attributeChangedCallback(name, _, val);
@@ -28,7 +29,7 @@ class MultiState extends BaseElement {
 // this.keyCodes is the Set of keycodes that act like mouseclick
     get keyCodes()    { return Array.from(this._keyCodes); }
     set keyCodes(val) {
-        this.setAttribute(KEY_CODES, JSON.stringify(Array.from(val)));  //??validation??
+        this.setAttribute(KEY_CODES, JSON.stringify(Array.from(val)));  //!!validation??
     }
 //  _handleEvent() determines whether or not to handle an event
     _handleEvent(evt) {
@@ -39,5 +40,4 @@ class MultiState extends BaseElement {
         if (document.activeElement === this) // don't prevent setting of focus
             evt.preventDefault();
     }
-} //$ https://github.com/sidewayss/html-elements/issues/10:
-MultiState.observedAttributes = [KEY_CODES, ...BaseElement.observedAttributes];
+}

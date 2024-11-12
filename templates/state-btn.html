@@ -1,0 +1,22 @@
+<html>
+  <body> <!-- <state-btn> template for playback -->
+    <template>
+      <svg viewbox="0 0 25 25" width="25" height="25">
+        <defs>
+          <!-- 3 images for #play button -->
+          <path id="btn-play"   d="M3,2 L22,12.5 3,23 Z"/>
+          <g    id="btn-pause">
+            <rect x= "3" y="3"  width="7" height="19" rx="1" ry="1"/>
+            <rect x="15" y="3"  width="7" height="19" rx="1" ry="1"/>
+          </g>
+          <path id="btn-resume" d="M3,3 V22 M8,3 L22,12.5 8,22 Z"/>
+
+          <!-- 2 images for #stop button -->
+          <rect id="btn-stop"   x="3" y="3" width="19" height="19" rx="2" ry="2"/>
+          <path id="btn-reset"  d="M3,3 V22 M22,3 L8,12.5 22,22 Z"/>
+        </defs>
+        <use id="btn" href="#"/>
+      </svg>
+    </template>
+  </body>
+</html>

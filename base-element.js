@@ -1,16 +1,20 @@
-export {VALUE, BaseElement, getTemplate, nullish};
+export {VALUE, BaseElement};
 const
 DISABLED  = "disabled", // DOM attributes
 TAB_INDEX = "tabindex",
-VALUE     = "value";    // const exported, but not handled here
+VALUE     = "value";    // exported: defined here but not handled here
 // =============================================================================
 // The custom base class, direct sub-class of HTMLElement
 class BaseElement extends HTMLElement {
-    #name; #tabIndex;
-    constructor(template, noAwait) {
+    #id; #meta; #tabIndex;
+    static searchParams;    // set by html-elements.js, if it's used
+    static observedAttributes = [DISABLED, TAB_INDEX];
+    static promises = new Map; // for noAwait, see https://github.com/sidewayss/html-elements/issues/8
+    constructor(meta, template, noAwait) {
         super();
-        if (noAwait) {
-            this.#name = template;  // the template name as String
+        if (noAwait) {              // passes subclass as template arg
+            this.#meta = meta;
+            this.#id   = classToTag(template);
             BaseElement.promises.set(this, promise());
         }
         else
@@ -29,21 +33,21 @@ class BaseElement extends HTMLElement {
 //  this._initSuper(). If (!noAwait) it must call a pseudo-connectedCallback()
 //  because a real one prevents this one from running.
     connectedCallback() {
-        if (this.#name) {
-            getTemplate(this.#name).then(tmp => {
+        if (this.#meta) {
+            getTemplate(this.#meta, this.#id).then(tmp => {
                 this.#attach(tmp);
                 this._init();
                 BaseElement.promises.get(this).resolve();
             });
         }
-        else if (this._connected) //?. https://github.com/sidewayss/html-elements/issues/10
-            this._connected();
+        else
+            this._connected?.();
     }
 //  attributeChangedCallback() handles changes to the observed attributes
-    attributeChangedCallback(name, _, val) {
+    attributeChangedCallback(name, _, path) {
         switch (name) {
         case DISABLED:
-            if (val !== null) {     // null == removeAttribute()
+            if (path !== null) {     // null == removeAttribute()
                 this.tabIndex = -1;
                 this.style.pointerEvents = "none";
             }
@@ -53,14 +57,18 @@ class BaseElement extends HTMLElement {
             }
             break;
         case TAB_INDEX:
-            this.#tabIndex = val;   // to restore post-disable
+            this.#tabIndex = path;   // to restore post-disable
         default:
         }
     }
 // getters/setters reflect the HTML attributes, see attributeChangedCallback()
     get disabled()    { return this.hasAttribute(DISABLED); }
-    set disabled(val) { this._setBool(DISABLED, val); }
+    set disabled(path) { this._setBool(DISABLED, path); }
 
+// define wraps customElements.define for consistency of class and tag names
+    static define(cls) {
+        customElements.define(classToTag(cls), cls);
+    }
 //  _setBool() helps disabled, checked, and other boolean attributes
     _setBool(attr, b) {
         b ? this.setAttribute(attr, "")
@@ -71,48 +79,67 @@ class BaseElement extends HTMLElement {
         elm.setAttribute("href", href);
     }
 }
-BaseElement.observedAttributes = [DISABLED, TAB_INDEX]; //$ https://github.com/sidewayss/html-elements/issues/10
-BaseElement.promises = new Map; // for noAwait
 // =============================================================================
-// getTemplate() gets the template as a new document fragment. Users store their
-//               templates in the /html-templates directory. If no template file
-//               is found there, fall back to built-in file.
-//               {headers:{"suppress-errors":""}} doesn't supress 404. To avoid
-//               404 errors, put your templates in /html-templates. If you are
-//               using the built-in templates, copy the files there.
-function getTemplate(name) {
+// getTemplate() gets the template as a new document fragment.
+function getTemplate(meta, id) {
+    let back, path, template;
     const
-    id   = `template-${name}`,
-    file = `${id}.html`;
+    SLASH = "/",
+    EXT   = ".html",
+    url   = new URL(meta.url),
+    sp    = url.search ? url.searchParams : BaseElement.searchParams;
+    path  = url.pathname;
+    back  = `${path.slice(0, path.lastIndexOf(SLASH))}/templates/${id}${EXT}`;
 
-    return fetch(`/html-templates/${file}`)
-     .then(rsp => rsp.ok && rsp.status != 202
-                ? parseIt(rsp, id)
-                : fallBack(file, id))   // fall back to the built-in template
-     .catch(() => fallBack(file, id));  // regardless of the reason for failure
+    if (sp) {
+        path = sp.get("template");
+        if (path)                           // full path, overrides id
+            template = path;
+        else {
+            path = sp.get("templateDir");
+            if (path) {
+                if (!path.endsWith(SLASH))  // leniency
+                    path += SLASH;
+                template = path + id + EXT;
+            }
+        }
+    }
+    return !template
+         ? fallBack(back)
+         : fetch(template)
+           .then(rsp => rsp.ok && rsp.status != 202
+                      ? parseIt(rsp, id)
+                      : fallBack(back))  // fall back to the built-in template
+           .catch(() => fallBack(back)); // regardless of the reason for failure
+}
+function fallBack(url) {
+    return fetch(url)
+      .then (rsp => rsp.ok ? parseIt(rsp) //!!should this check for status=202 too??
+                           : console.error(`HTTP error fetching ${url}: ${
+                                            rsp.status} ${rsp.statusText}`))
+      .catch(err => catchError(err));
 }
 function parseIt(rsp, id) {
-    return rsp.text()
-     .then(txt => new DOMParser().parseFromString(txt, "text/html")
-                                 .getElementById(id).content)
-     .catch(err => catchError(err));
-}
-function fallBack(file, id) {
-    const url = `/html-elements/${file}`; // built-in template file
-    return fetch(url)
-     .then(rsp => rsp.ok
-                ? parseIt(rsp, id)
-                : console.error(`HTTP error fetching ${url}: ${rsp.status} ${rsp.statusText}`))
-     .catch(err => catchError(err));
+    return rsp.text().then(txt => {
+        let content;
+        const dom = new DOMParser().parseFromString(txt, "text/html");
+
+        if (id) // called by getTemplate(), not fallBack()
+            content = dom.getElementById(id)?.content;
+
+        return content ?? dom.getElementsByTagName("template")[0].content;
+    })
+    .catch(err => catchError(err));
 }
 function catchError(err) {
-    console.error(nullish(err.stack, err)); //?? https://github.com/sidewayss/html-elements/issues/10
+    console.error(err.stack ?? err);
 }
 //==============================================================================
-// nullish() is for older browsers that don't support ??, the nullish coalescing
-//           assignment operator.
-function nullish(val, alt) {
-    return (val === undefined || val === null) ? alt : val;
+// classToTag() converts a class to a tag name
+function classToTag(cls) {
+    const name = cls.name;
+    return name[0].toLowerCase()
+         + name.slice(1).replace(/[A-Z]/g, cap => "-" + cap.toLowerCase());
 }
 // promise() returns a new Promise, extended with resolve & reject,
 //           borrowed from raf/ez.js to support noAwait.

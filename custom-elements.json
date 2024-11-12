@@ -1,0 +1,1556 @@
+{
+  "schemaVersion": "1.0.0",
+  "readme": "",
+  "modules": [
+    {
+      "kind": "javascript-module",
+      "path": "html-elements.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "CheckBox",
+          "members": [
+            {
+              "kind": "field",
+              "name": "hrefs",
+              "type": {
+                "text": "array"
+              },
+              "static": true,
+              "default": "[\"#false\",\"#true\"]"
+            },
+            {
+              "kind": "method",
+              "name": "_init"
+            },
+            {
+              "kind": "field",
+              "name": "checked"
+            },
+            {
+              "kind": "field",
+              "name": "value"
+            },
+            {
+              "kind": "method",
+              "name": "_change",
+              "parameters": [
+                {
+                  "name": "evt"
+                }
+              ]
+            },
+            {
+              "kind": "field",
+              "name": "#label",
+              "privacy": "private",
+              "inheritedFrom": {
+                "name": "MultiCheck",
+                "module": "html-elements.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "_initSuper",
+              "inheritedFrom": {
+                "name": "MultiCheck",
+                "module": "html-elements.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "labelElement",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "MultiCheck",
+                "module": "html-elements.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "label",
+              "inheritedFrom": {
+                "name": "MultiCheck",
+                "module": "html-elements.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "keyCodes",
+              "inheritedFrom": {
+                "name": "MultiState",
+                "module": "html-elements.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "_handleEvent",
+              "parameters": [
+                {
+                  "name": "evt"
+                }
+              ],
+              "inheritedFrom": {
+                "name": "MultiState",
+                "module": "html-elements.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "#kludge",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "evt"
+                }
+              ],
+              "inheritedFrom": {
+                "name": "MultiState",
+                "module": "html-elements.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "_keyCodes",
+              "default": "new Set",
+              "inheritedFrom": {
+                "name": "MultiState",
+                "module": "html-elements.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#id",
+              "privacy": "private",
+              "inheritedFrom": {
+                "name": "BaseElement",
+                "module": "html-elements.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#meta",
+              "privacy": "private",
+              "inheritedFrom": {
+                "name": "BaseElement",
+                "module": "html-elements.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#tabIndex",
+              "privacy": "private",
+              "inheritedFrom": {
+                "name": "BaseElement",
+                "module": "html-elements.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "searchParams",
+              "static": true,
+              "inheritedFrom": {
+                "name": "BaseElement",
+                "module": "html-elements.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "promises",
+              "static": true,
+              "default": "new Map",
+              "inheritedFrom": {
+                "name": "BaseElement",
+                "module": "html-elements.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "#attach",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "template"
+                }
+              ],
+              "inheritedFrom": {
+                "name": "BaseElement",
+                "module": "html-elements.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "disabled",
+              "inheritedFrom": {
+                "name": "BaseElement",
+                "module": "html-elements.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "define",
+              "static": true,
+              "parameters": [
+                {
+                  "name": "cls"
+                }
+              ],
+              "inheritedFrom": {
+                "name": "BaseElement",
+                "module": "html-elements.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "_setBool",
+              "parameters": [
+                {
+                  "name": "attr"
+                },
+                {
+                  "name": "b"
+                }
+              ],
+              "inheritedFrom": {
+                "name": "BaseElement",
+                "module": "html-elements.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "_setHref",
+              "parameters": [
+                {
+                  "name": "href"
+                },
+                {
+                  "name": "elm",
+                  "default": "this._use"
+                }
+              ],
+              "inheritedFrom": {
+                "name": "BaseElement",
+                "module": "html-elements.js"
+              }
+            }
+          ],
+          "events": [
+            {
+              "name": "change",
+              "type": {
+                "text": "Event"
+              }
+            }
+          ],
+          "superclass": {
+            "name": "MultiCheck",
+            "module": "html-elements.js"
+          }
+        },
+        {
+          "kind": "class",
+          "description": "",
+          "name": "CheckTri",
+          "members": [
+            {
+              "kind": "field",
+              "name": "#def",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "#svg",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "#viewBox",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "#vbW",
+              "privacy": "private",
+              "type": {
+                "text": "number"
+              },
+              "static": true,
+              "default": "2"
+            },
+            {
+              "kind": "field",
+              "name": "hrefs",
+              "static": true,
+              "default": "new Map([[null, \"#null\"], [FALSE, CheckBox.hrefs[0]], [TRUE, CheckBox.hrefs[1]]])"
+            },
+            {
+              "kind": "method",
+              "name": "_init"
+            },
+            {
+              "kind": "field",
+              "name": "default"
+            },
+            {
+              "kind": "field",
+              "name": "showDefault"
+            },
+            {
+              "kind": "field",
+              "name": "value"
+            },
+            {
+              "kind": "field",
+              "name": "checked",
+              "readonly": true
+            },
+            {
+              "kind": "method",
+              "name": "_change",
+              "parameters": [
+                {
+                  "name": "evt"
+                }
+              ]
+            },
+            {
+              "kind": "field",
+              "name": "#label",
+              "privacy": "private",
+              "inheritedFrom": {
+                "name": "MultiCheck",
+                "module": "html-elements.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "_initSuper",
+              "inheritedFrom": {
+                "name": "MultiCheck",
+                "module": "html-elements.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "labelElement",
+              "readonly": true,
+              "inheritedFrom": {
+                "name": "MultiCheck",
+                "module": "html-elements.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "label",
+              "inheritedFrom": {
+                "name": "MultiCheck",
+                "module": "html-elements.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "keyCodes",
+              "inheritedFrom": {
+                "name": "MultiState",
+                "module": "html-elements.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "_handleEvent",
+              "parameters": [
+                {
+                  "name": "evt"
+                }
+              ],
+              "inheritedFrom": {
+                "name": "MultiState",
+                "module": "html-elements.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "#kludge",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "evt"
+                }
+              ],
+              "inheritedFrom": {
+                "name": "MultiState",
+                "module": "html-elements.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "_keyCodes",
+              "default": "new Set",
+              "inheritedFrom": {
+                "name": "MultiState",
+                "module": "html-elements.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#id",
+              "privacy": "private",
+              "inheritedFrom": {
+                "name": "BaseElement",
+                "module": "html-elements.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#meta",
+              "privacy": "private",
+              "inheritedFrom": {
+                "name": "BaseElement",
+                "module": "html-elements.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#tabIndex",
+              "privacy": "private",
+              "inheritedFrom": {
+                "name": "BaseElement",
+                "module": "html-elements.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "searchParams",
+              "static": true,
+              "inheritedFrom": {
+                "name": "BaseElement",
+                "module": "html-elements.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "promises",
+              "static": true,
+              "default": "new Map",
+              "inheritedFrom": {
+                "name": "BaseElement",
+                "module": "html-elements.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "#attach",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "template"
+                }
+              ],
+              "inheritedFrom": {
+                "name": "BaseElement",
+                "module": "html-elements.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "disabled",
+              "inheritedFrom": {
+                "name": "BaseElement",
+                "module": "html-elements.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "define",
+              "static": true,
+              "parameters": [
+                {
+                  "name": "cls"
+                }
+              ],
+              "inheritedFrom": {
+                "name": "BaseElement",
+                "module": "html-elements.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "_setBool",
+              "parameters": [
+                {
+                  "name": "attr"
+                },
+                {
+                  "name": "b"
+                }
+              ],
+              "inheritedFrom": {
+                "name": "BaseElement",
+                "module": "html-elements.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "_setHref",
+              "parameters": [
+                {
+                  "name": "href"
+                },
+                {
+                  "name": "elm",
+                  "default": "this._use"
+                }
+              ],
+              "inheritedFrom": {
+                "name": "BaseElement",
+                "module": "html-elements.js"
+              }
+            }
+          ],
+          "events": [
+            {
+              "name": "change",
+              "type": {
+                "text": "Event"
+              }
+            }
+          ],
+          "superclass": {
+            "name": "MultiCheck",
+            "module": "html-elements.js"
+          }
+        },
+        {
+          "kind": "class",
+          "description": "",
+          "name": "StateBtn",
+          "members": [
+            {
+              "kind": "field",
+              "name": "#index",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "#lookup",
+              "privacy": "private",
+              "type": {
+                "text": "object"
+              },
+              "default": "{}"
+            },
+            {
+              "kind": "field",
+              "name": "#states",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "#value",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "#values",
+              "privacy": "private"
+            },
+            {
+              "kind": "method",
+              "name": "_init"
+            },
+            {
+              "kind": "field",
+              "name": "autoIncrement"
+            },
+            {
+              "kind": "field",
+              "name": "value"
+            },
+            {
+              "kind": "field",
+              "name": "states"
+            },
+            {
+              "kind": "field",
+              "name": "index"
+            },
+            {
+              "kind": "method",
+              "name": "reset"
+            },
+            {
+              "kind": "method",
+              "name": "_change",
+              "parameters": [
+                {
+                  "name": "evt"
+                }
+              ]
+            },
+            {
+              "kind": "field",
+              "name": "keyCodes",
+              "inheritedFrom": {
+                "name": "MultiState",
+                "module": "html-elements.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "_handleEvent",
+              "parameters": [
+                {
+                  "name": "evt"
+                }
+              ],
+              "inheritedFrom": {
+                "name": "MultiState",
+                "module": "html-elements.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "#kludge",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "evt"
+                }
+              ],
+              "inheritedFrom": {
+                "name": "MultiState",
+                "module": "html-elements.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "_keyCodes",
+              "default": "new Set",
+              "inheritedFrom": {
+                "name": "MultiState",
+                "module": "html-elements.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#id",
+              "privacy": "private",
+              "inheritedFrom": {
+                "name": "BaseElement",
+                "module": "html-elements.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#meta",
+              "privacy": "private",
+              "inheritedFrom": {
+                "name": "BaseElement",
+                "module": "html-elements.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#tabIndex",
+              "privacy": "private",
+              "inheritedFrom": {
+                "name": "BaseElement",
+                "module": "html-elements.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "searchParams",
+              "static": true,
+              "inheritedFrom": {
+                "name": "BaseElement",
+                "module": "html-elements.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "promises",
+              "static": true,
+              "default": "new Map",
+              "inheritedFrom": {
+                "name": "BaseElement",
+                "module": "html-elements.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "#attach",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "template"
+                }
+              ],
+              "inheritedFrom": {
+                "name": "BaseElement",
+                "module": "html-elements.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "disabled",
+              "inheritedFrom": {
+                "name": "BaseElement",
+                "module": "html-elements.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "define",
+              "static": true,
+              "parameters": [
+                {
+                  "name": "cls"
+                }
+              ],
+              "inheritedFrom": {
+                "name": "BaseElement",
+                "module": "html-elements.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "_setBool",
+              "parameters": [
+                {
+                  "name": "attr"
+                },
+                {
+                  "name": "b"
+                }
+              ],
+              "inheritedFrom": {
+                "name": "BaseElement",
+                "module": "html-elements.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "_setHref",
+              "parameters": [
+                {
+                  "name": "href"
+                },
+                {
+                  "name": "elm",
+                  "default": "this._use"
+                }
+              ],
+              "inheritedFrom": {
+                "name": "BaseElement",
+                "module": "html-elements.js"
+              }
+            }
+          ],
+          "events": [
+            {
+              "name": "change",
+              "type": {
+                "text": "Event"
+              }
+            }
+          ],
+          "superclass": {
+            "name": "MultiState",
+            "module": "html-elements.js"
+          }
+        },
+        {
+          "kind": "class",
+          "description": "",
+          "name": "InputNum",
+          "members": [
+            {
+              "kind": "field",
+              "name": "#attrs",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "#bound",
+              "privacy": "private",
+              "type": {
+                "text": "object"
+              },
+              "default": "{ // #swapEvents adds/removes #bound events [mouse.down]: this.#mouseDown.bind(this), [mouse.up]: this.#mouseUp .bind(this), [mouse.click]:this.#click .bind(this) }"
+            },
+            {
+              "kind": "field",
+              "name": "#btns",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "#ctrls",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "#erId",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "#hoverIn",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "#hoverOut",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "#input",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "#isBlurring",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "#isLoading",
+              "privacy": "private",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "true"
+            },
+            {
+              "kind": "field",
+              "name": "#isMousing",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "#locale",
+              "privacy": "private",
+              "type": {
+                "text": "object"
+              },
+              "default": "{currencyDisplay:\"narrowSymbol\"}"
+            },
+            {
+              "kind": "field",
+              "name": "#outFocus",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "#padRight",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "#spinId",
+              "privacy": "private",
+              "type": {
+                "text": "null"
+              },
+              "default": "null"
+            },
+            {
+              "kind": "field",
+              "name": "#states",
+              "privacy": "private",
+              "default": "{}",
+              "type": {
+                "text": "object"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#svg",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "#texts",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "#validate",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "#isBlurry",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "defaults",
+              "type": {
+                "text": "object"
+              },
+              "static": true,
+              "default": "{ [VALUE]: 0, // attribute values as numbers, not strings [DIGITS]: 0, // defaults to integer formatting [MAX]: Infinity, [MIN]: -Infinity, [STEP]: 1, [DELAY]: 500, [INTERVAL]:33 // ~2 frames at 60fps }"
+            },
+            {
+              "kind": "method",
+              "name": "_init"
+            },
+            {
+              "kind": "method",
+              "name": "_connected"
+            },
+            {
+              "kind": "method",
+              "name": "#accept",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "name"
+                },
+                {
+                  "name": "n"
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "#revert",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "name"
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "#autoStep",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "digits"
+                }
+              ]
+            },
+            {
+              "kind": "field",
+              "name": "keyboards"
+            },
+            {
+              "kind": "field",
+              "name": "spins"
+            },
+            {
+              "kind": "field",
+              "name": "confirms"
+            },
+            {
+              "kind": "field",
+              "name": "autoWidth"
+            },
+            {
+              "kind": "field",
+              "name": "autoAlign"
+            },
+            {
+              "kind": "field",
+              "name": "autoResize"
+            },
+            {
+              "kind": "field",
+              "name": "autoScale"
+            },
+            {
+              "kind": "field",
+              "name": "accounting"
+            },
+            {
+              "kind": "field",
+              "name": "useLocale",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "units"
+            },
+            {
+              "kind": "field",
+              "name": "locale"
+            },
+            {
+              "kind": "field",
+              "name": "currency"
+            },
+            {
+              "kind": "field",
+              "name": "notation"
+            },
+            {
+              "kind": "field",
+              "name": "text",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "value"
+            },
+            {
+              "kind": "field",
+              "name": "digits"
+            },
+            {
+              "kind": "field",
+              "name": "max"
+            },
+            {
+              "kind": "field",
+              "name": "min"
+            },
+            {
+              "kind": "field",
+              "name": "step"
+            },
+            {
+              "kind": "field",
+              "name": "delay"
+            },
+            {
+              "kind": "field",
+              "name": "interval"
+            },
+            {
+              "kind": "field",
+              "name": "validate"
+            },
+            {
+              "kind": "method",
+              "name": "#setRemove",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "attr"
+                },
+                {
+                  "name": "val"
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "#hover",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "evt"
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "#mouseOver",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "evt"
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "#mouseOut",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "evt"
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "#overOut",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "hoverIn"
+                },
+                {
+                  "name": "setHref"
+                },
+                {
+                  "name": "state"
+                },
+                {
+                  "name": "args"
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "#active",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "evt"
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "#focus",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "evt"
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "#blur",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "evt"
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "#fur",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "evt"
+                },
+                {
+                  "name": "isBlur"
+                },
+                {
+                  "name": "name"
+                },
+                {
+                  "name": "showIt"
+                },
+                {
+                  "name": "value"
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "#mouseDown",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "evt"
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "#mouseUp",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "evt"
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "#click",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "evt"
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "#keyDown",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "evt"
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "#keyUp",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "evt"
+                }
+              ]
+            },
+            {
+              "kind": "field",
+              "name": "#inFocus",
+              "privacy": "private",
+              "readonly": true
+            },
+            {
+              "kind": "method",
+              "name": "#apply",
+              "privacy": "private"
+            },
+            {
+              "kind": "method",
+              "name": "#blurMe",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "b"
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "#swapEvents",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "isBlur"
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "#dragEvents",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "isDrag"
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "#toggleEvent",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "type"
+                },
+                {
+                  "name": "b"
+                },
+                {
+                  "name": "elmer"
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "#addEvent",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "type"
+                },
+                {
+                  "name": "func"
+                },
+                {
+                  "name": "elm"
+                }
+              ]
+            },
+            {
+              "kind": "field",
+              "name": "#isSpinning",
+              "privacy": "private",
+              "readonly": true
+            },
+            {
+              "kind": "method",
+              "name": "#spin",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "state"
+                },
+                {
+                  "name": "isUp",
+                  "default": "(this.#hoverIn == \"top\")"
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "resize",
+              "parameters": [
+                {
+                  "name": "forceIt"
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "#roundEven",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "n"
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "#showCtrls",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "b"
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "#assignCSS",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "type"
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "#getText",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "inFocus"
+                },
+                {
+                  "name": "appendUnits"
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "#formatNumber",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "n"
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "#toNumber",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "str"
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "#getButton",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "inFocus"
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "#getState",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "id",
+                  "default": "this.#hoverIn"
+                }
+              ]
+            },
+            {
+              "kind": "field",
+              "default": "obj[event.blur]"
+            },
+            {
+              "kind": "field",
+              "name": "#id",
+              "privacy": "private",
+              "inheritedFrom": {
+                "name": "BaseElement",
+                "module": "html-elements.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#meta",
+              "privacy": "private",
+              "inheritedFrom": {
+                "name": "BaseElement",
+                "module": "html-elements.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#tabIndex",
+              "privacy": "private",
+              "inheritedFrom": {
+                "name": "BaseElement",
+                "module": "html-elements.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "searchParams",
+              "static": true,
+              "inheritedFrom": {
+                "name": "BaseElement",
+                "module": "html-elements.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "promises",
+              "static": true,
+              "default": "new Map",
+              "inheritedFrom": {
+                "name": "BaseElement",
+                "module": "html-elements.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "#attach",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "template"
+                }
+              ],
+              "inheritedFrom": {
+                "name": "BaseElement",
+                "module": "html-elements.js"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "disabled",
+              "inheritedFrom": {
+                "name": "BaseElement",
+                "module": "html-elements.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "define",
+              "static": true,
+              "parameters": [
+                {
+                  "name": "cls"
+                }
+              ],
+              "inheritedFrom": {
+                "name": "BaseElement",
+                "module": "html-elements.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "_setBool",
+              "parameters": [
+                {
+                  "name": "attr"
+                },
+                {
+                  "name": "b"
+                }
+              ],
+              "inheritedFrom": {
+                "name": "BaseElement",
+                "module": "html-elements.js"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "_setHref",
+              "parameters": [
+                {
+                  "name": "href"
+                },
+                {
+                  "name": "elm",
+                  "default": "this._use"
+                }
+              ],
+              "inheritedFrom": {
+                "name": "BaseElement",
+                "module": "html-elements.js"
+              }
+            }
+          ],
+          "events": [
+            {
+              "name": "change",
+              "type": {
+                "text": "Event"
+              }
+            }
+          ],
+          "superclass": {
+            "name": "BaseElement",
+            "module": "html-elements.js"
+          }
+        }
+      ],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "declaration": {
+            "name": "cls",
+            "module": "html-elements.js"
+          }
+        },
+        {
+          "kind": "js",
+          "name": "CheckBox",
+          "declaration": {
+            "name": "CheckBox",
+            "module": "html-elements.js"
+          }
+        },
+        {
+          "kind": "js",
+          "name": "CheckTri",
+          "declaration": {
+            "name": "CheckTri",
+            "module": "html-elements.js"
+          }
+        },
+        {
+          "kind": "js",
+          "name": "InputNum",
+          "declaration": {
+            "name": "InputNum",
+            "module": "html-elements.js"
+          }
+        },
+        {
+          "kind": "js",
+          "name": "StateBtn",
+          "declaration": {
+            "name": "StateBtn",
+            "module": "html-elements.js"
+          }
+        }
+      ]
+    }
+  ]
+}

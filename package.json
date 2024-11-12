@@ -1,0 +1,42 @@
+{
+  "name": "sideways-elements",
+  "version": "1.0.0",
+  "description": "Autonomous custom HTML elements with external template files",
+  "type": "module",
+  "main": "dist/elements.js",
+  "module": "dist/elements.js",
+  "customElements": "./custom-elements.json",
+  "scripts": {},
+  "author": "Sideways S.",
+  "license": "GPL-3.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sidewayss/html-elements.git"
+  },
+  "keywords": [
+    "JavaScript",
+    "HTML",
+    "custom elements",
+    "custom element",
+    "number input",
+    "numeric input",
+    "input number",
+    "input numbers",
+    "checkbox"
+  ],
+  "bugs": {
+    "url": "https://github.com/sidewayss/html-elements/issues"
+  },
+  "homepage": "https://github.com/sidewayss/html-elements#readme",
+  "devDependencies": {
+    "@babel/plugin-transform-nullish-coalescing-operator": "^7.25.9",
+    "@babel/plugin-transform-optional-chaining": "^7.25.9",
+    "@custom-elements-manifest/analyzer": "^0.10.3",
+    "rollup": "^4.24.3",
+    "rollup-plugin-swc-minify": "^1.1.2"
+  },
+  "dependencies": {
+    "babel-plugin-private-to-public": "file:.yalc/babel-plugin-private-to-public",
+    "private-to-public": "file:.yalc/private-to-public"
+  }
+}
