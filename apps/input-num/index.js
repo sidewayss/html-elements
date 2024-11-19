@@ -51,7 +51,7 @@ function load() {
     decimals.push(newOption(n, i));
                                       // init these remaining elements by id:
   ["autoWidth","autoAlign","autoScale","max","digits","accounting",
-   "spins","confirms","keyboards","step","delay","interval","blurCancel",
+   "spins","confirms","keyboards","step","delay","interval","blur-cancel",
    "fontSize","fontWeight","fontStyle"].forEach(id => initElm(id, decimals));
 
   const                               // #min is a modified clone of #max
@@ -151,9 +151,11 @@ function getFontKey() {     // fonts are by pseudo-platform
 //==============================
 function initElm(id, decimals) {
   let i, n, opt;
-  const elm = document.getElementById(id);
+  const
+  elm  = document.getElementById(id), // camelCase blur-cancel, future attrs:
+  prop = id.replace(/-(.)/g, chars => chars[1].toUpperCase());
 
-  elms[id]  = elm;
+  elms[prop] = elm;
   addChangeEvent(elm);
   switch (id) {
     case "digits":
@@ -287,6 +289,9 @@ function updateText() {
     for (elm of [elms.step, elms.delay, elms.interval])
       ctrls.add(elm);
 
+  if (elms.blurCancel.checked)
+    ctrls.add(elms.blurCancel);
+
   for (elm of ctrls) {
     prop = elm.id;
     attr = prop;
@@ -312,7 +317,7 @@ function updateText() {
             js  += getText(elm, prop, true);
           }
           break;
-        case elms.accounting:
+        case elms.accounting: case elms.blurCancel:
           pre += data;
           js  += getText(null, prop, true, true);
           break;
@@ -331,6 +336,7 @@ function getText(elm, prop, isJS, val) {
                 ? elm.value
                 : `"${elm.value}"`;
   if (isJS) {
+    prop   = kebabToCamel(prop);
     prefix = "numby.";
     equals = " = ";
     suffix = ";<br>";
@@ -345,6 +351,10 @@ function getText(elm, prop, isJS, val) {
 //====================
 function isUser(elm) { // for <select id="locale">
   return elm.selectedOptions?.[0].text == "user"
+}
+//  kebabToCamel() converts a kebab-case string to camelCase
+function kebabToCamel(str) {
+  return str.replace(/-(.)/g, chars => chars[1].toUpperCase());
 }
 //==============================================================================
 // HTML displays using non-breaking hyphen U+2011, which is not a valid HTML
