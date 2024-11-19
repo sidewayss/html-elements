@@ -18,9 +18,9 @@ It has a very limited selection of four elements and no external dependencies. T
 ## Usage
 [Release 1.0]() has both source modules and tranpiled, minified bundles. The bundles are in the `dist/` directory. The source is in `src/` in the NPM package, and in the root directory in the repository (which makes it easier to create `dist/` versions of the test/demo apps for testing the `dist/` modules).
 
-link to current release dist or src
-NPM package
-you're on your own
+- link to current release dist or src
+- NPM package
+- you're on your own...
 
 For example, to import `<input-num>`:
 ```html
@@ -130,10 +130,10 @@ To set `value` as an attribute, I use `"1"` for `true` and you must use `""` for
 - `data-default` / `default` is a boolean that sets the default value. If you don't use the `checked` property, then you have no need for it.
 - `data-show-default` / `showDefault` is a boolean that shows or hides the default value as a read-only box to the left.
 
-### template-check.html
+### multi-check.html
 `<check-box>` and `<check-tri>` share a template file. The built-in template is  potentially reusable because the shapes are simple and they are 100% externally styleable with `::part`. This is the `<template>`:
 ```html
-<template id="template-check">
+<template>
   <svg id="shapes" part="shapes" viewbox="0 0 18 15" width="18" height="15">
     <defs> <!-- this template doesn't define #false -->
       <rect id="box" x="0.5" y="1.5" width="13" height="13" rx="2" ry="2"/>
@@ -200,8 +200,8 @@ An alternative is to put a flex container inside the template, as the template f
 
 NOTE: The default value on initial page load is the first state defined. I see no need to set the `value` attribute in HTML. The toggle order is completely user-controlled, so just make your default state the first one. If you *really need* to declare the value in HTML, you must do it after `data-states` or the value won't validate. I did not see the value in adding code to make it order-independent.
 
-### template-button.html
-The built-in template is a pair of playback buttons: play and stop. It's not nearly as reusable as **template-check.html**, but this is a more raw, open-ended kind of element. It requires customization to match its flexibility.
+### state-btn.html
+The built-in template is a pair of playback buttons: play and stop. It's not nearly as reusable as **multi-check.html**, but this is a more raw, open-ended kind of element. It requires customization to match its flexibility.
 
 There is one template for all your buttons. One 'use' element and as many definitions as you need.
 
@@ -212,7 +212,7 @@ The templates requires a `<defs>` that contains an element with a matching `btn-
 ```
 To match this template:
 ```html
-<template id="template-button">
+<template>
   <style>
     :host { --square:calc(1rem + var(--9-16ths)) }
     svg   { width:var(--square); height:var(--square); }
@@ -243,6 +243,7 @@ Based on an informal survey and my own repeated frustrations, I came to the conc
 #### Spreadsheet Emulation
 - It stores an underlying `Number` separate from the formatted display, which is a `String` that can contain non-numeric characters. Inputting via keyboard reveals the unformatted, underlying value.
 - By default, the user confirms keyboard input by blurring the element (pressing `Tab`, `Shift+Tab`, or clicking elsewhere on the page), or via the `Enter` key or `OK` button. They cancel input via the `Esc` key or `Cancel` button. Cancelling reverts to the previous value. Setting the `data-blur-cancel` attribute cancels instead of confirming when blurring the element via tabbing or clicking elsewhere.
+    NOTE: The inner `<input>` is `type="text"`, which has built-in undo functionality in the browsers via `Ctrl+Z` or whatever the appropriate keystokes are in the native OS. So you can undo an unwanted commit within the same session, though your mileage may vary by browser/OS.
 - By default, numbers are right-aligned, for keyboard input and formatted display. If you want to view a group of numbers in a vertical list, right-alignment is essential. Financials require it. The `data-no-align` attribute turns right-alignment off.
 - Spreadsheets have their own number formatting lingo. `<input-num>` uses [Intl.NumberFormat](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/NumberFormat), which is wrapped up in [locales](https://en.wikipedia.org/wiki/Locale_(computer_software)). `data-digits`,  `data-units`, `data-locale`, `data-currency`, `data-accounting`, and `data-notation` are the formatting attributes. I have not implemented any of the `Intl.NumberFormat` rounding options [yet](https://github.com/sidewayss/html-elements/issues/6).
 
@@ -377,7 +378,7 @@ for (const elm of document.getElementsByTagName("input-num")) {
 }
 ```
 
-### template-number.html
+### input-num.html
 The core of the template is a flex `<div>`, with three children:
 - `<input type="text" id="input" part="input"/>` - the text input
 - `<svg part="buttons">` - the spinner and confirm buttons
