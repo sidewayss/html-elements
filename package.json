@@ -1,28 +1,44 @@
 {
-  "name": "sideways-elements",
+  "name": "@sidewayss/elements",
   "version": "1.0.0",
   "description": "Autonomous custom HTML elements with external template files",
+  "customElements": "./custom-elements.json",
   "type": "module",
   "main": "dist/elements.js",
   "module": "dist/elements.js",
-  "customElements": "./custom-elements.json",
-  "scripts": {},
+  "exports": {
+    "./dist": "./dist/*.js",
+    "./src": "./*.js"
+  },
+  "files": [
+    "./*.js",
+    "./dist/*.js",
+    "./templates/*",
+    "./css/*"
+  ],
+  "scripts": {
+    "build:cem:pre": "rollup elements.js -o cem.js",
+    "build:cem:analyze": "npx custom-elements-manifest analyze --globs \"cem.js\"",
+    "build:rollup": "rollup -c",
+    "build:copy": "npx copy \"apps/**/*.html\" \"dist\"",
+    "build": "npm run build:cem:pre && npm run build:cem:analyze && npm run build:rollup",
+    "prepack": "npm run build"
+  },
   "author": "Sideways S.",
-  "license": "GPL-3.0",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/sidewayss/html-elements.git"
   },
   "keywords": [
-    "JavaScript",
-    "HTML",
+    "web components",
     "custom elements",
-    "custom element",
     "number input",
     "numeric input",
     "input number",
-    "input numbers",
-    "checkbox"
+    "checkbox",
+    "multi-state button",
+    "toggle button"
   ],
   "bugs": {
     "url": "https://github.com/sidewayss/html-elements/issues"
@@ -32,11 +48,9 @@
     "@babel/plugin-transform-nullish-coalescing-operator": "^7.25.9",
     "@babel/plugin-transform-optional-chaining": "^7.25.9",
     "@custom-elements-manifest/analyzer": "^0.10.3",
+    "@rollup/plugin-babel": "^6.0.4",
+    "babel-plugin-private-to-public": "^1.0.1",
     "rollup": "^4.24.3",
     "rollup-plugin-swc-minify": "^1.1.2"
-  },
-  "dependencies": {
-    "babel-plugin-private-to-public": "file:.yalc/babel-plugin-private-to-public",
-    "private-to-public": "file:.yalc/private-to-public"
   }
 }

@@ -1,7 +1,4 @@
-import {nullish} from "../../base-element.js";
-
 import {writeText, toHTML, fromHTML} from "../common.js";
-
 const
 BOX = "box",
 TRI = "tri",
@@ -16,12 +13,8 @@ function load() {
   tags  = ["check-box","check-tri","state-btn","input","select"],
   byTag = tags.map(tag => [...body.getElementsByTagName(tag)]);
 
-  let arr;
-  const flat = [];
-  for (arr of byTag)
-    flat.push(...arr);
-//~for (elm of byTag.flat())
-  for (elm of flat) {
+//~for (elm of byTag.flat()) {
+  for (elm of [].concat(...byTag)) {
     elm.addEventListener("change", change);
     elms[elm.id] = elm;
   }
@@ -74,7 +67,7 @@ function change(evt) {
       elms[`${tag}-checked`].textContent = elm.checked;
 
     // must follow setting of elm.value:
-    elms[`${tag}-value`].textContent = nullish(elm.value,  "null");//?? https://github.com/sidewayss/html-elements/issues/10
+    elms[`${tag}-value`].textContent = elm.value ?? "null";
   }
   else if (prop == "keyCodes") {
     let arr;

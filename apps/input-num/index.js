@@ -1,4 +1,4 @@
-import {BaseElement, nullish} from "../../base-element.js";
+import {BaseElement} from "../../base-element.js";
 
 import {writeText, toHTML, fromHTML} from "../common.js";
 
@@ -51,7 +51,7 @@ function load() {
     decimals.push(newOption(n, i));
                                       // init these remaining elements by id:
   ["autoWidth","autoAlign","autoScale","max","digits","accounting",
-   "spins","confirms","keyboards","step","delay","interval",
+   "spins","confirms","keyboards","step","delay","interval","blurCancel",
    "fontSize","fontWeight","fontStyle"].forEach(id => initElm(id, decimals));
 
   const                               // #min is a modified clone of #max
@@ -116,7 +116,7 @@ function allResolved() {
   for (key in defaults) {         // some keys have "data-" prefix
 //@ elms[key.split("-").at(-1)].value =  defaults[key];
     arr = key.split("-");         //@ https://github.com/sidewayss/html-elements/issues/10
-    elms[nullish(arr[1], arr[0])].value = defaults[key]; //?? https://github.com/sidewayss/html-elements/issues/10
+    elms[arr[1] ?? arr[0]].value = defaults[key]; //@ ditto
   }
   updateText();                   // must be last
 }
@@ -142,8 +142,7 @@ function loadJSON(rsp, key) {
 }
 //=====================
 function getFontKey() {     // fonts are by pseudo-platform
-//?.const src = (navigator.userAgentData?.platform ?? navigator.userAgent);
-  const src = navigator.userAgentData ? navigator.userAgentData.platform : navigator.userAgent; //?. https://github.com/sidewayss/html-elements/issues/10
+  const src = (navigator.userAgentData?.platform ?? navigator.userAgent);
 
   for (const key of ["Android","Apple","Linux","Windows"])
     if (src.includes(key))  // Linux must follow Android because they overlap
@@ -221,9 +220,6 @@ function change(evt) {
                                       || !inNum.useLocale);
       case elms.units:          // display info
         setInfo(tar, val, g[id][val]);
-        setInfo(elms.digits,
-                inNum.units && inNum.currency && !inNum.useLocale,
-                "Units & Currency don't mix");
         break;
       case elms.spins:          // disable step, delay, interval
         spinner.forEach(elm => disable(elm, !val));
@@ -247,10 +243,8 @@ function setInfo(elm, b, text) { // sets info/warning text to the right of elm
 }
 function disable(elm, b) {       // disables an element and its label
   elm.disabled = b;
-  for (const lbl of [elm.previousElementSibling, elm.nextElementSibling]) {
-    if (lbl)
-      lbl.classList.toggle("disabled", b); //?. https://github.com/sidewayss/html-elements/issues/10
-  }
+  for (const lbl of [elm.previousElementSibling, elm.nextElementSibling])
+    lbl?.classList.toggle("disabled", b);
 }
 function minDigits() {           // one alert set in two places
   setInfo(elms.min,
@@ -297,7 +291,7 @@ function updateText() {
     prop = elm.id;
     attr = prop;
     data = "data-" + attr;
-    if (elm.value && elm.value != nullish(defaults[prop], defaults[data])) { //?? https://github.com/sidewayss/html-elements/issues/10
+    if (elm.value && elm.value != (defaults[prop] ?? defaults[data])) {
       pre += " ";
       switch (elm) {
         case elms.digits: case elms.units: case elms.currency:
@@ -350,7 +344,7 @@ function getText(elm, prop, isJS, val) {
 }
 //====================
 function isUser(elm) { // for <select id="locale">
-  return elm.selectedOptions ? elm.selectedOptions[0].text == "user" : undefined;//?. https://github.com/sidewayss/html-elements/issues/10
+  return elm.selectedOptions?.[0].text == "user"
 }
 //==============================================================================
 // HTML displays using non-breaking hyphen U+2011, which is not a valid HTML

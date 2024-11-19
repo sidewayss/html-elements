@@ -71,8 +71,11 @@ select:disabled, .disabled {
 .between {
   justify-content:space-between;
 }
-.separator { margin-top:0.75rem }
 .chk-val { margin-top:0.25rem }
+.separator {
+  color:#787;
+  margin-bottom:0.5rem;
+}
 div.header {
   align-items:stretch;
   align-self: stretch;

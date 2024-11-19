@@ -20,12 +20,13 @@ check-tri[disabled], check-tri[disabled][checked]  {
   stroke:var(--medium-gray);
   color: var(--medium-gray);
 }
-check-box[checked],
+check-box[checked]::part(check),
 check-tri[value]::part(check) {
   fill-opacity:1;
 }
-check-box:hover, check-tri:hover::part(check),
-check-box[checked]:hover {
+check-box:hover::part(check),
+check-tri:hover::part(check),
+check-box[checked]:hover::part(check) {
   fill-opacity:0.05;
   fill:  var(--accent-blue);
   stroke:var(--medium-blue);

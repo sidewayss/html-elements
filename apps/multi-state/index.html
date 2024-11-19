@@ -5,9 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=overlays-content"/>
     <link rel="stylesheet" href="index.css"/>
     <link rel="stylesheet" href="/html-elements/css/multi-check.css"/>
-    <link rel="stylesheet" href="/html-elements/css/multi-button.css"/>
-    <script src="/html-elements/min/multi-check.max.js"  type="module"></script>
-    <script src="/html-elements/min/multi-button.max.js" type="module"></script>
+    <link rel="stylesheet" href="/html-elements/css/state-btn.css"/>
+    <script type="module">
+      import "../../multi-check.js?templateDir=/html-templates/";
+    </script>
+    <script type="module">
+      import "../../state-btn.js?templateDir=/html-templates/";
+    </script>
     <script src="index.js" type="module"></script>
   </head>
   <body class="col"  style="align-items:center; background-color:#F9F9F9;">
@@ -40,7 +44,7 @@
         <div id="box-html" class="html"></div>
       </div>
     </div>
-    <div class="separator"></div>
+    <div class="separator">====================================</div>
     <check-tri id="tri" data-label="Check&#x290D;tri&#xB3;"></check-tri>
     <div class="row chk-val">checked:<span id="tri-checked"></span>&nbsp;| value:<span id="tri-value"></span></div>
     <div class="col">
@@ -78,7 +82,7 @@
         <div id="tri-html" class="html"></div>
       </div>
     </div>
-    <div class="separator"></div>
+    <div class="separator">====================================</div>
     <div class="col">
     <div class="row">
       <label for="btn" style="margin-right:0.5rem">state-btn:</label>
@@ -113,5 +117,6 @@
         <div id="btn-html" class="html"></div>
       </div>
     </div>
+    <div class="separator">====================================</div>
   </body>
 </html>

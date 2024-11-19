@@ -1,0 +1,32 @@
+/* <state-btn> - #play, #stop */
+state-btn {
+  min-width:1.5625rem; /* 25px */
+  stroke-width:3px;
+  fill   :#005;
+  stroke :#005;
+  stroke-linejoin:round;
+  stroke-linecap :round;
+}
+state-btn:hover {
+  stroke-width:4px;
+  fill   :#008;
+  stroke :#008;
+}
+state-btn:active {
+  stroke-width:3px;
+  fill:none;
+}
+state-btn[disabled] {
+  fill   :#666;
+  stroke :#666;
+}
+state-btn[value="3"],
+state-btn[value="4"] {
+  fill   :#060;
+  stroke :#060;
+}
+state-btn[value="3"]:hover,
+state-btn[value="4"]:hover {
+  fill   :#090;
+  stroke :#090;
+}

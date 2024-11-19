@@ -17,22 +17,23 @@ plugins  = [
   }),
   minify({format})
 ],
-config = [
+files = [
   "multi-check",
   "state-btn",
   "input-num",
-  "html-elements",
+  "elements",
   "apps/multi-state/index",
   "apps/input-num/index"
 ];
-//==============================================
-export default config.map(name =>
-  new Object({
+//==================================
+// Map files to an array of objects
+export default files.map(name => {
+  return {
     input: `${name}.js`,
     output: {
       file: `dist/${name}.js`,
       format
     },
     plugins, external
-  })
-);
+  };
+});

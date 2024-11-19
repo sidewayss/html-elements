@@ -6,8 +6,9 @@
     <link rel="stylesheet" href="/html-elements/css/input-num.css"/>
     <link rel="stylesheet" href="/html-elements/css/multi-check.css"/>
     <link rel="stylesheet" href="index.css"/>
-    <script src="/html-elements/input-num.js"   type="module"></script>
-    <script src="/html-elements/multi-check.js" type="module"></script>
+    <script type="module">
+      import "../../elements.js?templateDir=/html-templates/";
+    </script>
     <script src="index.js" type="module"></script>
   </head>
   <body class="col"  style="align-items:center; background-color:#F9F9F9;">
@@ -111,6 +112,11 @@
           <option value="400">400ms</option>
           <option value="500">500ms</option>
         </select>
+      </div>
+      <div class="row mt1-2 mb3-16">
+        <check-box id="blurCancel" data-label="onblur() = cancel input"
+                title="Cancel instead of confirming when tabbing out of the element or clicking elsewhere on the page.">
+        </check-box>
       </div>
       <!-------------->
       <div class="row mt1-2">
