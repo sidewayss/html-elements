@@ -62,10 +62,11 @@
           stroke-linejoin:round;
         }
         .onePoint5     { stroke-width:1.5px; }
-        .ok-disabled   { stroke:#999}
-        .okc-idle      { stroke:#666 }
-        .okc-hover     { stroke:#444 }
+        .twoPx         { stroke-width:2px; }
+        .okc-idle      { stroke:#555 }
+        .ok-hover      { stroke:#070 }
         .ok-active     { stroke:#090;  filter:blur(0.5px);}
+        .cancel-hover  { stroke:#800;  filter:blur(0.4px);}
         .cancel-active { stroke:#A00;  filter:blur(0.4px);}
 
         /* visibility, vs display, lets #controls capture
@@ -144,21 +145,21 @@
             <g id="confirm-hover-top">
               <use href="#bg"/>
               <use href="#confirm-hover"/>
-              <use href="#ok"     class="okc-hover onePoint5"/>
+              <use href="#ok"     class="ok-hover twoPx"/>
               <use href="#cancel" class="okc-idle"/>
             </g>
             <g id="confirm-active-top">
               <use href="#bg"/>
               <use href="#confirm-active"/>
               <use href="#midline"/>
-              <use href="#ok"     class="ok-active onePoint5"/>
+              <use href="#ok"     class="ok-active twoPx"/>
               <use href="#cancel" class="okc-idle"/>
             </g>
             <g id="confirm-hover-bot">
               <use href="#bg"/>
               <use href="#confirm-hover" y="11"/>
               <use href="#ok"     class="okc-idle"/>
-              <use href="#cancel" class="okc-hover onePoint5"/>
+              <use href="#cancel" class="cancel-hover onePoint5"/>
             </g>
             <g id="confirm-active-bot">
               <use href="#bg"/>
@@ -180,7 +181,7 @@
         <svg viewBox="0 0 0 0" width="0" height="0" visibility="hidden">
           <text id="max"></text>          <!-- invisible width measurers -->
           <text id="min"></text>
-          <text id="data-units"></text>
+          <text id="units"></text>
         </svg>
       </div>
     </template>

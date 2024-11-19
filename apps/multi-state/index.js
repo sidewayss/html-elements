@@ -105,7 +105,7 @@ function updateText(elm, id) {
     if (elm.default)
       txt += " default";
     if (elm.showDefault)
-      txt += " data-show-default";
+      txt += "show-default";
     if (keys.value)
       txt += textKeyCodes(elm);
     if (elm.value !== null)
@@ -113,21 +113,21 @@ function updateText(elm, id) {
     break;
   case BTN:
     tag = "state-btn";
-    txt = ` data-states='${JSON.stringify(elm.states)}'`;
+    txt = ` states='${JSON.stringify(elm.states)}'`;
     if (elm.autoIncrement)
-      txt += " data-auto-increment";
+      txt += " auto-increment";
 
     const sel = keys.selectedOptions;
     if (sel.length != 1 || sel[0].value != "Enter")
-      txt += sel.length ? textKeyCodes(elm) : ' data-key-codes=""';
+      txt += sel.length ? textKeyCodes(elm) : ' key-codes=""';
   }
   elms.html[id].innerHTML = toHTML(`&lt;${tag}${txt}&gt;&lt;/${tag}&gt;`);
 }
 function textKeyCodes(elm) {
-  return ` data-key-codes=${JSON.stringify(elm.keyCodes)}`;
+  return ` key-codes=${JSON.stringify(elm.keyCodes)}`;
 }
 function textLabel(elm) {
-  return ` data-label="${elm.label}"`;
+  return ` label="${elm.label}"`;
 }
 //==============================================================================
 // HTML displays using non-breaking hyphen U+2011, which is not a valid HTML

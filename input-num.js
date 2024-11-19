@@ -2,27 +2,27 @@ export {InputNum};
 
 import {VALUE, BaseElement} from "./base-element.js";
 const
-MAX   = "max",                   // DOM attributes
+MAX   = "max",                // DOM attributes:
 MIN   = "min",
 STEP  = "step",
-                                  // custom attributes: numbers and strings
-DELAY       = "data-delay",       // millisecond delay between mousedown & spin
-INTERVAL    = "data-interval",    // millisecond interval for spin
-DIGITS      = "data-digits",      // Number.prototype.toFixed(digits)
-UNITS       = "data-units",       // units string suffix
-LOCALE      = "data-locale",      // locale string: "aa-AA", "" = user locale
-NOTATION    = "data-notation",    // Intl.NumberFormat() options notation prop
-CURRENCY    = "data-currency",    // ditto: currency property
-                                  // booleans:
-ACCOUNTING  = "data-accounting",  // {currencySign:"accounting"}
-BLUR_CANCEL = "data-blur-cancel", // Blur = <Esc> key, else Blur = <Enter> key
-NO_KEYS     = "data-no-keys",     // no keyboard/pad input, only spinning
-NO_SPIN     = "data-no-spin",     // hide spinner, no keyboard spinning
-NO_CONFIRM  = "data-no-confirm",  // hide confirm/cancel buttons
-NO_SCALE    = "data-no-scale",    // don't scale the buttons to match font size
-NO_WIDTH    = "data-no-width",    // don't auto-size width
-NO_ALIGN    = "data-no-align",    // don't auto-align or auto-pad
-NO_RESIZE   = "data-no-resize",   // don't run resize(), used during page load
+                              // custom attributes: numbers and strings
+DELAY       = "delay",        // millisecond delay between mousedown & spin
+INTERVAL    = "interval",     // millisecond interval for spin
+DIGITS      = "digits",       // Number.prototype.toFixed(digits)
+UNITS       = "units",        // units string suffix
+LOCALE      = "locale",       // locale string: "aa-AA", "" = user locale
+NOTATION    = "notation",     // Intl.NumberFormat() options notation prop
+CURRENCY    = "currency",     // ditto: currency property
+                                   // booleans:
+ACCOUNTING  = "accounting",   // {currencySign:"accounting"}
+BLUR_CANCEL = "blur-cancel",  // Blur = <Esc> key, else Blur = <Enter> key
+NO_KEYS     = "no-keys",      // no keyboard/pad input, only spinning
+NO_SPIN     = "no-spin",      // hide spinner, no keyboard spinning
+NO_CONFIRM  = "no-confirm",   // hide confirm/cancel buttons
+NO_SCALE    = "no-scale",     // don't scale the buttons to match font size
+NO_WIDTH    = "no-width",     // don't auto-size width
+NO_ALIGN    = "no-align",     // don't auto-align or auto-pad
+NO_RESIZE   = "no-resize",    // don't run resize(), used during page load
 
 NAN   = "NaN",          // class names:
 OOB   = "OoB",          // Out of Bounds
@@ -372,7 +372,7 @@ static observedAttributes = [
             this.#spin(undefined, null); // cancel w/o href or #spinId = null
             args = [false, id == TOP];   // restart at full speed
         }
-        this.#overOut(id, true, `${this.#getState(id)}`, args);
+        this.#overOut(id, `${this.#getState(id)}`, args);
     }
     #mouseOut(evt) {
         const
@@ -380,12 +380,11 @@ static observedAttributes = [
         args = !this.#isSpinning || id == TOP || id == BOT
              ? undefined  // don't call #spin()
              : [];        // cancel spinning
-        this.#overOut("", id == INPUT, IDLE, args);
+        this.#overOut("", IDLE, args);
     }
-    #overOut(hoverIn, setHref, state, args) {
+    #overOut(hoverIn, state, args) {
         this.#hoverIn = hoverIn;
-        if (setHref)
-            this._setHref(`${this.#getButton(this.#inFocus)}${state}`);
+        this._setHref(`${this.#getButton(this.#inFocus)}${state}`);
         if (args !== undefined)
             this.#spin(...args);
     }
@@ -416,7 +415,7 @@ static observedAttributes = [
         //---------------------------------------------------------------------
         // The default behavior is to confirm the value onblur() when the user
         // presses the Tab key or clicks elsewhere on the page. To cancel input
-        // onblur(), set the data-blur-cancel attribute. Either way, the blur
+        // onblur(), set the blur-cancel attribute. Either way, the blur
         // event handler is where we "confirm it" i.e. set the value attribute.
         // #confirmIt: true = Enter/OK, false = Esc/Cancel, undefined = Tab/etc.
         if (this.#confirmIt ?? !this.blurCancel) {
@@ -730,9 +729,12 @@ static observedAttributes = [
             let txt, type;
             style    = getComputedStyle(this.#input);
             isItalic = (style.fontStyle == "italic");
-            for (txt of this.#texts) {
+            for (txt of this.#texts) {                // units, max, and min
                 id = txt.id;
-                txt.innerHTML = this.#formatNumber(this[id]) ?? this.units;
+                txt.innerHTML = (id == UNITS)
+                              ? this.units
+                              : this.#formatNumber(this[id]);
+
                 for (type of ["","-kerning","-size-adjust","-synthesis",
                               "-optical-sizing",-"palette"]) {
                     prop = "font" + type;
@@ -806,7 +808,7 @@ static observedAttributes = [
     }
 //  #formatNumber() formats a number for display as text
     #formatNumber(n) {
-        if (n !== undefined)
+        if (n !== undefined)        //!!might not be necessary anymore...
             return this.useLocale
                  ? new Intl.NumberFormat(this.locale, this.#locale).format(n)
                  : n.toFixed(this.#attrs[DIGITS]);

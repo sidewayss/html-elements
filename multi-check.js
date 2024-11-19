@@ -6,10 +6,10 @@ const
 TRUE  = "1",
 FALSE = "",
 
-CHECKED   = "checked",        // built-in attribute
-DEFAULT   = "data-default",   // custom attributes
-SHOW_DEF  = "data-show-default",
-LABEL     = "data-label",
+CHECKED   = "checked",      // built-in attribute
+DEFAULT   = "default",      // custom attributes
+SHOW_DEF  = "show-default",
+LABEL     = "label",
 
 noAwait = true; // see https://github.com/sidewayss/html-elements/issues/8
 // =============================================================================
@@ -185,8 +185,8 @@ class CheckTri extends MultiCheck {
 //  _change() converts click and spacebar-up to a self-inflicted change event
     _change(evt) {
         // The 3 states are TRUE = "1", FALSE = "", and null.
-        // The 3-way rotation order depends on boolean data-default attribute.
-        // Start null, then rotate to the opposite of data-default:
+        // The 3-way rotation order depends on boolean default attribute.
+        // Start null, then rotate to the opposite of default:
         //    null -> !b -> b -> null -> ...
         if (this._handleEvent(evt)) {
             const def = this.default;

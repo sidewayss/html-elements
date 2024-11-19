@@ -3,8 +3,8 @@ export {StateBtn};
 import {VALUE, BaseElement} from "./base-element.js";
 import {MultiState}         from "./multi-state.js";
 const
-STATES = "data-states",
-AUTO   = "data-auto-increment",
+STATES = "states",
+AUTO   = "auto-increment",
 BTN    = "btn",
 
 noAwait = true; // see https://github.com/sidewayss/html-elements/issues/8

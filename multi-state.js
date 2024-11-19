@@ -1,7 +1,7 @@
 export {MultiState};
 
 import {BaseElement} from "./base-element.js";
-const KEY_CODES = "data-key-codes";
+const KEY_CODES = "key-codes";
 // =============================================================================
 // The multi-state base class, emulates change (not input) event, this.change
 // declared in sub-classes, all of them dispatch a change event to the client.

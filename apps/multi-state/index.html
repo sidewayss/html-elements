@@ -15,7 +15,7 @@
     <script src="index.js" type="module"></script>
   </head>
   <body class="col"  style="align-items:center; background-color:#F9F9F9;">
-    <check-box id="box" data-label="Check&bull;box&#xB2;"></check-box>
+    <check-box id="box" label="Check&bull;box&#xB2;"></check-box>
     <div class="row chk-val">checked:<span id="box-checked"></span>&nbsp;| value:<span id="box-value"></span></div>
     <div class="col">
       <div class="row">
@@ -45,7 +45,7 @@
       </div>
     </div>
     <div class="separator">====================================</div>
-    <check-tri id="tri" data-label="Check&#x290D;tri&#xB3;"></check-tri>
+    <check-tri id="tri" label="Check&#x290D;tri&#xB3;"></check-tri>
     <div class="row chk-val">checked:<span id="tri-checked"></span>&nbsp;| value:<span id="tri-value"></span></div>
     <div class="col">
       <div class="row">
@@ -57,7 +57,7 @@
           <label for="tri-default">default:</label>
           <check-box id="tri-default"></check-box>
         </div>
-        <check-box id="tri-showDefault" data-label="showDefault" class="row"></check-box>
+        <check-box id="tri-showDefault" label="showDefault" class="row"></check-box>
       </div>
       <div class="row mt1-2">
         <label for="tri-keyCodes">keyCodes:</label>
@@ -86,14 +86,14 @@
     <div class="col">
     <div class="row">
       <label for="btn" style="margin-right:0.5rem">state-btn:</label>
-      <state-btn id="btn" class="row" data-states='[[0,"play"], [1,"pause"], [2,"resume","Resume playback"], [3,"stop"], [4,"reset","Reset to zero"]]'></state-btn>
+      <state-btn id="btn" class="row" states='[[0,"play"], [1,"pause"], [2,"resume","Resume playback"], [3,"stop"], [4,"reset","Reset to zero"]]'></state-btn>
       <div class="row" style="margin-left:0.625rem">
         <span id="btn-value" style="min-width:0"></span>
         <span>,&nbsp;</span>
         <span id="href"></span>
       </div>
     </div>
-      <check-box id="btn-autoIncrement" class="mt1-2" data-label="autoIncrement (else random)"></check-box>
+      <check-box id="btn-autoIncrement" class="mt1-2" label="autoIncrement (else random)"></check-box>
       <div class="row mt1-2" style="align-items:flex-start">
         <label for="btn-keyCodes">keyCodes:</label>
         <select id="btn-keyCodes" size="7" multiple>

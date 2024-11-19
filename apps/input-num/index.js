@@ -111,13 +111,11 @@ function allResolved() {
 
   defaults = Object.assign({}, inNum.constructor.defaults);
   elms.step.nextElementSibling.textContent = `= ${defaults.step}`;
-  delete defaults.step            // default auto-step precludes this
-  delete defaults.value           // value is not an option
-  for (key in defaults) {         // some keys have "data-" prefix
-//@ elms[key.split("-").at(-1)].value =  defaults[key];
-    arr = key.split("-");         //@ https://github.com/sidewayss/html-elements/issues/10
-    elms[arr[1] ?? arr[0]].value = defaults[key]; //@ ditto
-  }
+  delete defaults.step            // undefined = auto-step precludes this
+  delete defaults.value           // #value is not an element
+  for (key in defaults)
+    elms[key].value = defaults[key];
+
   updateText();                   // must be last
 }
 //===========================
@@ -151,11 +149,9 @@ function getFontKey() {     // fonts are by pseudo-platform
 //==============================
 function initElm(id, decimals) {
   let i, n, opt;
-  const
-  elm  = document.getElementById(id), // camelCase blur-cancel, future attrs:
-  prop = id.replace(/-(.)/g, chars => chars[1].toUpperCase());
+  const elm  = document.getElementById(id);
 
-  elms[prop] = elm;
+  elms[kebabToCamel(id)] = elm;
   addChangeEvent(elm);
   switch (id) {
     case "digits":
@@ -181,7 +177,7 @@ function initElm(id, decimals) {
         elm.add(opt.cloneNode(true)); // gotta clone after first use
 
       elm.add(new Option(0));         // zero, then negative decimals
-      for (n = -low, i = expo; n >= -0.1; n *= base, i--)
+      for (n = -low, i = expo + 1; n >= -0.1; n *= base, i--)
         elm.add(new Option(n.toFixed(i)));
       for (n = -1; n >= -high; n *= base)
         elm.add(new Option(n));       // then negative integers
@@ -256,7 +252,7 @@ function minDigits() {           // one alert set in two places
 //==============================================================================
 // updateText() is generally helpful, along with its helper getText():
 function updateText() {
-  let attr, data, elm, prop,
+  let attr, elm, prop,
   pre = "&lt;input-num",
   suf = "&gt;&lt;/input-num&gt;",
   js  = "numby = doc.getElementById(id);<br>";
@@ -264,12 +260,12 @@ function updateText() {
   const
   ctrls = new Set(attrs), // max, min, units
   opposites = [
-    ["data-no-keys",   "keyboards"],
-    ["data-no-spin",   "spins"],
-    ["data-no-confirm","confirms"],
-    ["data-no-scale",  "autoScale"],
-    ["data-no-width",  "autoWidth"],
-    ["data-no-align",  "autoAlign"],
+    ["no-keys",   "keyboards"],
+    ["no-spin",   "spins"],
+    ["no-confirm","confirms"],
+    ["no-scale",  "autoScale"],
+    ["no-width",  "autoWidth"],
+    ["no-align",  "autoAlign"],
   ];
   for ([attr, prop] of opposites) {
     if (!inNum[prop]) {
@@ -294,31 +290,28 @@ function updateText() {
 
   for (elm of ctrls) {
     prop = elm.id;
-    attr = prop;
-    data = "data-" + attr;
-    if (elm.value && elm.value != (defaults[prop] ?? defaults[data])) {
+    if (elm.value && elm.value != defaults[prop]) {
       pre += " ";
       switch (elm) {
         case elms.digits: case elms.units: case elms.currency:
         case elms.delay:  case elms.interval:
-          attr = data;
         case elms.max:  case elms.min:
         case elms.step:
-          pre += getText(elm, attr);
+          pre += getText(elm, prop);
           js  += getText(elm, prop, true);
           break;
         case elms.locale:
           if (isUser(elm)) {
-            pre += data;
+            pre += prop;
             js  += getText(null, prop, true,  '""');
           }
           else {
-            pre += getText(elm, data);
+            pre += getText(elm, prop);
             js  += getText(elm, prop, true);
           }
           break;
         case elms.accounting: case elms.blurCancel:
-          pre += data;
+          pre += prop;
           js  += getText(null, prop, true, true);
           break;
       }
