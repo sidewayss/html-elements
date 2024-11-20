@@ -247,7 +247,7 @@ static observedAttributes = [
                 case CURRENCY:
                     this.#locale.style = val ? "currency" : undefined;
                 case NOTATION:      // convert null to undefined
-                    this.#locale[name.split("-")[1]] = val ?? undefined;
+                    this.#locale[name] = val ?? undefined;
                     break;
                 default:            // handled by BaseElement
                     super.attributeChangedCallback(name, _, val);
