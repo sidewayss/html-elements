@@ -489,10 +489,11 @@ static observedAttributes = [
             input = this.#input,
             dir   = input.selectionDirection,
             start = input.selectionStart,
-            dist  = input.selectionEnd - start,
+            end   = input.selectionEnd,
+            dist  = end - start,
             val   = input.value,
             orig  = [{num:start, str:val.slice(0, start)},
-                     {num:dist,  str:val.slice(start, dist)}];
+                     {num:dist,  str:val.slice(start, end)}];
             for (obj of orig) {
                 match = obj.str.match(/[^\d-.eE]/g);
                 range.push(obj.num - (match ? match.length : 0))
@@ -725,11 +726,11 @@ static observedAttributes = [
         else
             btns = 0;               // no spinning, no confirming = no buttons
 
-        if (isWidth || isAlign) {
+        if (isWidth || isAlign) {   // get widths for max, min, units
             let txt, type;
             style    = getComputedStyle(this.#input);
             isItalic = (style.fontStyle == "italic");
-            for (txt of this.#texts) {                // units, max, and min
+            for (txt of this.#texts) {
                 id = txt.id;
                 txt.innerHTML = (id == UNITS)
                               ? this.units
@@ -750,7 +751,7 @@ static observedAttributes = [
             chars = Math.max(width[MAX], width[MIN]), // text width w/o units
             obj   = {
                 [event.blur] : chars + extra - diff,
-                [event.focus]: chars,
+                [event.focus]: chars + extra - btns,
                 [mouse.over] : chars
             }
             if (isItalic)           // right-aligned italics often truncate

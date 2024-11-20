@@ -272,7 +272,9 @@ Based on an informal survey and my own repeated frustrations, I came to the conc
 - When you use `Shift+Tab` to activate the element, the `<input>` gets the focus. The next `Shift+Tab` activates the outer element. The next one blurs the element.
 
 ### HTML Attributes / JavaScript Properties
-There are several inverted boolean attributes / properties, where the attribute value is the opposite of the property value. The attribute names all start with `no-`. They are all for turning features off. The default is always attribute = unset / property = `true`. The negative makes sense for the boolean attribute name, but it's clumsy for the property.
+There are several inverted boolean attributes / properties, where the attribute value is the opposite of the property value. They are all for turning features off. The negative makes sense for the boolean attribute name, but it's clumsy for the property. The attribute names all start with `no-`. The default is always:
+- attribute = unset (null)
+- property = `true`
 
 #### DOM Attributes
 Property name same as attribute. String as attribute / Number as property.
