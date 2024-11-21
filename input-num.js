@@ -73,8 +73,8 @@ noAwait   = true; // see https://github.com/sidewayss/html-elements/issues/8
 // =============================================================================
 class InputNum extends BaseElement {
     #attrs; #bound; #btns; #confirmIt; #ctrls; #erId; #hoverIn; #hoverOut;
-    #input; #isBlurring; #isLoading; #isMousing; #locale; #outFocus; #padRight;
-    #spinId; #states; #svg; #texts; #validate;
+    #input; #isBlurring; #isLoading; #isMousing; #kbSpin; #locale; #outFocus;
+    #padRight; #spinId; #states; #svg; #texts; #validate;
     #isBlurry;         // kludge for this._dom.activeElement === null
 
 static defaults = {
@@ -546,30 +546,32 @@ static observedAttributes = [
             case code.down:
             case code.up:
             // Keyboard repeat rate is an OS setting that has its own delay then
-            // interval, thus #spin(null), which doesn't set href or #spinId.
+            // interval. Thus #spin(null), which doesn't set href or #spinId.
             // Separate href for delayed image because fast keydown/up sequences
             // flicker, and a delay can look just as flickery, depending on the
             // timing. It looks better if the initial, pre-delay image is only
             // slightly different from #spinner-idle.
                 const
                 topBot   = key[evt.code],
-                isSpin   = this.#isSpinning, // next line might change it
+                isSpin   = this.#isSpinning,   // #spin() can change #isSpinning
                 inBounds = this.#spin(null, topBot == TOP);
-                if (isSpin) {
-                    if (inBounds)
-                        this._setHref(`${SPINNER}${SPIN}${topBot}`);
-                }
-                else {
+                if (!isSpin) {
                     this._setHref(`${SPINNER}key-${topBot}`);
-                    this.#spinId = -1;       // so that #isSpinning = true
+                    this.#spinId = -1;         // not null so #isSpinning = true
+                    this.#kbSpin = inBounds;   // kb for keyboard
+                }
+                else if (this.#kbSpin !== undefined) {
+                    if (this.#kbSpin)          // set full-speed spin image once
+                        this._setHref(`${SPINNER}${SPIN}${topBot}`);
+                    this.#kbSpin = undefined;
                 }
             default:
             }
     }
     //--------------------------------------------------------------------------
     #keyUp(evt) {                            // Esc key never makes it this far
-        if (this.#inFocus) {                 // any character accepted...
-            if (evt.code == code.enter)
+        if (this.#inFocus) {
+            if (evt.code == code.enter)      // any character accepted...
                 this.classList.remove(BEEP);
             else {                           // ...but style erroneous values:
                 const n = this.#toNumber(this.text);
