@@ -1087,9 +1087,6 @@
                   "name": "hoverIn"
                 },
                 {
-                  "name": "setHref"
-                },
-                {
                   "name": "state"
                 },
                 {
@@ -1284,6 +1281,24 @@
                 {
                   "name": "isUp",
                   "default": "(this.#hoverIn == TOP)"
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "#clearSpin",
+              "privacy": "private"
+            },
+            {
+              "kind": "method",
+              "name": "#isOoB",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "val"
+                },
+                {
+                  "name": "isUp"
                 }
               ]
             },

@@ -130,8 +130,6 @@ function textLabel(elm) {
   return ` label="${elm.label}"`;
 }
 //==============================================================================
-// HTML displays using non-breaking hyphen U+2011, which is not a valid HTML
-// character, so it must be replaced with a regular hyphen.
 function copyToClipboard(evt) {
   const tar = evt.target;
   writeText(tar, fromHTML(elms.html[splitDash(tar.id)[0]].textContent));

@@ -369,7 +369,8 @@ static observedAttributes = [
         let args;
         const id = evt.target.id;
         if (this.#isSpinning) {          // if spinning, spin the other way
-            this.#spin(undefined, null); // cancel w/o href or #spinId = null
+            if (this.#spinId >= 0)
+                this.#clearSpin();       // clearInterval()
             args = [false, id == TOP];   // restart at full speed
         }
         this.#overOut(id, `${this.#getState(id)}`, args);
@@ -472,7 +473,7 @@ static observedAttributes = [
                 this.classList.add(BEEP);
         }
         else {
-            this.#spin(true);
+            this.#spin(true);                 // start spinning
             if (this.#outFocus)               // Chrome: prevent next element's
                 evt.preventDefault();         // text selection on double-click,
         }                                     // but allow focus to happen first
@@ -544,22 +545,28 @@ static observedAttributes = [
                 return;
             case code.down:
             case code.up:
-            // Keyboard repeat rate is an OS setting that has it's own delay
-            // then interval, thus #spin(null). Separate href for delayed image
-            // because quick keydown/up sequences flicker, and a delay can look
-            // just as flickery, depending on the timing. If it's only a slight
-            // difference from #spinner-idle, it looks good.
-                const topBot = key[evt.code];
-                if (this.#isSpinning)
-                    this._setHref(`${SPINNER}${SPIN}${topBot}`);
+            // Keyboard repeat rate is an OS setting that has its own delay then
+            // interval, thus #spin(null), which doesn't set href or #spinId.
+            // Separate href for delayed image because fast keydown/up sequences
+            // flicker, and a delay can look just as flickery, depending on the
+            // timing. It looks better if the initial, pre-delay image is only
+            // slightly different from #spinner-idle.
+                const
+                topBot   = key[evt.code],
+                isSpin   = this.#isSpinning, // next line might change it
+                inBounds = this.#spin(null, topBot == TOP);
+                if (isSpin) {
+                    if (inBounds)
+                        this._setHref(`${SPINNER}${SPIN}${topBot}`);
+                }
                 else {
                     this._setHref(`${SPINNER}key-${topBot}`);
-                    this.#spinId = -1;
-                } // #spin(null) doesn't set href or #spinId
-                this.#spin(null, topBot == TOP);
+                    this.#spinId = -1;       // so that #isSpinning = true
+                }
             default:
             }
     }
+    //--------------------------------------------------------------------------
     #keyUp(evt) {                            // Esc key never makes it this far
         if (this.#inFocus) {                 // any character accepted...
             if (evt.code == code.enter)
@@ -647,50 +654,66 @@ static observedAttributes = [
 
 //  #spin() controls the spinning process
     #spin(state, isUp = (this.#hoverIn == TOP)) {
-        if (state === undefined) {           // cancel:
+        if (state === undefined) {          // cancel:
             if (this.#isSpinning) {
-                clearInterval(this.#spinId); // interchangeable w/clearTimeout()
-                clearTimeout (this.#erId);
-                if (isUp !== null) {         // for mouseover while spinning
+                this.#clearSpin();
+                if (isUp !== null) {        // for mouseover while spinning
                     const state = this.#hoverIn ? `${HOVER}${this.#hoverIn}`
                                                 : IDLE;
                     this._setHref(`${SPINNER}${state}`);
                     this.#spinId = null;
                 }
-                this.#erId = null;
             }
         }
-        else {                               // spin:
-            let val = this.#attrs[VALUE];    // if already clamped, skip it
-            if ((isUp && val != this.max) || (!isUp && val != this.min)) {
-                const n = val + (this.#attrs[STEP] * (isUp ? 1 : -1));
-                val = this.#validate?.(n, true) ?? n; // true for isSpinning
-                if (val !== false) {         // clamp it between min and max:
-                    this.setAttribute(VALUE, Math.max(this.min, Math.min(this.max, val)));
-                    this.#input.value = this.#getText(false); // false because #input w/focus does not spin
+        else {                              // spin:
+            let
+            val = this.#attrs[VALUE],
+            oob = this.#isOoB(val, isUp);
+            if (!oob) {
+                val += this.#attrs[STEP] * (isUp ? 1 : -1);
+                val  = this.#validate?.(val, true) ?? val; // true for isSpinning
+                if (val !== false) {
+                    oob = this.#isOoB(val, isUp);
+                    if (oob) {
+                        this.#clearSpin();  // stop spinning and clamp the value
+                        val = Math.max(this.min, Math.min(this.max, val));
+                    }
+                    this.setAttribute(VALUE, val); // false: #input w/focus doesn't spin
+                    this.#input.value = this.#getText(false);
                     const evt = new Event("change");
                     evt.isUp  = isUp;
                     evt.isSpinning = true;
                     this.dispatchEvent(evt);
                 }
-                if (state) {                 // start spin with initial step
-                    const
-                    topBot = isUp ? TOP : BOT,
-                    now    = `${SPINNER}${ACTIVE}${topBot}`,
-                    later  = `${SPINNER}${SPIN}${topBot}`;
-
-                    this._setHref(now);
-                    this.#erId = setTimeout(this._setHref.bind(this), this.delay, later);
-
-                    this.#spinId = setTimeout (this.#spin.bind(this), this.delay, false, isUp);
-                }
-                else if (state === false)    // start spinning full speed
-                    this.#spinId = setInterval(this.#spin.bind(this), this.interval, null, isUp);
-                // else  state === null >>>> continue spinning full speed
             }
-            else // I prefer this to an expired id for a non-null value
-                this.#spinId = -1; // for keyboard spin, clamped values
+            if (oob)
+                this.#spinId = -1;          // not null, same as keyboard spin
+
+            if (state) {                    // start spin with initial step
+                const
+                topBot = isUp ? TOP : BOT,
+                now    = `${SPINNER}${ACTIVE}${topBot}`,
+                later  = `${SPINNER}${SPIN}${topBot}`;
+
+                this._setHref(now);
+                if (!oob) {
+                    this.#erId   = setTimeout(this._setHref.bind(this), this.delay, later);
+                    this.#spinId = setTimeout(this.#spin.bind(this), this.delay, false, isUp);
+                }
+            }
+            else if (state === false)       // start spinning full speed
+                this.#spinId = setInterval(this.#spin.bind(this), this.interval, null, isUp);
+            // else  state === null >>>> continue spinning full speed
+            return !oob;
         }
+    }
+    #clearSpin() {
+        clearInterval(this.#spinId); // interchangeable w/clearTimeout()
+        clearTimeout (this.#erId);
+        this.#erId = null;
+    }
+    #isOoB(val, isUp) { // really out of and including bounds...
+        return isUp ? val >= this.max : val <= this.min;
     }
 // =============================================================================
 //  resize() calculates the correct width and applies it to this.#input

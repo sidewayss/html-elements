@@ -318,7 +318,7 @@ displays 100 as: **$100/kg**
 #### Miscellaneous JavaScript Properties and Methods:
 - `text` (read-only) is the formatted text value, including currency, units, etc.
 - `useLocale` (read-only) returns `true` if `locale` is set.
-- `validate` is a `Function` for custom validation or transformation.
+- `validate` is a `Function` for custom validation and/or transformation.
 - `resize(forceIt)` resizes the element. When `autoResize` is `true`, it runs automatically after setting any attribute that affects the element's width or alignment. When `autoResize` is `false`, you must set `forceIt` to `true` or the function won't run.  Call it after you change CSS font properties, for example.
 
 ### Events
@@ -334,10 +334,11 @@ When the user inputs via the spinner, the event object has two additional proper
 - `isSpinning` is set to `true`.
 - `isUp` is `true` when it's spinning up (incrementing) and `false` or `undefined` when spinning down (decrementing).
 
-The `validate` property allows you to insert your own validation (or transformation) function before the value is committed and the `change` event is fired. Because it runs before committing the value, it runs before the internal `!isNaN()` validation. The function takes two arguments: `value` and `isSpinning`. `value` is a string (keyboard input) or a number (spinning). The return value falls into three categories:
-- `false` for invalid values
-- `undefined` or `value` to accept the current value
-- a different number: for when you want to round to the nearest prime number, or perform whatever transformation or restriction that can't be defined solely by `max` and `min`.
+The `validate` property allows you to insert your own validation and/or transformation function before the value is committed and the `change` event is fired. Because it runs before committing the value, it runs before the internal `!isNaN()` validation. The function takes two arguments: `value` and `isSpinning`:
+- `value` is a string (keyboard input) or a number (spinning)
+- `isSpinning` is a boolean indicating whether the user is inputting via keyboard (`false`) or the spinner (`true`).
+
+To indicate an invalid value, return `false`. Otherwise return the value itself, transformed or not. Transforms are for those rare occasions when you want to round to the nearest prime number, or whatever transformation or restriction that can't be defined solely by `max` and `min`.
 
 ### Styling
 You can obviously style the element itself, but you can also style some of its parts via the `::part` pseudo-element. Remember that `::part` overrides the shadow DOM elements' style. You must use `!important` if you want to override `::part`.

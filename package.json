@@ -19,9 +19,10 @@
   "scripts": {
     "build:cem:pre": "rollup elements.js -o cem.js",
     "build:cem:analyze": "npx custom-elements-manifest analyze --globs \"cem.js\"",
+    "build:rm": "npx shx rm -r dist && npx shx rm cem.js",
     "build:rollup": "rollup -c",
-    "build:copy": "npx copy \"apps/**/*.html\" \"dist\"",
-    "build": "npm run build:cem:pre && npm run build:cem:analyze && npm run build:rollup",
+    "build:cp": "npx shx mkdir dist/templates && npx shx cp templates/* dist/templates && npx shx cp apps/*.png dist/apps && npx shx cp apps/multi-state/*.html dist/apps/multi-state && npx shx cp apps/input-num/*.html dist/apps/input-num && npx shx cp apps/multi-state/*.css dist/apps/multi-state && npx shx cp apps/input-num/*.css dist/apps/input-num && npx shx cp apps/input-num/*.json dist/apps/input-num",
+    "build": "npm run build:cem:pre && npm run build:cem:analyze && npm run build:rm && npm run build:rollup && npm run build:cp",
     "prepack": "npm run build"
   },
   "author": "Sideways S.",
@@ -49,8 +50,11 @@
     "@babel/plugin-transform-optional-chaining": "^7.25.9",
     "@custom-elements-manifest/analyzer": "^0.10.3",
     "@rollup/plugin-babel": "^6.0.4",
+    "@rollup/plugin-swc": "^0.4.0",
+    "@swc/core": "^1.9.2",
     "babel-plugin-private-to-public": "^1.0.1",
     "rollup": "^4.24.3",
-    "rollup-plugin-swc-minify": "^1.1.2"
+    "rollup-plugin-swc-minify": "^1.1.2",
+    "shx": "^0.3.4"
   }
 }
