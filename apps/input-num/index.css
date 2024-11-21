@@ -58,6 +58,7 @@ button:active {
 }
 select    {
   margin-left:0.25rem;
+  background-color:white;
   border-color:#0002;
 }
 check-box    { margin-right:1rem }

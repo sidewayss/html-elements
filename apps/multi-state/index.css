@@ -39,6 +39,7 @@ button:active {
   background-image:url("../clipboard-active.png");
 }
 select    {
+  background-color:white;
   border-color:#0002;
 }
 select:disabled, .disabled {
