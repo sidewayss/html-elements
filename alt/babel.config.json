@@ -1,0 +1,11 @@
+{
+  "plugins": [
+    ["private-to-public", { "minify":true, "aToZ":true }],
+    "@babel/plugin-transform-nullish-coalescing-operator",
+    "@babel/plugin-transform-optional-chaining"
+  ],
+  "comments":false,
+  "assumptions": {
+    "noDocumentAll":true
+  }
+}

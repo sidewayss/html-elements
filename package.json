@@ -19,10 +19,12 @@
   "scripts": {
     "build:cem:pre": "rollup elements.js -o cem.js",
     "build:cem:analyze": "npx custom-elements-manifest analyze --globs \"cem.js\"",
-    "build:rm": "npx shx rm -r dist && npx shx rm cem.js",
-    "build:rollup": "rollup -c",
-    "build:cp": "npx shx mkdir dist/templates && npx shx cp templates/* dist/templates && npx shx cp apps/*.png dist/apps && npx shx cp apps/multi-state/*.html dist/apps/multi-state && npx shx cp apps/input-num/*.html dist/apps/input-num && npx shx cp apps/multi-state/*.css dist/apps/multi-state && npx shx cp apps/input-num/*.css dist/apps/input-num && npx shx cp apps/input-num/*.json dist/apps/input-num",
-    "build": "npm run build:cem:pre && npm run build:cem:analyze && npm run build:rm && npm run build:rollup && npm run build:cp",
+    "build:clean": "npx shx rm -r tmp && npx shx rm -r dist && npx shx rm cem.js && npx shx mkdir dist && npx shx mkdir tmp",
+    "build:bundle": "rollup -c",
+    "build:minify": "npx terser tmp/base-element.js -o dist/base-element.js --config-file terser.config.json --name-cache tmp/cache-mc.json && npx terser tmp/multi-check.js -o dist/multi-check.js --config-file terser.config.json --name-cache tmp/cache-mc.json && npx terser tmp/base-element.js -o dist/base-element.js --config-file terser.config.json --name-cache tmp/cache-sb.json && npx terser tmp/state-btn.js -o dist/state-btn.js --config-file terser.config.json --name-cache tmp/cache-sb.json && npx terser tmp/base-element.js -o dist/base-element.js --config-file terser.config.json --name-cache tmp/cache-in.json && npx terser tmp/input-num.js -o dist/input-num.js --config-file terser.config.json --name-cache tmp/cache-in.json && npx terser tmp/elements.js -o dist/elements.js --config-file terser.config.json",
+    "build:apps": "npx babel apps/*.js --out-dir dist/apps && npx babel apps/multi-state/*.js --out-dir dist/apps/multi-state && npx babel apps/input-num/*.js --out-dir dist/apps/input-num",
+    "build:cp": "npx shx mkdir dist/templates && npx shx cp templates/* dist/templates && npx shx cp apps/common.css dist/apps && npx shx cp apps/*.png dist/apps && npx shx cp apps/multi-state/*.html dist/apps/multi-state && npx shx cp apps/input-num/*.html dist/apps/input-num && npx shx cp apps/multi-state/*.css dist/apps/multi-state && npx shx cp apps/input-num/*.css dist/apps/input-num && npx shx cp apps/input-num/*.json dist/apps/input-num",
+    "build": "npm run build:cem:pre && npm run build:cem:analyze && npm run build:clean && npm run build:bundle && npm run build:minify && npm run build:apps && npm run build:cp",
     "prepack": "npm run build"
   },
   "author": "Sideways S.",
@@ -46,15 +48,15 @@
   },
   "homepage": "https://github.com/sidewayss/html-elements#readme",
   "devDependencies": {
+    "@babel/cli": "^7.25.9",
+    "@babel/core": "^7.26.0",
     "@babel/plugin-transform-nullish-coalescing-operator": "^7.25.9",
     "@babel/plugin-transform-optional-chaining": "^7.25.9",
     "@custom-elements-manifest/analyzer": "^0.10.3",
     "@rollup/plugin-babel": "^6.0.4",
-    "@rollup/plugin-swc": "^0.4.0",
-    "@swc/core": "^1.9.2",
     "babel-plugin-private-to-public": "^1.0.1",
     "rollup": "^4.24.3",
-    "rollup-plugin-swc-minify": "^1.1.2",
-    "shx": "^0.3.4"
+    "shx": "^0.3.4",
+    "terser": "^5.36.0"
   }
 }

@@ -57,6 +57,8 @@ If you bundle your templates into one file, then each `<template>` must have the
 <template id="input-num">...</template>
 ```
 
+NOTE: If you are using import options and getting an error about an element/tag already being registered, you might need to add the same import options to your JavaScript `import` statements, so that they match your HTML `<script>` imports. The browser can import these as two separate files. This happens sometimes for reasons unknown to me.
+
 ### Managing Template Files
 There are built-in template files in the `templates/` directory. They serve two purposes:
 - As examples and/or starting points for you to design your templates.

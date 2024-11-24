@@ -1,8 +1,10 @@
 import { getBabelOutputPlugin } from "@rollup/plugin-babel";
-import swc from "@rollup/plugin-swc";
+//import terser from "@rollup/plugin-terser";
 import * as path from "path";
 
 const
+TMP  = "tmp",
+DIST = "dist",
 format  = "es",
 ext     = [path.resolve("base-element.js")],
 plugins = [
@@ -10,29 +12,44 @@ plugins = [
     comments: false,
     assumptions: {"noDocumentAll":true},
     plugins: [
-      ["babel-plugin-private-to-public", {"minify":true, "aToZ":true}],
+      ["babel-plugin-private-to-public", {"prefix":"ø"}],    // &#xF8
       "@babel/plugin-transform-nullish-coalescing-operator",
       "@babel/plugin-transform-optional-chaining"
     ]
-  })
+  })/*,
+  terser({
+    compress: {
+      keep_classnames:true,
+      keep_infinity:true,
+      module:true
+    },
+    mangle: {
+      keep_classnames:true,
+      module:true,
+      toplevel:true,
+      properties: {
+        regex: /^ø/
+      }
+    }
+  })*/
 ],
 files = [
-  ["base-element",],
-  ["multi-check", ext],
-  ["state-btn",   ext],
-  ["input-num",   ext],
-  ["elements",],
-  ["apps/common",],
-  ["apps/multi-state/index",],
-  ["apps/input-num/index",]
+  ["base-element", TMP,],
+  ["multi-check",  TMP, ext],
+  ["state-btn",    TMP, ext],
+  ["input-num",    TMP, ext],
+  ["elements",     TMP,],
+  ["apps/common",  DIST,],
+  ["apps/multi-state/index", DIST,],
+  ["apps/input-num/index",   DIST, ext]
 ];
-//==================================
+//==============================================
 // Map files to an array of objects
-export default files.map(([name, external]) => {
+export default files.map(([name, dir, external]) => {
   return {
     input: `${name}.js`,
     output: {
-      file: `dist/${name}.js`,
+      file: `${dir}/${name}.js`,
       format
     },
     plugins, external

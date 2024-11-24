@@ -1,0 +1,13 @@
+{
+  "compress": {
+    "keep_classnames":true,
+    "keep_infinity":true,
+    "module":true
+  },
+  "mangle": {
+    "keep_classnames":true,
+    "module":true,
+    "toplevel":true,
+    "properties": {"regex": "^ø"}
+  }
+}
