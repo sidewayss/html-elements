@@ -772,7 +772,7 @@ static observedAttributes = [
                 if (id != UNITS)
                     txt.innerHTML = this.#formatNumber(this[id]);
                 else if (this.units)
-                    txt.innerHTML = `${this.#locale.currency ? "/" : ""}${this.units}`;
+                    txt.innerHTML = this.#getUnits();
                 else
                     txt.innerHTML = "";
 
@@ -839,13 +839,12 @@ static observedAttributes = [
 //  #getText() gets the appropriate text for the #input
     #getText(inFocus, appendUnits) {
         const n = this.#attrs[VALUE];
-        let txt = inFocus ? n : this.#formatNumber(n);
-        if (appendUnits && this.units) {
-            if (this.#locale.currency)
-                txt += "/";     // currency && units displays currency per unit
-            txt += this.units;
-        }
-        return txt;
+        return (inFocus ? n : this.#formatNumber(n))
+             + (appendUnits && this.units ? this.#getUnits() : "");
+    }
+//  #getUnits() gets the units text, currency && units displays currency per unit
+    #getUnits() {
+        return `${this.useLocale && this.#locale.currency ? "/" : ""}${this.units}`;
     }
 //  #formatNumber() formats a number for display as text
     #formatNumber(n) {
