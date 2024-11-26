@@ -207,20 +207,21 @@ function change(evt) {
       case elms.min:
         minDigits();
       case elms.max:            // validate
-      setInfo(elms.max, inNum.max <= inNum.min, "Max/Min overlap!");
-      disable(elms.autoWidth, inNum.max ==  Infinity
-                           || inNum.min == -Infinity);
+        setInfo(elms.max, inNum.max <= inNum.min, "Max/Min overlap!");
+        elms.autoWidth.disabled = inNum.max ==  Infinity
+                               || inNum.min == -Infinity;
         break;
       case elms.locale:
-        disable(elms.currency,   !val);
+        elms.currency.disabled = !val;
+        elms.currency.labels[0].classList.toggle("disabled", !val);
       case elms.currency:
-        disable(elms.accounting, !val || !inNum.currency
-                                      || !inNum.useLocale);
+        elms.accounting.disabled = !val || !inNum.currency
+                                        || !inNum.useLocale;
       case elms.units:          // display info
         setInfo(tar, val, g[id][val]);
         break;
       case elms.spins:          // disable step, delay, interval
-        spinner.forEach(elm => disable(elm, !val));
+        spinner.forEach(elm => elm.disabled = !val);
       case elms.keyboards:
         setInfo(elms.accounting,
                 !elms.spins.checked && !elms.keyboards.checked,
@@ -238,11 +239,6 @@ function change(evt) {
 }
 function setInfo(elm, b, text) { // sets info/warning text to the right of elm
   elm.nextElementSibling.innerHTML = b ? text : "";
-}
-function disable(elm, b) {       // disables an element and its label
-  elm.disabled = b;
-  for (const lbl of [elm.previousElementSibling, elm.nextElementSibling])
-    lbl?.classList.toggle("disabled", b);
 }
 function minDigits() {           // one alert set in two places
   setInfo(elms.min,

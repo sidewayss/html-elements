@@ -57,7 +57,7 @@ If you bundle your templates into one file, then each `<template>` must have the
 <template id="input-num">...</template>
 ```
 
-NOTE: If you are using import options and getting an error about an element/tag already being registered, you might need to add the same import options to your JavaScript `import` statements, so that they match your HTML `<script>` imports. The browser can import these as two separate files. This happens sometimes for reasons unknown to me.
+NOTE: If you are using import options and getting an error about an element/tag already being registered, you might need to add the same import options to your JavaScript `import` statements, so that they match your HTML `<script>` imports.  This happens sometimes because the browser imports them as two separate files, for reasons unknown to me.
 
 ### Managing Template Files
 There are built-in template files in the `templates/` directory. They serve two purposes:
@@ -103,7 +103,9 @@ A quick glossary entry of note: A [boolean attribute](https://developer.mozilla.
 These classes manage common attributes/properties and behaviors across elements. All the attributes/properties listed are inherited by the sub-classes.
 
 ### `class BaseElement extends HTMLElement`
-`BaseElement` is the top level class. It is the parent class for `InputNum` and `MultiState`. It manages two global DOM attributes, `disabled` and `tabindex`. See `base-element.js`.
+`BaseElement` is the top level class. It is the parent class for `InputNum` and `MultiState`. It manages two global DOM attributes, `disabled` and `tabindex`. See `base-element.js`.`
+
+NOTE: `HTMLElement` does not have a `disabled` attribute/property. It only has `tabindex`/`tabIndex`. `BaseElement` observes the `disabled` and `tabindex` attributes and exposes the properties. To do so requires the `disabled` attribute to manage `tabindex` too, because setting `disabled` *should* set `tabindex="-1"`. This is complicated if you set `tabindex` instead of relying on the default tab order, but most of that can be handled. But if you are setting both `disabled` and `tabindex` in your HTML file, you *must* set `tabindex` before `disabled`. This because the DOM runs `attributeChangedCallback()` in a FIFO queue and when `disabled` sets the `tabindex` it goes to the end of the queue, after the `tabindex` setting in the HTML file. Though it's allowed, setting `tabindex` to anything other than `0` or `-1` is sternly [recommended against by MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/tabindex) (*scroll down the page to the first Warning block*).
 
 ### `class MultiState`
 `MultiState` (`multi-state.js`) is the parent class for `<state-btn>` and `MultiCheck`.

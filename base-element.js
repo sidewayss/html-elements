@@ -6,23 +6,21 @@ VALUE     = "value";    // exported: defined here but not handled here
 // =============================================================================
 // The custom base class, direct sub-class of HTMLElement
 class BaseElement extends HTMLElement {
-    #id; #meta; #tabIndex;
+    #connected; #disabled; #disabling; #id; #meta; #ptrEvents; #tabIndex;
     static searchParams;    // set by html-elements.js, if it's used
     static observedAttributes = [DISABLED, TAB_INDEX];
     static promises = new Map; // for noAwait, see https://github.com/sidewayss/html-elements/issues/8
     constructor(meta, template, noAwait) {
         super();
-        if (noAwait) {              // passes subclass as template arg
+        if (noAwait) {                      // passes subclass as template arg
             this.#meta = meta;
             this.#id   = classToTag(template);
             BaseElement.promises.set(this, promise());
         }
         else
-            this.#attach(template); // the <template> as DocumentFragment
+            this.#attach(template);         // <template> as DocumentFragment
 
-        if (this.tabIndex < 0)
-            this.tabIndex = 0;
-        this.#tabIndex = this.tabIndex;
+        this.setAttribute(TAB_INDEX, "0");  // default value emulates <input>
     }
     #attach(template) {
         this._dom = this.attachShadow({mode:"open"});
@@ -42,28 +40,43 @@ class BaseElement extends HTMLElement {
         }
         else
             this._connected?.();
+
+        // Creating the disabled attribute from scratch is complicated
+        this.#disabled  = this.getAttribute(DISABLED);
+        this.#connected = true;
     }
 //  attributeChangedCallback() handles changes to the observed attributes
-    attributeChangedCallback(name, _, path) {
+    attributeChangedCallback(name, _, val) {
         switch (name) {
         case DISABLED:
-            if (path !== null) {     // null == removeAttribute()
-                this.tabIndex = -1;
+            if (this.#connected) {
+                if (val === this.#disabled)
+                    return;
+                else //-------------------
+                    this.#disabled  = val;
+            }
+            this.#disabling = true;
+            if (val !== null) {         // null == removeAttribute()
+                this.tabIndex   = -1;   // indirectly recursive
+                this.#ptrEvents = this.style.pointerEvents;
                 this.style.pointerEvents = "none";
             }
             else {
                 this.tabIndex = this.#tabIndex;
-                this.style.pointerEvents = "";
+                this.style.pointerEvents = this.#ptrEvents;
             }
-            break;
+            return;
         case TAB_INDEX:
-            this.#tabIndex = path;   // to restore post-disable
+            if (this.#disabling)        // easier done here, not case DISABLED
+                this.#disabling = false;
+            else                        // to restore post-disable
+                this.#tabIndex  = val;
         default:
         }
     }
 // getters/setters reflect the HTML attributes, see attributeChangedCallback()
     get disabled()    { return this.hasAttribute(DISABLED); }
-    set disabled(path) { this._setBool(DISABLED, path); }
+    set disabled(val) { this._setBool(DISABLED, val); }
 
 // define wraps customElements.define for consistency of class and tag names
     static define(cls) {

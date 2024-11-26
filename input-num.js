@@ -66,13 +66,11 @@ event = {
     blur: "blur",
     focus:"focus"
 },
-resizeEvents = [event.blur, event.focus, mouse.over],
-
 textAlign = ["text-align","right","important"],
 noAwait   = true; // see https://github.com/sidewayss/html-elements/issues/8
 // =============================================================================
 class InputNum extends BaseElement {
-    #attrs; #bound; #btns; #confirmIt; #ctrls; #erId; #hoverIn; #hoverOut;
+    #attrs; #bound; #btns; #confirmIt; #ctrls; #erId; #hoverBtn; #hoverOut;
     #input; #isBlurring; #isLoading; #isMousing; #kbSpin; #locale; #outFocus;
     #padRight; #spinId; #states; #svg; #texts; #validate;
     #isBlurry;         // kludge for this._dom.activeElement === null
@@ -96,8 +94,12 @@ static observedAttributes = [
         super(import.meta, InputNum, noAwait);
         //   #attrs caches numbers for revert on NaN
         this.#attrs  = Object.assign({}, InputNum.defaults);
-        this.#locale = {currencyDisplay:"narrowSymbol"};
         this.#spinId = null;
+        this.#locale = {
+            currencyDisplay:"narrowSymbol",
+            maximumFractionDigits:this.#attrs[DIGITS],
+            minimumFractionDigits:this.#attrs[DIGITS]
+        };
         this.#bound  = {        // #swapEvents adds/removes #bound events
             [mouse.down]: this.#mouseDown.bind(this),
             [mouse.up]:   this.#mouseUp  .bind(this),
@@ -111,7 +113,7 @@ static observedAttributes = [
         this.#addEvent(event.blur,  this.#active);
 
         const obj = {};         // #states are #input styles for each state
-        for (const evt of resizeEvents)
+        for (const evt of [event.blur, event.focus, mouse.over])
             obj[evt] = {};
         obj[mouse.out] = obj[event.blur];
         this.#states   = obj;
@@ -344,34 +346,16 @@ static observedAttributes = [
 //  Both this and #up, #down listen for mouseover, mouseout, focus and blur.
 //  this handles both mouse events with #hover, and focus/blur with #active().
 //  #up, #down handle each event separately, handler is named after the event.
-//  mouseover and mouseout ---------------------------------------------------
-//  target is this: shows/hides controls and formats #input for spinner
-    #hover(evt) {
-        const
-        isOver = (evt.type == mouse.over),
-        inFocus = this.#inFocus;
-        this.#hoverOut = isOver;
-        if (!this.#hoverIn)
-            this._setHref(`${this.#getButton(inFocus)}${IDLE}`);
-
-        if (inFocus) {
-            if (this.confirms)
-                this.#showCtrls(isOver);
-        }
-        else if (this.spins) {
-            this.#assignCSS(evt.type);
-            this.#input.value = this.#getText(false, !isOver);
-            this.#showCtrls(isOver || this.#outFocus);
-        }
-    }
+//
+//  mouseover and mouseout ==================================
 //  target is up or down <rect>: starts/stops spin, sets href
     #mouseOver(evt) {
         let args;
         const id = evt.target.id;
-        if (this.#isSpinning) {          // if spinning, spin the other way
+        if (this.#isSpinning) {         // if spinning, spin the other way
             if (this.#spinId >= 0)
-                this.#clearSpin();       // clearInterval()
-            args = [false, id == TOP];   // restart at full speed
+                this.#clearSpin();      // clearInterval()
+            args = [false, id == TOP];  // restart at full speed
         }
         this.#overOut(id, `${this.#getState(id)}`, args);
     }
@@ -379,45 +363,72 @@ static observedAttributes = [
         const
         id   = evt.relatedTarget?.id,
         args = !this.#isSpinning || id == TOP || id == BOT
-             ? undefined  // don't call #spin()
-             : [];        // cancel spinning
+             ? undefined                // don't call #spin()
+             : [];                      // cancel spinning
         this.#overOut("", IDLE, args);
     }
-    #overOut(hoverIn, state, args) {
-        this.#hoverIn = hoverIn;
+    #overOut(hoverBtn, state, args) {
+        this.#hoverBtn = hoverBtn;
         this._setHref(`${this.#getButton(this.#inFocus)}${state}`);
         if (args !== undefined)
             this.#spin(...args);
     }
-//  focus and blur -----------------------------------------------------------
-//  target is this:
-    #active(evt) {
-        if (this.#isMousing) return;
-        //-----------------------------------------
-        this.#outFocus = (evt.type == event.focus);
+//  target is this: shows/hides controls and formats #input for spinner
+    #hover(evt) {
         const
-        inFocus = this.#inFocus,
-        showIt  = (inFocus || !this.#outFocus)
-                ? this.#hoverOut // #input is focused or this is blurring
-                : true;          // this is focused, not #input
-        this.#showCtrls(showIt);
-        this._setHref(this.#getButton(inFocus) + this.#getState());
+        isOver  = (evt.type == mouse.over),
+        inFocus = this.#inFocus;
+        this.#hoverOut = isOver;
+        if (!this.#hoverBtn)
+            this._setHref(`${this.#getButton(inFocus)}${IDLE}`);
+
+        if (inFocus) {
+            if (this.confirms)
+                this.#showCtrls(isOver);
+        }
+        else if (this.spins) {
+            const
+            isActive = (this === document.activeElement),
+            either   = isOver || isActive;
+            this.#showCtrls(either);
+            this.#input.value = this.#getText(false, !either);
+            if (!isActive)
+                this.#assignCSS(evt.type);
+        }
+    }
+//  focus and blur ============================================================
+//  target is this:
+//  #active() only runs when focusing/blurring the element and relatedTarget is
+//            not #input. #isMousing exits early when clicking on #input.
+    #active(evt) {
+        if (this.#isMousing || this.#hoverOut) return;
+        //-------------------------------------------------------------------
+        // If we get this far then #inFocus is false and #fur() does not run.
+        // #hoverOut is excluded because hovering already sets these.
+        const outFocus = (evt.type == event.focus);
+        this.#outFocus = outFocus; //% this === dom.activeElement (or not)
+
+        this.#input.value = this.#getText(false, !outFocus);
+        this.#assignCSS(outFocus ? mouse.over : event.blur);
+        this.#showCtrls(outFocus);
+        if (outFocus)               // always idle buttons:
+            this._setHref(this.#getButton(false) + this.#getState());
     }
 //  target is #input:
     #focus(evt) {
         // stopPropagation() here doesn't prevent #active()
         if (this.#isBlurry || this.#isMousing) return;
-        //---------------------------------------------------
-        this.#fur(evt, false, CONFIRM, false,
+        //-------------------------------------------------
+        this.#fur(evt, false, CONFIRM, !this.#hoverBtn,
                   this.#attrs[VALUE].toFixed(this.digits));
     }
     #blur(evt) {
         if (this.#isBlurry || this.#isMousing) return;
-        //---------------------------------------------------------------------
+        //----------------------------------------------------------------------
         // The default behavior is to confirm the value onblur() when the user
         // presses the Tab key or clicks elsewhere on the page. To cancel input
-        // onblur(), set the blur-cancel attribute. Either way, the blur
-        // event handler is where we "confirm it" i.e. set the value attribute.
+        // onblur(), set the blur-cancel attribute. Either way, the blur event
+        // handler is where we "confirm it" i.e. set the value attribute.
         // #confirmIt: true = Enter/OK, false = Esc/Cancel, undefined = Tab/etc.
         if (this.#confirmIt ?? !this.blurCancel) {
             const val = this.#validate?.(this.text) ?? this.text;
@@ -434,27 +445,28 @@ static observedAttributes = [
         //   evt.relatedTarget === this and #active does not run
         //   because this === document.activeElement before and after
         const
-        showIt = (evt.relatedTarget === this),
-        value  = this.#getText(false, true);
-        if (this.#fur(evt, true, SPINNER, showIt, value)) {
+        showIt = (evt.relatedTarget === this) || this.#hoverOut,
+        value  = this.#getText(false, !showIt),
+        type   = showIt ? mouse.out : evt.type;
+        if (this.#fur(evt, true, SPINNER, showIt, value, type)) {
             this.classList.remove(NAN);
             this.classList.remove(OOB);
         }
     }
-    #fur(evt, isBlur, name, showIt, value) {
+    #fur(evt, isBlur, name, showIt, value, type = evt.type) {
         this.#input.value = value;
-        this._setHref   (name + this.#getState());
-        this.#assignCSS (evt.type);
-        this.#showCtrls (showIt || this.#hoverOut);
+        this.#assignCSS(type);
+        this.#showCtrls(showIt);
+        this._setHref  (name + this.#getState());
         this.#swapEvents(isBlur);       // both are focusing or blurring:
         if (isBlur ? document.activeElement !== this : !this.#outFocus) {
             if (evt.target)             // else called by #mouseUp()
                 evt.stopPropagation();  // don't run #active()
-            this.#outFocus = !isBlur;   // but gotta set this
+            this.#outFocus = !isBlur;   //% but gotta set this
         }
         return true;
     }
-//  mousedown, mouseup, and click --------------------------------------------
+//  mousedown, mouseup, and click ===========================================
 //  target is #input or up or down <rect>:
 //  #isMousing is because in #input the user can mousedown & drag to select,
 //  even trigger mouseout, and because preventDefault() doesn't prevent blur.
@@ -519,7 +531,7 @@ static observedAttributes = [
         else
             this.#blurMe(false);
     }
-//  keydown and keyup --------------------------------------------------------
+//  keydown and keyup ========================================================
 //  keyboard target is this, because the svg buttons don't receive focus.
     #keyDown(evt) {                 // document .activeElement === this
         if (this.#inFocus)          // this._dom.activeElement === this.#input
@@ -655,13 +667,13 @@ static observedAttributes = [
     get #isSpinning() { return this.#spinId !== null; }
 
 //  #spin() controls the spinning process
-    #spin(state, isUp = (this.#hoverIn == TOP)) {
+    #spin(state, isUp = (this.#hoverBtn == TOP)) {
         if (state === undefined) {          // cancel:
             if (this.#isSpinning) {
                 this.#clearSpin();
                 if (isUp !== null) {        // for mouseover while spinning
-                    const state = this.#hoverIn ? `${HOVER}${this.#hoverIn}`
-                                                : IDLE;
+                    const state = this.#hoverBtn ? `${HOVER}${this.#hoverBtn}`
+                                                 : IDLE;
                     this._setHref(`${SPINNER}${state}`);
                     this.#spinId = null;
                 }
@@ -757,12 +769,15 @@ static observedAttributes = [
             isItalic = (style.fontStyle == "italic");
             for (txt of this.#texts) {
                 id = txt.id;
-                txt.innerHTML = (id == UNITS)
-                              ? this.units
-                              : this.#formatNumber(this[id]);
+                if (id != UNITS)
+                    txt.innerHTML = this.#formatNumber(this[id]);
+                else if (this.units)
+                    txt.innerHTML = `${this.#locale.currency ? "/" : ""}${this.units}`;
+                else
+                    txt.innerHTML = "";
 
                 for (type of ["","-kerning","-size-adjust","-synthesis",
-                              "-optical-sizing",-"palette"]) {
+                                 "-optical-sizing","-palette"]) {
                     prop = "font" + type;
                     txt.style[prop] = style[prop];
                 }
@@ -825,7 +840,7 @@ static observedAttributes = [
     #getText(inFocus, appendUnits) {
         const n = this.#attrs[VALUE];
         let txt = inFocus ? n : this.#formatNumber(n);
-        if (appendUnits) {
+        if (appendUnits && this.units) {
             if (this.#locale.currency)
                 txt += "/";     // currency && units displays currency per unit
             txt += this.units;
@@ -848,7 +863,7 @@ static observedAttributes = [
         return !inFocus ? SPINNER : CONFIRM;
     }
 //  #getState() gets the second-third segments of the href id
-    #getState(id = this.#hoverIn) {
+    #getState(id = this.#hoverBtn) {
         return this.#isSpinning ? `${ACTIVE}${id}`
                            : id ? `${HOVER}${id}`
                                 : IDLE; // idle only has two segments
