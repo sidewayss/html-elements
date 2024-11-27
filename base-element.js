@@ -6,9 +6,10 @@ VALUE     = "value";    // exported: defined here but not handled here
 // =============================================================================
 // The custom base class, direct sub-class of HTMLElement
 class BaseElement extends HTMLElement {
-    #connected; #disabled; #disabling; #id; #meta; #ptrEvents; #tabIndex;
+    #connected; #disabled; #disabling; #id; #internals; #meta; #ptrEvents; #tabIndex;
     static searchParams;    // set by html-elements.js, if it's used
     static observedAttributes = [DISABLED, TAB_INDEX];
+    static formAssociated     = true;
     static promises = new Map; // for noAwait, see https://github.com/sidewayss/html-elements/issues/8
     constructor(meta, template, noAwait) {
         super();
@@ -21,15 +22,17 @@ class BaseElement extends HTMLElement {
             this.#attach(template);         // <template> as DocumentFragment
 
         this.setAttribute(TAB_INDEX, "0");  // default value emulates <input>
+        this.#internals = this.attachInternals(); // for accessibility, labels
     }
     #attach(template) {
         this._dom = this.attachShadow({mode:"open"});
         this._dom.appendChild(template.cloneNode(true));
     }
-//  connectedCallback() exists for noAwait. It calls this._init(), which resides
-//  in the bottom-level class. Classes with intermediate superclasses might call
-//  this._initSuper(). If (!noAwait) it must call a pseudo-connectedCallback()
-//  because a real one prevents this one from running.
+//  connectedCallback() exists for DISABLED and noAwait. It calls this._init(),
+//  which resides in the bottom-level class. Classes with intermediate super-
+//  classes might call this._initSuper(). If (!noAwait) it must call a pseudo-
+//  connectedCallback() called _connected(), because a real one prevents this
+//  one from running.
     connectedCallback() {
         if (this.#meta) {
             getTemplate(this.#meta, this.#id).then(tmp => {

@@ -842,7 +842,7 @@ static observedAttributes = [
         return (inFocus ? n : this.#formatNumber(n))
              + (appendUnits && this.units ? this.#getUnits() : "");
     }
-//  #getUnits() gets the units text, currency && units displays currency per unit
+//  #getUnits() gets the units text: currency && units displays currency per unit
     #getUnits() {
         return `${this.useLocale && this.#locale.currency ? "/" : ""}${this.units}`;
     }
