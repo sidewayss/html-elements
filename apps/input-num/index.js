@@ -51,8 +51,9 @@ function load() {
     decimals.push(newOption(n, i));
                                       // init these remaining elements by id:
   ["autoWidth","autoAlign","autoScale","max","digits","accounting",
-   "spins","confirms","keyboards","step","delay","interval","blur-cancel",
-   "fontSize","fontWeight","fontStyle"].forEach(id => initElm(id, decimals));
+   "spins","confirms","keyboards","step","delay","interval","blurCancel",
+   "anyDecimal","fontSize","fontWeight","fontStyle"
+  ].forEach(id => initElm(id, decimals));
 
   const                               // #min is a modified clone of #max
   min = "min",
@@ -151,7 +152,7 @@ function initElm(id, decimals) {
   let i, n, opt;
   const elm  = document.getElementById(id);
 
-  elms[kebabToCamel(id)] = elm;
+  elms[id] = elm;
   addChangeEvent(elm);
   switch (id) {
     case "digits":
@@ -281,8 +282,9 @@ function updateText() {
     for (elm of [elms.step, elms.delay, elms.interval])
       ctrls.add(elm);
 
-  if (elms.blurCancel.checked)
-    ctrls.add(elms.blurCancel);
+  for (elm of [elms.blurCancel, elms.anyDecimal])
+    if (elm.checked)
+      ctrls.add(elm);
 
   for (elm of ctrls) {
     prop = elm.id;
@@ -306,8 +308,8 @@ function updateText() {
             js  += getText(elm, prop, true);
           }
           break;
-        case elms.accounting: case elms.blurCancel:
-          pre += prop;
+        case elms.accounting: case elms.blurCancel: case elms.anyDecimal:
+          pre += prop.replace(/[A-Z]/g, ch => "-" + ch.toLowerCase());
           js  += getText(null, prop, true, true);
           break;
       }
@@ -319,7 +321,7 @@ function updateText() {
 //======================================
 function getText(elm, prop, isJS, val) {
   let equals, prefix, suffix;
-  const value = (val != undefined)
+  const value = (val !== undefined)
               ? val
               : isJS && !Number.isNaN(parseFloat(elm.value))
                 ? elm.value
