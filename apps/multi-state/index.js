@@ -76,7 +76,7 @@ function change(evt) {
       case TRI: arr = ["Space", val]; break;
       case BTN: arr = Array.from(tar.selectedOptions).map(v => v.value);
     }
-    elm[prop] = JSON.stringify(arr);
+    elm[prop] = arr;
   }
   else {
     elm[prop] = val;
