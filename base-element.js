@@ -21,7 +21,7 @@ class BaseElement extends HTMLElement {
         else
             this.#attach(template);         // <template> as DocumentFragment
 
-        this.setAttribute(TAB_INDEX, "0");  // default value emulates <input>
+        this.setAttribute(TAB_INDEX, "0");  // default value, emulates <input>
         this.#internals = this.attachInternals(); // for accessibility, labels
     }
     #attach(template) {

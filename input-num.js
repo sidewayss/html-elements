@@ -2,10 +2,10 @@ export {InputNum};
 
 import {VALUE, BaseElement} from "./base-element.js";
 const
-MAX   = "max",                // DOM attributes:
+MAX   = "max",          // DOM attributes:
 MIN   = "min",
 STEP  = "step",
-                              // custom attributes: numbers and strings
+                        // custom attributes: numbers and strings first
 DELAY       = "delay",        // millisecond delay between mousedown & spin
 INTERVAL    = "interval",     // millisecond interval for spin
 DIGITS      = "digits",       // Number.prototype.toFixed(digits)
@@ -13,8 +13,9 @@ UNITS       = "units",        // units string suffix
 LOCALE      = "locale",       // locale string: "aa-AA", "" = user locale
 NOTATION    = "notation",     // Intl.NumberFormat() options notation prop
 CURRENCY    = "currency",     // ditto: currency property
-                                   // booleans:
+                        // booleans:
 ACCOUNTING  = "accounting",   // {currencySign:"accounting"}
+ANY_DECIMAL = "any-decimal",  // lets users input either comma or period
 BLUR_CANCEL = "blur-cancel",  // Blur = <Esc> key, else Blur = <Enter> key
 NO_KEYS     = "no-keys",      // no keyboard/pad input, only spinning
 NO_SPIN     = "no-spin",      // hide spinner, no keyboard spinning
@@ -70,9 +71,9 @@ textAlign = ["text-align","right","important"],
 noAwait   = true; // see https://github.com/sidewayss/html-elements/issues/8
 // =============================================================================
 class InputNum extends BaseElement {
-    #attrs; #bound; #btns; #confirmIt; #ctrls; #erId; #hoverBtn; #hoverOut;
-    #input; #isBlurring; #isLoading; #isMousing; #kbSpin; #locale; #outFocus;
-    #padRight; #spinId; #states; #svg; #texts; #validate;
+    #attrs; #bound; #btns; #confirmIt; #ctrls; #decimal; #erId; #hoverBtn;
+    #hoverOut; #input; #isBlurring; #isLoading; #isMousing; #kbSpin; #locale;
+    #outFocus; #padRight; #spinId; #states; #svg; #texts; #validate;
     #isBlurry;         // kludge for this._dom.activeElement === null
 
 static defaults = {
@@ -93,18 +94,16 @@ static observedAttributes = [
     constructor() {
         super(import.meta, InputNum, noAwait);
         //   #attrs caches numbers for revert on NaN
-        this.#attrs  = Object.assign({}, InputNum.defaults);
-        this.#spinId = null;
-        this.#locale = {
-            currencyDisplay:"narrowSymbol",
-            maximumFractionDigits:this.#attrs[DIGITS],
-            minimumFractionDigits:this.#attrs[DIGITS]
-        };
-        this.#bound  = {        // #swapEvents adds/removes #bound events
+        this.#attrs   = Object.assign({}, InputNum.defaults);
+        this.#decimal = ".";    // that's the universal default
+        this.#spinId  = null;
+        this.#bound   = {       // #swapEvents adds/removes #bound events
             [mouse.down]: this.#mouseDown.bind(this),
             [mouse.up]:   this.#mouseUp  .bind(this),
             [mouse.click]:this.#click    .bind(this)
         };
+        this.#locale = {currencyDisplay:"narrowSymbol"}; // constant
+        this.#getDigits(this.#locale);
         this.#addEvent(key.down,    this.#keyDown);
         this.#addEvent(key.up,      this.#keyUp);
         this.#addEvent(mouse.over,  this.#hover);
@@ -186,10 +185,9 @@ static observedAttributes = [
             case DIGITS:            // runs twice if #revert(), but simpler
                 isResize = true;
                 isUpdate = true;
+                this.#getDigits(this.#locale, n);
                 if (this.#input)    // for noAwait
                     this.#input.inputMode = n ? "decimal" : "numeric";
-                this.#locale.maximumFractionDigits = n;
-                this.#locale.minimumFractionDigits = n;
                 if (!this.hasAttribute(STEP)) // auto-step default:
                     this.#attrs[STEP] = this.#autoStep(n);
             case DELAY:
@@ -240,10 +238,17 @@ static observedAttributes = [
             default:
                 isUpdate = true;
                 switch(name) {
+                case LOCALE:        // the decimal marker:
+                    this.#decimal = (val === null)
+                                  ? "."     // convert "" to undefined
+                                  : Intl.NumberFormat(val || undefined)
+                                        .formatToParts(.1)
+                                        .find(p => p.type == "decimal")
+                                        .value;
+                    break;
                 case ACCOUNTING:
                     this.#locale.currencySign = (val !== null)
                                               ? "accounting" : undefined;
-                case LOCALE:
                 case UNITS:         // strings:
                     break;
                 case CURRENCY:
@@ -287,7 +292,8 @@ static observedAttributes = [
     get autoAlign()  { return !this.hasAttribute(NO_ALIGN);    }
     get autoResize() { return !this.hasAttribute(NO_RESIZE);   }
     get autoScale()  { return !this.hasAttribute(NO_SCALE);    }
-    get blurEsc()    { return  this.hasAttribute(BLUR_CANCEL); }
+    get blurCancel() { return  this.hasAttribute(BLUR_CANCEL); }
+    get anyDecimal() { return  this.hasAttribute(ANY_DECIMAL); }
     get accounting() { return  this.hasAttribute(ACCOUNTING);  }
     get useLocale()  { return  this.hasAttribute(LOCALE);      } // read-only
 
@@ -319,7 +325,8 @@ static observedAttributes = [
     set autoAlign (val) { this._setBool(NO_ALIGN,   !val); }
     set autoResize(val) { this._setBool(NO_RESIZE,  !val); }
     set autoScale (val) { this._setBool(NO_SCALE,   !val); }
-    set blurEsc   (val) { this._setBool(BLUR_CANCEL, val); }
+    set blurCancel(val) { this._setBool(BLUR_CANCEL, val); }
+    set anyDecimal(val) { this._setBool(ANY_DECIMAL, val); }
     set accounting(val) { this._setBool(ACCOUNTING,  val); }
 
     set units   (val) { this.#setRemove(UNITS,    val); }        // strings:
@@ -420,7 +427,7 @@ static observedAttributes = [
         if (this.#isBlurry || this.#isMousing) return;
         //-------------------------------------------------
         this.#fur(evt, false, CONFIRM, !this.#hoverBtn,
-                  this.#attrs[VALUE].toFixed(this.digits));
+                  this.#getText(true));
     }
     #blur(evt) {
         if (this.#isBlurry || this.#isMousing) return;
@@ -505,10 +512,11 @@ static observedAttributes = [
             end   = input.selectionEnd,
             dist  = end - start,
             val   = input.value,
+            rxp   = new RegExp(`[^\\d\-eE${this.#decimal}]`, "g"),
             orig  = [{num:start, str:val.slice(0, start)},
                      {num:dist,  str:val.slice(start, end)}];
             for (obj of orig) {
-                match = obj.str.match(/[^\d-.eE]/g);
+                match = obj.str.match(rxp);
                 range.push(obj.num - (match ? match.length : 0))
             }
             this.#isMousing = false;      // let #focus() do it's thing, #input
@@ -839,23 +847,39 @@ static observedAttributes = [
 //  #getText() gets the appropriate text for the #input
     #getText(inFocus, appendUnits) {
         const n = this.#attrs[VALUE];
-        return (inFocus ? n : this.#formatNumber(n))
+        return inFocus
+             ? this.#formatNumber(n, this.#getDigits({useGrouping:false}))
+             : this.#formatNumber(n)
              + (appendUnits && this.units ? this.#getUnits() : "");
+    }
+    #getDigits(obj, i = this.#attrs[DIGITS]) {
+        obj.maximumFractionDigits = i;
+        obj.minimumFractionDigits = i;
+        return obj;
     }
 //  #getUnits() gets the units text: currency && units displays currency per unit
     #getUnits() {
         return `${this.useLocale && this.#locale.currency ? "/" : ""}${this.units}`;
     }
 //  #formatNumber() formats a number for display as text
-    #formatNumber(n) {
+    #formatNumber(n, options = this.#locale) {
         if (n !== undefined)        //!!might not be necessary anymore...
             return this.useLocale
-                 ? new Intl.NumberFormat(this.locale, this.#locale).format(n)
+                 ? new Intl.NumberFormat(this.locale, options).format(n)
                  : n.toFixed(this.#attrs[DIGITS]);
     }
-//  #toNumber() converts string to number, str never equals 0
-    #toNumber(str) {                    // parseFloat() is too lenient
-        return str ? Number(str) : NaN; // Number() converts "" and null to 0
+//  #toNumber() converts String to Number
+    #toNumber(str) {
+        if (!str)                  // str might equal "0", but never 0
+            return NaN;            // Number() converts "" and null to 0
+        else if (this.anyDecimal)  // part of the locale-friendly approach
+            str = str.replace(",", ".");
+        else if (this.#decimal == ",") {
+            if (str.includes("."))
+                return NaN;
+            str = str.replace(",", ".");
+        }
+        return Number(str);        // parseFloat() is too lenient
     }
 //  #getButton() gets the first segment of the href id
     #getButton(inFocus) {
