@@ -1,4 +1,4 @@
-export {VALUE, BaseElement};
+export {DISABLED, VALUE, BaseElement};
 const
 DISABLED  = "disabled", // DOM attributes
 TAB_INDEX = "tabindex",
@@ -79,7 +79,7 @@ class BaseElement extends HTMLElement {
     }
 // getters/setters reflect the HTML attributes, see attributeChangedCallback()
     get disabled()    { return this.hasAttribute(DISABLED); }
-    set disabled(val) { this._setBool(DISABLED, val); }
+    set disabled(val) { this.toggleAttribute(DISABLED, val); }
 
 // define wraps customElements.define for consistency of class and tag names
     static define(cls) {

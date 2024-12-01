@@ -1,6 +1,6 @@
 export {InputNum};
 
-import {VALUE, BaseElement} from "./base-element.js";
+import {DISABLED, VALUE, BaseElement} from "./base-element.js";
 const
 MAX   = "max",          // DOM attributes:
 MIN   = "min",
@@ -256,6 +256,9 @@ static observedAttributes = [
                 case NOTATION:      // convert null to undefined
                     this.#locale[name] = val ?? undefined;
                     break;
+                case DISABLED:      // falls through
+                    for (const elm of this.#btns)
+                        elm.style.pointerEvents = val ? "none" : "";
                 default:            // handled by BaseElement
                     super.attributeChangedCallback(name, _, val);
                     return;
