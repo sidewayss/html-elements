@@ -258,7 +258,7 @@ static observedAttributes = [
                     break;
                 case DISABLED:      // falls through
                     for (const elm of this.#btns)
-                        elm.style.pointerEvents = val ? "none" : "";
+                        elm.style.pointerEvents = (val === null) ? "" : "none";
                 default:            // handled by BaseElement
                     super.attributeChangedCallback(name, _, val);
                     return;
