@@ -16,7 +16,7 @@ state-btn:active {
   stroke-width:3px;
   fill:none;
 }
-state-btn[disabled] {
+state-btn:disabled {
   fill   :#666;
   stroke :#666;
 }

@@ -14,25 +14,25 @@ check-box, check-tri {
   stroke:var(--charcoal);
   color: var(--charcoal); /* color is for ::part(label) */
 }
-check-box[disabled], check-box[disabled][checked],
-check-tri[disabled], check-tri[disabled][checked]  {
+check-box:disabled, check-box:disabled:checked,
+check-tri:disabled, check-tri:disabled:checked  {
   fill-opacity:0.25;
   stroke:var(--medium-gray);
   color: var(--medium-gray);
 }
-check-box[checked]::part(check),
+check-box:checked::part(check),
 check-tri[value]::part(check) {
   fill-opacity:1;
 }
 check-box:hover::part(check),
 check-tri:hover::part(check),
-check-box[checked]:hover::part(check) {
+check-box:checked:hover::part(check) {
   fill-opacity:0.05;
   fill:  var(--accent-blue);
   stroke:var(--medium-blue);
 }
-check-box:active, check-tri:active::part(check),
-check-box[checked]:active,
+check-box:active::part(check),
+check-tri:active::part(check),
 check-tri:not([value])::part(default) {
   fill-opacity:1;
   fill:white;

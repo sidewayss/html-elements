@@ -39,6 +39,9 @@
     padding: 0 0.0625rem 0.0625rem 0.125rem;
     background-color:white; /* same as default, afaik */
   }
+  input-num:disabled::part(input) {
+    color: var(--medium-gray);
+  }
   @media (hover:none) {
     input-num::part(buttons) { display:none }
   }
