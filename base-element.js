@@ -59,15 +59,17 @@ class BaseElement extends HTMLElement {
                     this.#disabled  = val;
             }
             this.#disabling = true;
-            if (val !== null) {         // null == removeAttribute()
-                this.tabIndex   = -1;   // indirectly recursive
-                this.#ptrEvents = this.style.pointerEvents;
-                this.style.pointerEvents = "none";
-            }
-            else {
+            if (val === null)           // enabled: null == removeAttribute()
                 this.tabIndex = this.#tabIndex;
-                this.style.pointerEvents = this.#ptrEvents;
+            else {
+                this.tabIndex   = -1;   // disabled: indirectly recursive
+                this.#ptrEvents = this.style.pointerEvents;
             }
+            const pe = getPointerEvents(val, this.#ptrEvents);
+            this.style.pointerEvents = pe;
+            if (this.labels.length)
+                for (const lbl of this.labels)
+                    lbl.style.pointerEvents = pe;
             return;
         case TAB_INDEX:
             if (this.#disabling)        // easier done here, not case DISABLED
@@ -80,6 +82,8 @@ class BaseElement extends HTMLElement {
 // getters/setters reflect the HTML attributes, see attributeChangedCallback()
     get disabled()    { return this.hasAttribute(DISABLED); }
     set disabled(val) { this.toggleAttribute(DISABLED, val); }
+
+    get labels() { return [...document.querySelectorAll(`[for="${this.id}"]`)]; }
 
 // define wraps customElements.define for consistency of class and tag names
     static define(cls) {
@@ -151,6 +155,9 @@ function catchError(err) {
     console.error(err.stack ?? err);
 }
 //==============================================================================
+function getPointerEvents(attrVal, val = "") {
+    return (attrVal === null) ? val : "none";
+}
 // classToTag() converts a class to a tag name
 function classToTag(cls) {
     const name = cls.name;
