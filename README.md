@@ -1,4 +1,4 @@
-# sidewayss/html-elements = @sidewayss/elements
+# sidewayss/html-elements == sideways-elements
 - [`<input-num>`](#input-num) is a numeric input that emulates a spreadsheet and formats with [Intl.NumberFormat](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/NumberFormat).
 - [`<state-btn>`](#state-btn) is a multi-state button with user-defined states, shapes, toggle order, and key codes.
 - [`<check-tri>`](#check-tri) is a tri-state checkbox, adding a form of [`indeterminate`](https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/indeterminate) as the third state.
@@ -57,7 +57,7 @@ If you bundle your templates into one file, then each `<template>` must have the
 <template id="input-num">...</template>
 ```
 
-NOTE: If you are using import options and getting an error about an element/tag already being registered, you might need to add the same import options to your JavaScript `import` statements, so that they match your HTML `<script>` imports.  This happens sometimes because the browser imports them as two separate files, for reasons unknown to me.
+__NOTE:__ If you are using import options and getting an error about an element/tag already being registered, you might need to add the same import options to your JavaScript `import` statements, so that they match your HTML `<script>` imports.  This happens sometimes because the browser imports them as two separate files, for reasons unknown to me.
 
 ### Managing Template Files
 There are built-in template files in the `templates/` directory. They serve two purposes:
@@ -66,11 +66,11 @@ There are built-in template files in the `templates/` directory. They serve two 
 
 These files are part of the repository, so you don't want to be editing them in-place unless you're planning to submit a pull request. Instead, you should create your own directory, wherever convenient, and store your template files there.  You might start by copying the built-in files there and working within their structures.
 
-NOTE: The [`part`](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/part) attribute and CSS [`::part`](https://developer.mozilla.org/en-US/docs/Web/CSS/::part) are new enough that it's worth reviewing the [current support grid]((https://caniuse.com/mdn-html_global_attributes_part)) (the two grids are identical). The built-in templates have fallback styles to support older browsers. Remember that `::part` overrides the element's style unless you specify `!important`.
+__NOTE:__ The [`part`](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/part) attribute and CSS [`::part`](https://developer.mozilla.org/en-US/docs/Web/CSS/::part) are new enough that it's worth reviewing the [current support grid]((https://caniuse.com/mdn-html_global_attributes_part)) (the two grids are identical). The built-in templates have fallback styles to support older browsers. Remember that `::part` overrides the element's style unless you specify `!important`.
 
 *Also note:* As of the start of 2025, using the `part` attribute inside [`<defs>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/defs) is unreliable across browsers. Firefox doesn't recognize it. Chrome doesn't allow hyphenated part names. I haven't gotten past those two yet. The built-in template files avoid doing this, which limits their internal structure and complicates their external styling. *Of course removing the fallback styles from inside the template helps simplify external styling too, if you can afford to do that.*
 
-NOTE: The CSS files in the `css` sub-directory are samples, examples. They are used in the test/demo apps, but not by the elements themselves.
+__NOTE:__ The CSS files in the `css` sub-directory are samples, examples. They are used in the test/demo apps, but not by the elements themselves.
 
 ### `DOMContentLoaded`
 If you have code that runs during the page load process, there are two sets of promises that you might need to reference:
@@ -103,13 +103,23 @@ A quick glossary entry of note: A [boolean attribute](https://developer.mozilla.
 These classes manage common attributes/properties and behaviors across elements. All the attributes/properties listed are inherited by the sub-classes.
 
 ### `class BaseElement extends HTMLElement`
-`BaseElement` is the top level class. It is the parent class for `InputNum` and `MultiState`. It manages two global DOM attributes, `disabled` and `tabindex`. See `base-element.js`.`
+`BaseElement` is the top level class. It is the parent class for `InputNum` and `MultiState`. See `base-element.js`.` It manages two global DOM attributes/properties:
+- `disabled/disabled`
+- `tabindex/tabIndes`
 
-NOTE: `HTMLElement` does not have a `disabled` attribute/property. It only has `tabindex`/`tabIndex`. `BaseElement` observes the `disabled` and `tabindex` attributes and exposes the properties. To do so requires the `disabled` attribute to manage `tabindex` too, because setting `disabled` *should* set `tabindex="-1"`. This is complicated if you set `tabindex` instead of relying on the default tab order, but most of that can be handled. But if you are setting both `disabled` and `tabindex` in your HTML file, you *must* set `tabindex` before `disabled`. This because the DOM runs `attributeChangedCallback()` in a FIFO queue and when `disabled` sets the `tabindex` it goes to the end of the queue, after the `tabindex` setting in the HTML file. Though it's allowed, setting `tabindex` to anything other than `0` or `-1` is sternly [recommended against by MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/tabindex) (*scroll down the page to the first Warning block*).
+and one read-only property:
+- `labels` is the same as [`HTMLInputElement.prototype.labels`](https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/labels) except that it returns an `Array` instead of a `NodeList`.
+
+__NOTE:__ `HTMLElement` does not have a `disabled` attribute/property. It only has `tabindex`/`tabIndex`. `BaseElement` observes the `disabled` and `tabindex` attributes and exposes the properties. To do so requires the `disabled` attribute to manage `tabindex` too, because setting `disabled` *should* set `tabindex="-1"`. This is complicated when you set `tabindex` instead of relying on the default tab order. It's internally manageable except for this one case:
+- If you are setting both `disabled` and `tabindex` in your HTML file, you *must* set `tabindex` before `disabled`.
+
+This is because the DOM runs `attributeChangedCallback()` in a FIFO queue and when `disabled` sets the `tabindex` it goes to the end of the queue, after the `tabindex` setting in the HTML file.
+
+*Also note:* Though it's allowed, setting `tabindex` to anything other than `0` or `-1` is sternly [recommended against by MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/tabindex) (*scroll down the page to the first Warning block*).
 
 ### `class MultiState`
 `MultiState` (`multi-state.js`) is the parent class for `<state-btn>` and `MultiCheck`.
-- `key-codes` / `keyCodes` contains a JSON array of [keycodes](https://developer.mozilla.org/en-US/docs/Web/API/UI_Events/Keyboard_event_code_values) that act like a mouse click.  It converts `click` and `keyup` to `change` for compatibility with `<input type="checkbox">`.
+- `key-codes` / `keyCodes` - Internally it's a Set of [keycodes](https://developer.mozilla.org/en-US/docs/Web/API/UI_Events/Keyboard_event_code_values) that act like a mouse click.  It converts `click` and `keyup` to `change` for compatibility with `<input type="checkbox">`. The attribute value is an array in JSON format. The property returns an array, and accepts anything array-like, including Set.
 
 There is no `input` event, just `change`. For these types of `<input>` they're the same anyway. If you desire it for compatibility reasons, submit an issue or a pull request.
 
@@ -173,7 +183,7 @@ The other optional element with an `id` is `#false`. The built-in template doesn
 
 The `part` attributes are all optional.
 
-NOTE: With this template, the element is a flex container, relying on the default `flex-direction:row`. I find that `align-items:center` works best for this combination of shapes, font, and font size because the box's bottom line aligns with the font baseline:
+__NOTE:__ With this template, the element is a flex container, relying on the default `flex-direction:row`. I find that `align-items:center` works best for this combination of shapes, font, and font size because the box's bottom line aligns with the font baseline:
 ```css
 check-box, check-tri {
   display: flex;
@@ -202,7 +212,7 @@ An alternative is to put a flex container inside the template, as the template f
 - The `index` property sets the `value` attribute via an index into the states array, or gets the current value's array index.
 - The `reset()` method is equivalent to: `element.index = 0;`
 
-NOTE: The default value on initial page load is the first state defined. I see no need to set the `value` attribute in HTML. The toggle order is completely user-controlled, so just make your default state the first one. If you *really need* to declare the value in HTML, you must do it after `states` or the value won't validate. I did not see the value in adding code to make it order-independent.
+__NOTE:__ The default value on initial page load is the first state defined. I see no need to set the `value` attribute in HTML. The toggle order is completely user-controlled, so just make your default state the first one. If you *really need* to declare the value in HTML, you must do it after `states` or the value won't validate. I did not see the value in adding code to make it order-independent.
 
 ### state-btn.html
 The built-in template is a pair of playback buttons: play and stop. It's not nearly as reusable as **multi-check.html**, but this is a more raw, open-ended kind of element. It requires customization to match its flexibility.
@@ -247,12 +257,13 @@ Based on an informal survey and my own repeated frustrations, I came to the conc
 #### Spreadsheet Emulation
 - It stores an underlying `Number` separate from the formatted display, which is a `String` that can contain non-numeric characters. Inputting via keyboard reveals the unformatted, underlying value.
 - By default, the user confirms keyboard input by blurring the element (pressing `Tab`, `Shift+Tab`, or clicking elsewhere on the page), or via the `Enter` key or `OK` button. They cancel input via the `Esc` key or `Cancel` button. Cancelling reverts to the previous value. Setting the `blur-cancel` attribute cancels instead of confirming when blurring the element via tabbing or clicking elsewhere.
-    NOTE: The inner `<input>` is `type="text"`, which has built-in undo functionality in the browsers via `Ctrl+Z` or whatever the appropriate keystokes are in the native OS. So you can undo an unwanted commit within the same session, though your mileage may vary by browser/OS.
+    __NOTE:__ The inner `<input>` is `type="text"`, which has built-in undo functionality in the browsers via `Ctrl+Z` or whatever the appropriate keystokes are in the native OS. So you can undo an unwanted commit within the same session, though your mileage may vary by browser/OS.
 - By default, numbers are right-aligned, for keyboard input and formatted display. If you want to view a group of numbers in a vertical list, right-alignment is essential. Financials require it. The `no-align` attribute turns right-alignment off.
 - Spreadsheets have their own number formatting lingo. `<input-num>` uses [Intl.NumberFormat](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/NumberFormat), which is wrapped up in [locales](https://en.wikipedia.org/wiki/Locale_(computer_software)). `digits`,  `units`, `locale`, `currency`, `accounting`, and `notation` are the formatting attributes. I have not implemented any of the `Intl.NumberFormat` rounding options [yet](https://github.com/sidewayss/html-elements/issues/6).
+- Keyboard input uses the locale's decimal marker, in order to be consistent with the formatted display.
 
 #### `<input type="number"/>` Emulation and Variation
-- The `max` and `min` attributes clamp values outside their range when committing a value. When a user enters an out-of-bounds value via keyboard, the `keyup` event adds the `"OoB"` class to the element. The sample CSS file sets `background-color` to yellow (warning) vs red (error) for `"NaN"`.
+- The `max` and `min` attributes clamp values outside their range when committing a value. When a user enters an out-of-bounds value via keyboard, the `keyup` event adds the `"OoB"` class to the element. The sample CSS file sets `background-color` to yellow (warning) for `"OoB"` vs red (error) for `"NaN"`.
 - Spinner buttons appear on hover (though not while inputting via keyboard).
 - The `step` attribute defines the spin increment.
 - Focus: you can activate the element via mouse, touch, or keyboard (`Tab` key). Clicking on the spinners activates the outer element and keeps the spinners visible until it loses focus. See **Keyboard Navigation** below for some differences.
@@ -310,11 +321,11 @@ Property name same as attribute. String as attribute / Number as property.
 - `currency` / `currency` when set, sets [`style`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/NumberFormat/NumberFormat#style) = `"currency"` and [currency](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/NumberFormat/NumberFormat#currency_2) = the attribute value. It is only relevant when `locale` is set. [`currencyDisplay`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/NumberFormat/NumberFormat#currencydisplay) is always set to `"narrowSymbol"`.
 - `accounting` / `accounting` is a boolean that toggles [`currencySign`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/NumberFormat/NumberFormat#currencysign) = `"accounting"`, which in many (but not all) locales encloses negative numbers in parentheses. Only relevent when `currency` and `locale` are set.
 - `notation` / `notation` sets [`notation`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/NumberFormat/NumberFormat#notation) to the attribute value. Defaults to `"standard"`. *Untested! I don't understand the implications of the various options.*
-- `any-decimal` / `anyDecimal` is a boolean. According to the [General Conference on Weights and Measures](https://www.bipm.org/en/committees/cg/cgpm/22-2003/resolution-10), across all locales the decimal marker is represented by one of only two characters: comma `,` and period `.`. Many countries officially use comma, but unofficially the de facto standard is the Anglo format of decimals as period and thousands as comma, which appears in contracts, advertisements, and everywhere else in daily life.
+- `any-decimal` / `anyDecimal` is a boolean. According to the [General Conference on Weights and Measures](https://www.bipm.org/en/committees/cg/cgpm/22-2003/resolution-10), across all locales the decimal marker is represented by one of only two characters: comma `,` and period `.`. Many countries officially use comma, but unofficially the de facto standard is the Anglo format of period for decimals and comma for thousands. It appears in advertisements, supermarket price tags, and everywhere else in daily life, even legal documents.
     - unset / `false` enforces the locale's decimal character (which defaults to `.` when `locale` is unset).
     - `""` / `true` allows either `,` or `.` regardless of locale.
 
-NOTE: When you combine a currency symbol with units, it displays as currency per unit. For example:
+__NOTE:__ When you combine a currency symbol with units, it displays as currency per unit. For example:
 ```js
 inputNum.locale   = "es-MX";  // Español, Mexico
 inputNum.currency = "MXN";    // Mexican Peso
@@ -363,9 +374,9 @@ My preference, as illustrated in the sample `css/input-num.css` file, is to *not
 ```
 Those devices are all touchscreen, and focusing the element will focus the `<input>`, which will display the appropriate virtual keyboard. Touch and hold has system meanings on touch devices, which conflicts with spinning. And at `font-size:1rem` the buttons are smaller than recommended for touch. So unless you create oversized buttons or use a much larger font size, it's best not to display them at all.
 
-NOTE: Auto-sizing only works if the element is displayed. If the element or any of it's ancestors is set to `display:none`, the element and its shadow DOM have a width and height of zero. During page load, don't set `display:none` until after your elements have resized.
+__NOTE:__ Auto-sizing only works if the element is displayed. If the element or any of it's ancestors is set to `display:none`, the element and its shadow DOM have a width and height of zero. During page load, don't set `display:none` until after your elements have resized.
 
-NOTE: If you load the font for your element in JavaScript using `document.fonts.add()`, it will probably not load before the element. So `resize()` won't be using the correct font, and you'll have to run it again after the fonts have loaded.  Something like this:
+__NOTE:__ If you load the font for your element in JavaScript using `document.fonts.add()`, it will probably not load before the element. So `resize()` won't be using the correct font, and you'll have to run it again after the fonts have loaded.  Something like this:
 ```js
 document.addEventListener("DOMContentLoaded", load);
 function load() {

@@ -1,5 +1,5 @@
 {
-  "name": "@sidewayss/elements",
+  "name": "sideways-elements",
   "version": "1.0.0",
   "description": "Autonomous custom HTML elements with external template files",
   "customElements": "./custom-elements.json",
