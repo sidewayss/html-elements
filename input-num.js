@@ -166,6 +166,8 @@ static observedAttributes = [
 //  valid value. Validation of string values is left to the DOM.
     attributeChangedCallback(name, _, val) {
         let isResize, isUpdate;
+        const isNull = (val === null);
+
         if (name in this.#attrs) {  // numeric attributes
             const n = this.#toNumber(val);
             if (Number.isNaN(n) && name != STEP) {
@@ -174,7 +176,7 @@ static observedAttributes = [
             } //-----------
             switch (name) {
             case STEP:
-                if (val === null)
+                if (isNull)
                     this.#attrs[STEP] = this.#autoStep(this.#attrs[DIGITS]);
                 else if (n)
                     this.#accept(name, n);
@@ -221,7 +223,7 @@ static observedAttributes = [
             case NO_KEYS:
                 isResize = false;
                 if (this.#input)    // for noAwait
-                    this.#input.disabled = (val !== null);
+                    this.#input.disabled = !isNull;
                 break;
             case NO_CONFIRM:
             case NO_SPIN:           // assume element does not have focus
@@ -229,7 +231,7 @@ static observedAttributes = [
                 break;
             case NO_ALIGN:
                 if (this.#input) {  // for noAwait
-                    const args = (val === null) ? textAlign : [textAlign[0], null];
+                    const args = isNull ? textAlign : [textAlign[0], null];
                     this.#input.style.setProperty(...args);
                 }
             case NO_WIDTH:
@@ -239,7 +241,7 @@ static observedAttributes = [
                 isUpdate = true;
                 switch(name) {
                 case LOCALE:        // the decimal marker:
-                    this.#decimal = (val === null)
+                    this.#decimal = isNull
                                   ? "."     // convert "" to undefined
                                   : Intl.NumberFormat(val || undefined)
                                         .formatToParts(.1)
@@ -247,7 +249,7 @@ static observedAttributes = [
                                         .value;
                     break;
                 case ACCOUNTING:
-                    this.#locale.currencySign = (val !== null)
+                    this.#locale.currencySign = !isNull
                                               ? "accounting" : undefined;
                 case UNITS:         // strings:
                     break;
@@ -257,8 +259,9 @@ static observedAttributes = [
                     this.#locale[name] = val ?? undefined;
                     break;
                 case DISABLED:      // falls through
+                    this.#input.tabIndex = isNull ? 0 : -1;
                     for (const elm of this.#btns)
-                        elm.style.pointerEvents = (val === null) ? "" : "none";
+                        elm.style.pointerEvents = isNull ? "" : "none";
                 default:            // handled by BaseElement
                     super.attributeChangedCallback(name, _, val);
                     return;
