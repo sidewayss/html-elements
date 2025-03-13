@@ -1,123 +1,169 @@
 <!DOCTYPE html>
 <html>
-  <head>
+  <head data-template-dir="/html-templates">
     <title>multi-state</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=overlays-content"/>
     <link rel="stylesheet" href="/html-elements/css/multi-check.css"/>
-    <link rel="stylesheet" href="/html-elements/css/state-btn.css"/>
     <link rel="stylesheet" href="../common.css"/>
     <link rel="stylesheet" href="index.css"/>
     <script type="module">
-      import "../../multi-check.js?templateDir=/html-templates/";
+      import "../../check-box.js?file=multi-check.html";
     </script>
     <script type="module">
-      import "../../state-btn.js?templateDir=/html-templates/";
+      import "../../check-tri.js?file=multi-check.html";
+    </script>
+    <script type="module">
+      import "../../state-btn.js";
     </script>
     <script src="index.js" type="module"></script>
   </head>
-  <body class="col"  style="align-items:center; background-color:#F9F9F9;">
-    <check-box id="box" label="Check&bull;box&#xB2;"></check-box>
-    <div class="row chk-val">checked:<span id="box-checked"></span>&nbsp;| value:<span id="box-value"></span></div>
-    <div class="col">
-      <div class="row">
-        <label for="box-label">label:</label>
-        <input id="box-label" type="text" maxlength="25"/>
+  <body class="col">
+    <div class="col" id="controls">
+      <div class="separator">&lt;state-btn&gt; ------------------------</div>
+      <div id="playback" class="col">
+        <div class="row mt1-2" style="align-items:flex-start; display:none;">
+          <label for="btn-keyCodes">keyCodes:</label>
+          <select id="btn-keyCodes" size="4" multiple>
+            <option selected>Enter</option>
+            <option>Space</option>
+            <option>ArrowDown</option>
+            <option>ArrowRight</option>
+          </select>
+        </div>
       </div>
-      <div class="row mt1-2">
-        <label for="box-keyCodes">keyCode:</label>
-        <select id="box-keyCodes">
-          <option value="">&mdash;</option>
-          <option>Enter</option>
-          <option>Escape</option>
-          <option selected>Space</option>
-          <option>ArrowUp</option>
-          <option>ArrowDown</option>
-        </select>
-      </div>
-      <div class="col header">
-        <div class="row between">
-          <p class="header">HTML</p>
-          <div class="row">
-            <p class="copied italic">Copied!</p>
-            <button id="box-copy" title="Copy HTML to clipboard"></button>
+      <div class="col indent">
+        <check-box id="btn-autoIncrement" class="mt1-2" label="autoIncrement (else random)" checked></check-box>
+        <pre class="keyCodes" style="margin:0.875rem 0 0.4375rem;">keyCodes: Enter, Space</pre>
+        <div style="display:grid; grid-template-columns:auto auto; align-items:center">
+          <div style="grid-area:1 / 2 / 3 / 2; background-image:url(panel.jpg); height:100%; border-style:double;"></div>
+          <pre style="grid-area:1 / 1">2-State:</pre>
+          <div class="row" style="grid-area:1 / 2; padding:0.25rem 0 0 0.75rem;">
+            <state-btn id="toggle" template="toggle" auto-increment
+              style="margin-left:0.4375rem"
+              key-codes='["Enter","Space"]'
+              states='[{"id":"off"},{"id":"on"}]'>
+            </state-btn>
+            <state-btn id="toggle-hex" template="toggle-hex" active-id="neither" auto-increment
+              key-codes='["Enter","Space"]'
+              states='[{"id":"off"},{"id":"on"}]'>
+            </state-btn>
+            <state-btn id="on-off" template="on-off" auto-increment
+              key-codes='["Enter","Space"]'
+              states='[{"id":"false", "label":"Off"},{"id":"true", "label":"On"}]'>
+            </state-btn>
+          </div>
+          <pre style="grid-area:2 / 1">3-State:</pre>
+          <div class="row" style="grid-area:2 / 2; padding:0.75rem 0 0.75rem 0.75rem;">
+            <state-btn id="stainless" template="stainless-button" auto-increment
+              key-codes='["Enter","Space"]'
+              states='[{"label":"Off"},{"label":"Standby"},{"label":"On"}]'>
+            </state-btn>
           </div>
         </div>
-        <div id="box-html" class="html"></div>
-      </div>
-    </div>
-    <div class="separator">====================================</div>
-    <check-tri id="tri" label="Check&#x290D;tri&#xB3;"></check-tri>
-    <div class="row chk-val">checked:<span id="tri-checked"></span>&nbsp;| value:<span id="tri-value"></span></div>
-    <div class="col">
-      <div class="row">
-        <label for="tri-label">label:</label>
-        <input id="tri-label" type="text" maxlength="25"/>
-      </div>
-      <div class="row mt1-2" style="justify-content:space-between; margin-right:0.5rem;">
+        <pre class="keyCodes" style="margin-top:0.75rem">keyCodes: Enter, UpArrow, DownArrow</pre>
         <div class="row">
-          <label for="tri-default">default:</label>
-          <check-box id="tri-default"></check-box>
-        </div>
-        <check-box id="tri-showDefault" label="showDefault" class="row"></check-box>
-      </div>
-      <div class="row mt1-2">
-        <label for="tri-keyCodes">keyCodes:</label>
-        <span>[Space, </span>
-        <select id="tri-keyCodes">
-          <option value="">&mdash;</option>
-          <option>Enter</option>
-          <option>Escape</option>
-          <option>ArrowUp</option>
-          <option>ArrowDown</option>
-        </select>
-        <span>]</span>
-      </div>
-      <div class="col header">
-        <div class="row between">
-          <p class="header">HTML</p>
-          <div class="row">
-            <p class="copied italic">Copied!</p>
-            <button id="tri-copy" title="Copy HTML to clipboard"></button>
+          <pre>6-State: </pre>
+          <div class="row" style="background:aliceblue; border-style:double; padding:1rem 0.5rem 1rem 1rem; flex-grow:1;">
+            <state-btn id="six" template="six" active-id="pressed" mouse-events-id="events" auto-increment
+              style="width:104px; line-height:0;"
+              states='[
+                {"value":0},
+                {"value":15},
+                {"value":30},
+                {"value":60},
+                {"value":120},
+                {"value":240}
+              ]'>
+            </state-btn>
+            <div class="col" style="margin:0 0 0 1rem">
+              <div class="row">
+                <span>index:</span>
+                <span id="six-index" style="white-space:pre;"></span>
+              </div>
+              <div class="row">
+                <span>value:</span>
+                <span id="six-value" style="white-space:pre;"></span>
+              </div>
+            </div>
           </div>
         </div>
-        <div id="tri-html" class="html"></div>
       </div>
-    </div>
-    <div class="separator">====================================</div>
-    <div class="col">
-    <div class="row">
-      <label for="btn" style="margin-right:0.5rem">state-btn:</label>
-      <state-btn id="btn" class="row" states='[[0,"play"], [1,"pause"], [2,"resume","Resume playback"], [3,"stop"], [4,"reset","Reset to zero"]]'></state-btn>
-      <div class="row" style="margin-left:0.625rem">
-        <span id="btn-value" style="min-width:0"></span>
-        <span>,&nbsp;</span>
-        <span id="href"></span>
-      </div>
-    </div>
-      <check-box id="btn-autoIncrement" class="mt1-2" label="autoIncrement (else random)"></check-box>
-      <div class="row mt1-2" style="align-items:flex-start">
-        <label for="btn-keyCodes">keyCodes:</label>
-        <select id="btn-keyCodes" size="7" multiple>
-          <option selected>Enter</option>
-          <option>Escape</option>
-          <option>Space</option>
-          <option>ArrowUp</option>
-          <option>ArrowDown</option>
-          <option>ArrowLeft</option>
-          <option>ArrowRight</option>
-        </select>
-      </div>
-      <div class="col header" style="margin-top:-0.625rem">
-        <div class="row between">
-          <p class="header">HTML</p>
-          <div class="row">
-            <p class="copied italic">Copied!</p>
-            <button id="btn-copy" title="Copy HTML to clipboard"></button>
+      <div class="separator">&lt;check-tri&gt; ------------------------</div>
+      <check-tri id="tri" class="self-center" label="Check&#x290D;me&#xB3;"></check-tri>
+      <div class="col indent">
+        <div class="row chk-val">
+          <pre class="chk-val w20ch">checked:<span id="tri-checked" class="ml1-8"></span></pre>
+          <pre class="chk-val">value:<span id="tri-value" class="ml1-8"></span></pre>
+        </div>
+        <div class="col">
+          <div class="row mt1-2">
+            <label for="tri-label">label:&nbsp;&nbsp;</label>
+            <input id="tri-label" type="text" maxlength="25"/>
+          </div>
+          <div class="row mt1-2">
+            <div class="row" style="margin-right:2rem;">
+              <label for="tri-default">default:</label>
+              <check-box id="tri-default" style="margin-left:0.0625rem"></check-box>
+            </div>
+            <check-box id="tri-showDefault" label="showDefault" class="row"></check-box>
+          </div>
+          <div class="row mt1-2">
+            <label for="tri-keyCodes">keyCodes:</label>
+            <span>Space, </span>
+            <select id="tri-keyCodes">
+              <option value="">&mdash;</option>
+              <option>Enter</option>
+              <option>ArrowUp</option>
+              <option>ArrowDown</option>
+            </select>
+          </div>
+          <div class="col header">
+            <div class="row between">
+              <p class="header">HTML</p>
+              <div class="row">
+                <p class="copied italic">Copied!</p>
+                <button id="tri-copy" title="Copy HTML to clipboard"></button>
+              </div>
+            </div>
+            <div id="tri-html" class="html"></div>
           </div>
         </div>
-        <div id="btn-html" class="html"></div>
+      </div>
+      <div class="separator">&lt;check-box&gt; ------------------------</div>
+      <check-box id="box" class="self-center" label="Check&bull;me&#xB2;"></check-box>
+      <div class="col indent">
+        <div class="row chk-val">
+          <pre class="chk-val w20ch">checked:<span id="box-checked" class="ml1-8"></span></pre>
+          <pre class="chk-val">value:<span id="box-value" class="ml1-8"></span></pre>
+        </div>
+        <div class="col">
+          <div class="row mt1-2">
+            <label for="box-label">label:&nbsp;&nbsp;</label>
+            <input id="box-label" type="text" maxlength="25"/>
+          </div>
+          <div class="row mt1-2">
+            <label for="box-keyCodes">keyCode:</label>
+            <select id="box-keyCodes">
+              <option value="">&mdash;</option>
+              <option>Enter</option>
+              <option>Escape</option>
+              <option selected>Space</option>
+              <option>ArrowUp</option>
+              <option>ArrowDown</option>
+            </select>
+          </div>
+          <div class="col header">
+            <div class="row between">
+              <p class="header">HTML</p>
+              <div class="row">
+                <p class="copied italic">Copied!</p>
+                <button id="box-copy" title="Copy HTML to clipboard"></button>
+              </div>
+            </div>
+            <div id="box-html" class="html"></div>
+          </div>
+        </div>
       </div>
     </div>
-    <div class="separator">====================================</div>
   </body>
 </html>

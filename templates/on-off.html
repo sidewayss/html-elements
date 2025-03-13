@@ -1,0 +1,63 @@
+<html>
+  <body>
+    <template>
+      <div style="display:flex; align-items:center;">
+        <svg part="toggle" viewbox="0 0 48 48">
+          <defs>
+            <filter id="blur" filterUnits="userSpaceOnUse">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="0.5"/>
+            </filter>
+            <filter id="blur2" filterUnits="userSpaceOnUse">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="0.75"/>
+            </filter>
+            <linearGradient id="rise" gradientTransform="rotate(30)">
+              <stop offset= "5%"  stop-color="#F7F7F7" />
+              <stop offset="20%"  stop-color="#EEE" />
+              <stop offset="75%" stop-color="#BBB" />
+              <stop offset="87%" stop-color="#AAA" />
+              <stop offset="99%" stop-color="#888" />
+            </linearGradient>
+            <linearGradient id="hole" gradientTransform="rotate(30)">
+              <stop offset= "5%" stop-color="#202020" />
+              <stop offset="25%" stop-color="#262626" />
+              <stop offset="75%" stop-color="#2C2C2C" />
+              <stop offset="95%" stop-color="#333" />
+            </linearGradient>
+            <linearGradient id="bevel-stroke" gradientTransform="rotate(30)">
+              <stop offset= "5%" stop-color="#999" />
+              <stop offset="30%" stop-color="#959595" />
+              <stop offset="675%" stop-color="#888" />
+              <stop offset="99%" stop-color="#848484" />
+            </linearGradient>
+            <g id="off">
+              <rect x="5.5" y="5.5" width="37" height="37" rx="2" ry="2" fill="url(#rise)" stroke="url(#bevel-stroke)"/>
+              <rect x="9.5" y="9.5" width="29" height="29" rx="2" ry="2" fill="url(#hole)" stroke="#000"/>
+              <rect x="16"  y="16"  width="16" height="16" rx="8" ry="8" fill="none"       stroke="#FAFAFA"
+                  stroke-width="4" filter="url(#blur)"/>
+            </g>
+            <g id="offy">
+              <rect x= "5"   y= "5"    width="38" height="38" rx="12"  ry="12"  fill="url(#rise)" stroke="url(#bevel-stroke)"/>
+              <rect x= "9"   y= "9"    width="30" height="30" rx="12"  ry="12"  fill="#000"/>
+              <rect x="17.5" y="17.5"  width="13" height="13" rx="6.5" ry="6.5" fill="none" stroke="#FFF"
+                  stroke-width="3" filter="url(#blur)"/>
+            </g>
+            <g id="on">
+              <rect x= "4" y= "4" width="40" height="40" rx="20" ry="20" fill="url(#rise)" stroke="url(#bevel-stroke)"/>
+              <rect x= "8" y= "8" width="32" height="32" rx="16" ry="16" fill="#000" stroke="url(#hole)"/>
+              <rect x="21" y="14" width= "6" height="20"         ry= "3" fill="#FFF" filter="url(#blur2)"/>
+              <path d="M24,18 V30" stroke="#FFF" stroke-width="5" stroke-linecap="round"/>
+            </g>
+            <g id="onny">
+              <rect x= "5" y= "5"  width="38" height="38" rx="12" ry="12" fill="url(#rise)" stroke="url(#bevel-stroke)"/>
+              <rect x="10" y="10"  width="28" height="28" rx= "8" ry= "8" fill="#000"/>
+              <rect x="22" y="16"  width= "4" height="16"         ry= "3" fill="#FFF" filter="url(#blur2)"/>
+              <path d="M24,18 V30" stroke="#FFF" stroke-width="2" stroke-linecap="round" filter="url(#blur)"/>
+            </g>
+          </defs>
+          <use id="use" part="switch" href="#"/>
+        </svg>
+        <pre id="label" part="label"></pre>
+      </div>
+    </template>
+  </body>
+</html>

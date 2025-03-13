@@ -1,0 +1,17 @@
+<html>   <!-- <check-box> template -->
+  <body>
+    <template>
+      <svg id="shapes" part="shapes" viewbox="0 0 18 15">
+        <defs> <!-- this template doesn't define #false -->
+          <path id="true" d="M3.5,8.5 L6,11 10,4.5"/>
+        </defs>
+        <g id="check" part="check">
+          <rect part="box" x="0.5" y="1.5" width="13"
+                          rx="2"  ry="2"  height="13" />
+          <use id="use" part="mark" href="#false"/>
+        </g>
+      </svg>
+      <pre id="label" part="label"></pre>
+    </template>
+  </body>
+</html>

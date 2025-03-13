@@ -171,7 +171,7 @@
           </defs>
           <!-------------->
           <g id="controls">
-            <use href="#spinner-idle"/>   <!-- initial state -->
+            <use id="use" href="#spinner-idle"/>   <!-- initial state -->
             <polyline part="border" points="0.5,0 0.5,22"/>
           </g>
           <rect id="top" class="events"/> <!-- invisible event catchers  -->
@@ -179,9 +179,10 @@
         </svg>
         <!------------------------------------------------------------->
         <svg viewBox="0 0 0 0" width="0" height="0" visibility="hidden">
+          <text id="width"></text>
+          <text id="units"></text>
           <text id="max"></text>          <!-- invisible width measurers -->
           <text id="min"></text>
-          <text id="units"></text>
         </svg>
       </div>
     </template>

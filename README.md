@@ -6,7 +6,7 @@
 
 `<input-num>` has its own [app page](https://sidewayss.github.io/html-elements/apps/input-num) because it has a lot to test and demonstrate.
 
-The other three share a [test/demo app](https://sidewayss.github.io/html-elements/apps/multi-state) and a [base class](#class-multistate).
+The other three share a [test/demo app](https://sidewayss.github.io/html-elements/apps/multi-state) and a [base class](#class-statebtn).
 
 ## Summary
 It's a collection of [autonomous](https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_custom_elements#types_of_custom_element) custom HTML elements that can be graphically customized at the site level and/or by page. It fetches the template(s) during the page load process, and [`import.meta`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/import.meta) allows you to specify the template file or directory as [import options](#import-options).
@@ -29,12 +29,13 @@ For example, to import `<input-num>`:
 </head>
 ```
 ### File Names
-There are 4 elements, but only 3 root file names because `<check-box>` and `<check-tri>` share everything. The root names are:
+There are 4 elements and 4 root file names:
 - **input-num**
 - **state-btn**
-- **multi-check**
+- **check-box**
+- **check-tri**
 
-Those root names apply to `src/` and `dist/` module files, template files, the sample CSS files, as well as `<template id="root-name">` when your templates into a single file.
+Those root names apply to `src/` and `dist/` module files, template files, the sample CSS files, as well as `<template id="root-name">` when you bundle your templates into a single file.
 
 There is one more importable module, which bundles all the elements together: `elements.js`. The distributable is bundled, transpiled, and minified.  The source is a barrel module with no external dependencies.  *Note that you cannot use `import.meta` options with this source module because the browsers' module-load order prevents it.*
 
@@ -103,7 +104,7 @@ A quick glossary entry of note: A [boolean attribute](https://developer.mozilla.
 These classes manage common attributes/properties and behaviors across elements. All the attributes/properties listed are inherited by the sub-classes.
 
 ### `class BaseElement extends HTMLElement`
-`BaseElement` is the top level class. It is the parent class for `InputNum` and `MultiState`. See `base-element.js`.` It manages two global DOM attributes/properties:
+`BaseElement` is the top level class. It is the parent class for `InputNum` and `StateBtn`. See `base-element.js`.` It manages two global DOM attributes/properties:
 - `disabled/disabled`
 - `tabindex/tabIndes`
 
@@ -117,25 +118,25 @@ This is because the DOM runs `attributeChangedCallback()` in a FIFO queue and wh
 
 *Also note:* Though it's allowed, setting `tabindex` to anything other than `0` or `-1` is sternly [recommended against by MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/tabindex) (*scroll down the page to the first Warning block*).
 
-### `class MultiState`
-`MultiState` (`multi-state.js`) is the parent class for `<state-btn>` and `MultiCheck`.
+### `class StateBtn`
+`StateBtn` is the class for `<state-btn>` and the parent of `CheckBase`.
 - `key-codes` / `keyCodes` - Internally it's a Set of [keycodes](https://developer.mozilla.org/en-US/docs/Web/API/UI_Events/Keyboard_event_code_values) that act like a mouse click.  It converts `click` and `keyup` to `change` for compatibility with `<input type="checkbox">`. The attribute value is an array in JSON format. The property returns an array, and accepts anything array-like, including Set.
 
 There is no `input` event, just `change`. For these types of `<input>` they're the same anyway. If you desire it for compatibility reasons, submit an issue or a pull request.
 
-### `class MultiCheck`
-`MultiCheck` (`multi-check.js`) is the parent class for `<check-box>` and `<check-tri>`.
+### `class CheckBase`
+`CheckBase` (`check-base.js`) is the parent class for `<check-box>` and `<check-tri>`.
 - `label` / `label` contains the `innerHTML` for the built-in label element.
 - `labelElement` (read-only property) returns the shadowDOM element with `id="label"`.
 - `key-codes` defaults to `["Space"]`.
 
 ## `<check-box>`
 I created `<check-box>` because I needed `<check-tri>` and I wanted all my checkboxes to look and act alike. It's the same as `<input type="checkbox">` except:
-- The label is built-in through the `label` attribute (see `class MultiCheck` directly above here).
+- The label is built-in through the `label` attribute (see `class CheckBase` directly above here).
 - It has a JavaScript `value` property that is identical to `checked`, in order to normalize it with other types of `<input>` and elements like `<select>` when iterating over or switching through elements.
 - The checkbox graphics are in a separate template file, in SVG.
 
-## `<check-tri>`
+## `<check-trie>`
 `<input type="checkbox">` has an `indeterminate` property (not an attribute) that is independent from `checked`. I don't have a use for that. I needed a third, "indeterminate" value in addition to, and mutually exclusive from, `true` and `false`. I wanted that value to cause `checked` to fall back to a user-determined default boolean value.  So `checked` remains boolean, but `value` can be `true`, `false`, or `null`. It's `null`, not `undefined`, because that's what `getAttribute()` returns when an attribute is unset.
 
 To set `value` as an attribute, I use `"1"` for `true` and you must use `""` for `false`.
@@ -145,7 +146,7 @@ To set `value` as an attribute, I use `"1"` for `true` and you must use `""` for
 - `show-default` / `showDefault` is a boolean that shows or hides the default value as a read-only box to the left.
 
 ### multi-check.html
-`<check-box>` and `<check-tri>` share a template file. The built-in template is  potentially reusable because the shapes are simple and they are 100% externally styleable with `::part`. This is the `<template>`:
+`<check-box>` and `<check-tri>` share a template file. The built-in template is potentially reusable because the shapes are simple and they are externally styleable with `::part`. This is the `<template>`:
 ```html
 <template>
   <svg id="shapes" part="shapes" viewbox="0 0 18 15" width="18" height="15">
@@ -183,7 +184,7 @@ The other optional element with an `id` is `#false`. The built-in template doesn
 
 The `part` attributes are all optional.
 
-__NOTE:__ With this template, the element is a flex container, relying on the default `flex-direction:row`. I find that `align-items:center` works best for this combination of shapes, font, and font size because the box's bottom line aligns with the font baseline:
+__NOTE:__ With this template, the element is a flex container, relying on the default `flex-direction:row`.
 ```css
 check-box, check-tri {
   display: flex;
@@ -300,7 +301,7 @@ Property name same as attribute. String as attribute / Number as property.
 
 #### Behavior
 - `blur-cancel` / `blurCancel` is a boolean that cancels keyboard input when the user blurs the element via `Tab`, `Shift+Tab`, or by clicking elsewhere on the page. The default behavior is to confirm the value. Does not affect the behavior of the <Enter> or <Esc> keys or the OK or Cancel buttons.
-- `no-keys` / `keyboards` disables/enables keyboard input. Combining it with `no-spin` effectively disables the element.
+- `no-keys` / `keyboards` disables/enables direct keyboard input, but allows up/down arrow keys for spinning. Combining it with `no-spin` effectively disables the element.
 - `no-resize` / `autoResize` used to disable the `resize()` function while loading the page or setting a batch of element properties.
 
 #### Spinner
@@ -359,7 +360,7 @@ The `validate` property allows you to insert your own validation and/or transfor
 To indicate an invalid value, return `false`. Otherwise return the value itself, transformed or not. Transforms are for those rare occasions when you want to round to the nearest prime number, or whatever transformation or restriction that can't be defined solely by `max` and `min`.
 
 ### Styling
-You can obviously style the element itself, but you can also style some of its parts via the `::part` pseudo-element. Remember that `::part` overrides the shadow DOM elements' style. You must use `!important` if you want to override `::part`.
+You can obviously style the element itself, but you can also style its parts via the `::part` pseudo-element. Remember that `::part` overrides the shadow DOM elements' style. You must use `!important` if you want to override `::part`.
 
 The available parts:
 - `input` is the `<input type="text">`.
@@ -398,6 +399,8 @@ for (const elm of document.getElementsByTagName("input-num")) {
     elm.resize();
 }
 ```
+
+__NOTE:__ If you set `no-spin` and `no-confirm`, you should probably also set the element's `tabindex="-1"`, and put any border or padding on `::part(input)` not the element itself. Otherwise the outer element will still be in the tab order or clickable for focus, and that serves no purpose with those two attributes set.
 
 ### input-num.html
 The core of the template is a flex `<div>`, with three children:

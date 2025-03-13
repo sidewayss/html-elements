@@ -2,12 +2,12 @@ import {BaseElement} from "../../base-element.js";
 
 import {writeText, toHTML, fromHTML} from "../common.js";
 
-let attrs, defaults, html, inNum, script;
+let defaults, inNum;
 const
 base = 10,
 expo = 6,
 high = Math.pow(base, expo),
-low  = Math.pow(base, -(expo + 1)),
+low  = Math.pow(base,-expo),
 g       = {},
 elms    = {},
 spinner = [];
@@ -36,88 +36,80 @@ function load() {
            .then(allResolved)         // allResolved()=>getBoundingClientRect().
   );
 
-  // Initialize elements and related variables
+  const                               // <select> decimals are by user locale
+  locale   = navigator.language,
+  options  = {},
+  decimals = [];                      // range 0.1 to low, descending
+  for (n = .1, i = 1; n >= low; n /= base, i++) {
+    options.maximumFractionDigits = i;
+    options.minimumFractionDigits = i;
+    decimals.push(new Option(n.toLocaleString(locale, options), n));
+    }
+
+  [                                   // init the remaining elements by id
+    "autoResize","autoScale","autoAlign","width","max","min","digits",
+    "accounting","spins","confirms","keyboards","step","delay","interval",
+    "showButtons","anyDecimal","trimRight","blurCancel","fontSize","fontWeight",
+    "fontStyle"
+  ].forEach(id => initElm(id, decimals));
+
   const fonts = ["monospace","sans-serif","serif",
                  getComputedStyle(inNum).fontFamily
                                         .split(",")[0]
                                         .replace(/["']/g, "")]; //& replaceAll()
   for (f of fonts)
     elms.fontFamily.add(new Option(f));
-
   elms.fontFamily.selectedIndex = 3;  // the current font, hosted by me
 
-  const decimals = [];                // range 0.1 to low, descending
-  for (n = .1, i = 1; n >= low; n /= base, i++)
-    decimals.push(newOption(n, i));
-                                      // init these remaining elements by id:
-  ["autoWidth","autoAlign","autoScale","max","digits","accounting",
-   "spins","confirms","keyboards","step","delay","interval","blurCancel",
-   "anyDecimal","fontSize","fontWeight","fontStyle"
-  ].forEach(id => initElm(id, decimals));
+  inNum.style.fontSize = elms.fontSize.value;
 
-  const                               // #min is a modified clone of #max
-  min = "min",
-  par = elms.max.parentNode,
-  div = par.cloneNode(true),
-  lbl = div.firstElementChild,
-  sel = lbl.nextElementSibling;
-
-  sel.id = min;
-  sel.remove(0);
-  sel.add(new Option(-Infinity));
-  lbl.htmlFor   = min;
-  lbl.innerHTML = min[0].toUpperCase() + min.slice(1)
-                + lbl.innerHTML.slice(min.length);
-
-  par.parentNode.insertBefore(div, par.nextElementSibling);
-  addChangeEvent(sel);
-  elms.min = sel;
+  const clone = elms.max.cloneNode(true);
+  clone.id = "min";                   // #min is a modified clone of #max
+  clone.remove(0);                    // swap Infinity for -Infinity
+  clone.add(new Option(-Infinity));
+  elms.min.replaceWith(clone);
+  addChangeEvent(clone);
+  elms.min = clone;
 
   for (btn of document.getElementsByTagName("button"))
     btn.addEventListener("click", copyToClipboard);
 
-  html   = document.getElementById("html");
-  script = document.getElementById("script");
-  attrs  = Array.from(document.getElementsByClassName("attr"));
+  elms.html   = document.getElementById("html");
+  elms.script = document.getElementById("script");
+  elms.attrs  = Array.from(document.getElementsByClassName("attr"));
 }
 //==============================================================================
 // load() helpers:
 function addChangeEvent(elm) {
   elm.addEventListener("change", change);
 }
-//====================================================
-function newOption(n, digits = 0, value, units = "") {
-  const
-  localeOptions = { maximumFractionDigits:digits,
-                    minimumFractionDigits:digits },
-  text = n.toLocaleString(navigator.language, localeOptions);
-  return new Option(text + units, value);
-}
 //======================
 function allResolved() {
-  const px = "px";
-  let arr, key,
-  elm = inNum.nextElementSibling, // the containing <div>
-  w   = Math.ceil(elm.getBoundingClientRect().width) + 1 + px;
+  let elm, key;
+  const
+  px = "px",
+  w  = getComputedStyle(elms.step).width;
+  //for (elm of [elms.delay, elms.interval])
+  //  elm.style.width = w;  // these three look better all the same size
 
-  // Freezes the <div> width so that text overflows to the right while the <div>
-  // stays centered on the page. If there's a CSS solution, please let me know...
-  elm.style.width = w;
-
-  // These three look better json the same size
-  w = Math.max(parseFloat(getComputedStyle(elms.step) .width),
-               parseFloat(getComputedStyle(elms.delay).width)) + px;
-  for (elm of [elms.step, elms.delay, elms.interval])
-    elm.style.width = w;
+  // Freeze #controls.width so it's centered in the window while class="info"
+  // overflows to the right. If there's a CSS solution, please let me know...
+  elm = document.getElementById("controls");
+  elm.style.width = elm.clientWidth
+                  - getNumber(elm, "paddingLeft")
+                  - getNumber(elm, "paddingRight") + px;
 
   defaults = Object.assign({}, inNum.constructor.defaults);
   elms.step.nextElementSibling.textContent = `= ${defaults.step}`;
-  delete defaults.step            // undefined = auto-step precludes this
-  delete defaults.value           // #value is not an element
+  delete defaults.step    // undefined = auto-step precludes this
+  delete defaults.value   // there is no elms.value
   for (key in defaults)
     elms[key].value = defaults[key];
 
-  updateText();                   // must be last
+  updateText();           // must be last
+}
+function getNumber(elm, prop) {
+  return parseFloat(getComputedStyle(elm)[prop]);
 }
 //===========================
 function loadJSON(rsp, key) {
@@ -153,7 +145,7 @@ function initElm(id, decimals) {
   const elm  = document.getElementById(id);
 
   elms[id] = elm;
-  addChangeEvent(elm);
+  addChangeEvent(elm);                // throwaway for elms.min...
   switch (id) {
     case "digits":
       for (i = 0; i < 7; i++)
@@ -167,7 +159,7 @@ function initElm(id, decimals) {
       break;
     case "delay":
       for (i = 0; i <= 1500; i += 100)
-        elm.add(newOption(i, 0, i, "ms"));
+        elm.add(new Option(i + "ms", i));
       spinner.push(elm);
       break;
     case "max":
@@ -178,7 +170,7 @@ function initElm(id, decimals) {
         elm.add(opt.cloneNode(true)); // gotta clone after first use
 
       elm.add(new Option(0));         // zero, then negative decimals
-      for (n = -low, i = expo + 1; n >= -0.1; n *= base, i--)
+      for (n = -low, i = expo; n >= -0.1; n *= base, i--)
         elm.add(new Option(n.toFixed(i)));
       for (n = -1; n >= -high; n *= base)
         elm.add(new Option(n));       // then negative integers
@@ -198,42 +190,48 @@ function change(evt) {
     inNum.style[id] =
       val === false ? "normal"
     : val === true  ? (tar === elms.fontWeight ? "bold" : "italic")
-                    : val;
+                    : val;      // the <select>
     inNum.resize();             // font styles are not attributes, no auto-resize
   }
   else {
-    inNum[id] = isUser(tar) ? "" : val || null;
+    inNum[id] = val || null;
     updateText();               // display the updated HTML/JS
     switch (tar) {
       case elms.min:
         minDigits();
-      case elms.max:            // validate
-        setInfo(elms.max, inNum.max <= inNum.min, "Max/Min overlap!");
-        elms.autoWidth.disabled = inNum.max ==  Infinity
-                               || inNum.min == -Infinity;
+      case elms.max:            // inNum clamps overlapping values
+        if (Number(elms.max.value) < Number(elms.min.value))
+            tar.value = inNum[id];
         break;
+      //---------------
       case elms.locale:
-        elms.currency.disabled = !val;
-        elms.currency.labels[0].classList.toggle("disabled", !val);
+        disableLabel(elms.currency, !val);
+        if (isUser())
+          inNum[id] = "";
       case elms.currency:
         elms.accounting.disabled = !val || !inNum.currency
                                         || !inNum.useLocale;
       case elms.units:          // display info
         setInfo(tar, val, g[id][val]);
         break;
+      //--------------
       case elms.spins:          // disable step, delay, interval
-        spinner.forEach(elm => elm.disabled = !val);
+        spinner.forEach(elm => disableLabel(elm, !val));
+      case elms.confirms:
+        elms.showButtons.disabled = !elms.spins.checked && !elms.confirms.checked;
       case elms.keyboards:
         setInfo(elms.accounting,
                 !elms.spins.checked && !elms.keyboards.checked,
                 "!spins & !keys = disabled");
         break;
+      //---------------
       case elms.digits:
         minDigits();
-        tar = elms.step;        // fall-through fakery
+        tar = elms.step;        // fall-through spoofing
         val = tar.value;
       case elms.step:
         setInfo(tar, !val, `= ${inNum.step}`);
+        break;
       default:
     }
   }
@@ -246,6 +244,13 @@ function minDigits() {           // one alert set in two places
           inNum.min && Math.abs(inNum.min) < 1 / Math.pow(base, inNum.digits),
           "Min < Digits!");
 }
+function disableLabel(elm, b) {
+  elm.disabled = b;
+  elm.labels[0]?.classList.toggle("disabled", b);
+}
+function isNoWidth() {
+  return inNum.max == Infinity || inNum.min == -Infinity;
+}
 //==============================================================================
 // updateText() is generally helpful, along with its helper getText():
 function updateText() {
@@ -255,14 +260,14 @@ function updateText() {
   js  = "numby = doc.getElementById(id);<br>";
 
   const
-  ctrls = new Set(attrs), // max, min, units
+  ctrls = new Set(elms.attrs), // max, min, digits units
   opposites = [
     ["no-keys",   "keyboards"],
     ["no-spin",   "spins"],
     ["no-confirm","confirms"],
     ["no-scale",  "autoScale"],
-    ["no-width",  "autoWidth"],
     ["no-align",  "autoAlign"],
+    ["no-resize", "autoResize"]
   ];
   for ([attr, prop] of opposites) {
     if (!inNum[prop]) {
@@ -282,8 +287,8 @@ function updateText() {
     for (elm of [elms.step, elms.delay, elms.interval])
       ctrls.add(elm);
 
-  for (elm of [elms.blurCancel, elms.anyDecimal])
-    if (elm.checked)
+  for (elm of [elms.showButtons, elms.anyDecimal, elms.trimRight, elms.blurCancel])
+    if (elm.checked && !elm.disabled)   // showButtons can be disabled
       ctrls.add(elm);
 
   for (elm of ctrls) {
@@ -292,14 +297,13 @@ function updateText() {
       pre += " ";
       switch (elm) {
         case elms.digits: case elms.units: case elms.currency:
-        case elms.delay:  case elms.interval:
-        case elms.max:  case elms.min:
-        case elms.step:
+        case elms.step:   case elms.delay: case elms.interval:
+        case elms.max:    case elms.min:
           pre += getText(elm, prop);
           js  += getText(elm, prop, true);
           break;
         case elms.locale:
-          if (isUser(elm)) {
+          if (isUser()) {
             pre += prop;
             js  += getText(null, prop, true,  '""');
           }
@@ -308,15 +312,16 @@ function updateText() {
             js  += getText(elm, prop, true);
           }
           break;
-        case elms.accounting: case elms.blurCancel: case elms.anyDecimal:
+        case elms.showButtons: case elms.anyDecimal: case elms.accounting:
+        case elms.trimRight:   case elms.blurCancel:
           pre += prop.replace(/[A-Z]/g, ch => "-" + ch.toLowerCase());
           js  += getText(null, prop, true, true);
           break;
       }
     }
   }
-  html  .innerHTML = toHTML(`${pre}${suf}`);
-  script.innerHTML = js;
+  elms.html  .innerHTML = toHTML(`${pre}${suf}`);
+  elms.script.innerHTML = js;
 }
 //======================================
 function getText(elm, prop, isJS, val) {
@@ -341,9 +346,9 @@ function getText(elm, prop, isJS, val) {
 }
 //====================
 function isUser(elm) { // for <select id="locale">
-  return elm.selectedOptions?.[0].text == "user"
+  return elms.locale.selectedOptions[0].text == "user";
 }
-//  kebabToCamel() converts a kebab-case string to camelCase
+// kebabToCamel() converts a kebab-case string to camelCase
 function kebabToCamel(str) {
   return str.replace(/-(.)/g, chars => chars[1].toUpperCase());
 }
@@ -355,8 +360,8 @@ function copyToClipboard(evt) {
   const
   tar = evt.target,
   txt = tar.id.endsWith("HTML")
-      ? fromHTML(html.textContent)
-      : script.textContent.replace(/;/g, ";\n");
+      ? fromHTML(elms.html)
+      : elms.script.textContent.replace(/;/g, ";\n");
 
   writeText(tar, txt);
 }

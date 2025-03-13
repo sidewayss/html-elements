@@ -1,11 +1,13 @@
 export {InputNum};
 
-import {DISABLED, VALUE, BaseElement} from "./base-element.js";
+import {DISABLED, VALUE, BaseElement, preventSelection}
+        from "./base-element.js";
 const
 MAX   = "max",          // DOM attributes:
 MIN   = "min",
 STEP  = "step",
                         // custom attributes: numbers and strings first
+WIDTH       = "width",        // "auto", "none", <length>, not % or calc()
 DELAY       = "delay",        // millisecond delay between mousedown & spin
 INTERVAL    = "interval",     // millisecond interval for spin
 DIGITS      = "digits",       // Number.prototype.toFixed(digits)
@@ -17,21 +19,26 @@ CURRENCY    = "currency",     // ditto: currency property
 ACCOUNTING  = "accounting",   // {currencySign:"accounting"}
 ANY_DECIMAL = "any-decimal",  // lets users input either comma or period
 BLUR_CANCEL = "blur-cancel",  // Blur = <Esc> key, else Blur = <Enter> key
+SHOW_BTNS   = "show-buttons", // always display buttons
+TRIM_RIGHT  = "trim-right",   // if units.width < buttons.width, trim width
+                        // inverted booleans:
 NO_KEYS     = "no-keys",      // no keyboard/pad input, only spinning
 NO_SPIN     = "no-spin",      // hide spinner, no keyboard spinning
 NO_CONFIRM  = "no-confirm",   // hide confirm/cancel buttons
 NO_SCALE    = "no-scale",     // don't scale the buttons to match font size
-NO_WIDTH    = "no-width",     // don't auto-size width
 NO_ALIGN    = "no-align",     // don't auto-align or auto-pad
 NO_RESIZE   = "no-resize",    // don't run resize(), used during page load
+
+AUTO = "auto",          // attribute values:
+NONE = "none",
 
 NAN   = "NaN",          // class names:
 OOB   = "OoB",          // Out of Bounds
 BEEP  = "beep",
 INPUT = "input",        // <input> element id, and coincidentally its tagName
 
-SPINNER = "#spinner-",  // Each def id has two or three segments:
-CONFIRM = "#confirm-",
+SPINNER = "spinner-",   // Each def id has two or three segments:
+CONFIRM = "confirm-",
 HOVER   = "hover-",     // second segments:
 ACTIVE  = "active-",
 SPIN    = "spin-",      // for full-speed spinning
@@ -67,14 +74,14 @@ event = {
     blur: "blur",
     focus:"focus"
 },
-textAlign = ["text-align","right","important"],
-noAwait   = true; // see https://github.com/sidewayss/html-elements/issues/8
+IMPORTANT = "important",
+textAlign = ["text-align","right", IMPORTANT];
 // =============================================================================
 class InputNum extends BaseElement {
     #attrs; #bound; #btns; #confirmIt; #ctrls; #decimal; #erId; #hoverBtn;
     #hoverOut; #input; #isBlurring; #isLoading; #isMousing; #kbSpin; #locale;
-    #outFocus; #padRight; #spinId; #states; #svg; #texts; #validate;
-    #isBlurry;         // kludge for this._dom.activeElement === null
+    #mNm; #outFocus; #padRight; #spinId; #states; #svg; #units; #validate;
+    #width;
 
 static defaults = {
     [VALUE]:  0,       // attribute values as numbers, not strings
@@ -86,13 +93,13 @@ static defaults = {
     [INTERVAL]:33      // ~2 frames at 60fps
 };
 static observedAttributes = [
-    VALUE, MAX, MIN, STEP, DELAY, INTERVAL, DIGITS, UNITS, LOCALE, CURRENCY,
-    ACCOUNTING, NOTATION, NO_KEYS, NO_SPIN, NO_CONFIRM, NO_WIDTH, NO_ALIGN,
-    NO_SCALE, ...BaseElement.observedAttributes
+    VALUE, MAX, MIN, STEP, WIDTH, DELAY, INTERVAL, DIGITS, UNITS, LOCALE,
+    CURRENCY, ACCOUNTING, NOTATION, SHOW_BTNS, NO_KEYS, NO_SPIN, NO_CONFIRM,
+    NO_ALIGN, NO_SCALE, ...BaseElement.observedAttributes
 ];
 // =============================================================================
     constructor() {
-        super(import.meta, InputNum, noAwait);
+        super(import.meta, InputNum);
         //   #attrs caches numbers for revert on NaN
         this.#attrs   = Object.assign({}, InputNum.defaults);
         this.#decimal = ".";    // that's the universal default
@@ -118,13 +125,12 @@ static observedAttributes = [
         this.#states   = obj;
 
         this.#isLoading = true; // prevents double-setting of values during load
-        if (!noAwait)
-            this._init();
+        this.is();
     }
 //==============================================================================
-//  _init() exists for noAwait, part of it belongs in a connectedCallback()
+//  _init()
     _init() {
-        this.#input = this._dom.getElementById(INPUT);
+        this.#input = this.shadowRoot.getElementById(INPUT);
         this.#input.style.setProperty(...textAlign);   // default is right-align
         this.#addEvent(event.focus, this.#focus, this.#input);
         this.#addEvent(event.blur,  this.#blur , this.#input);
@@ -132,9 +138,10 @@ static observedAttributes = [
         let elm = this.#input.nextElementSibling;
         this.#svg   = elm;
         this.#btns  = elm.getElementsByClassName("events");
-        this.#texts = elm.nextElementSibling.children;
+        this.#mNm   = [...elm.nextElementSibling.children]; // #max 'n' #min
+        this.#width = this.#mNm.splice(0, 1)[0];
+        this.#units = this.#mNm.splice(0, 1)[0];
         this.#ctrls = elm.getElementById("controls");
-        this._use   = this.#ctrls.getElementsByTagName("use")[0];
 
         for (elm of this.#btns) {
             this.#addEvent(mouse.over, this.#mouseOver, elm);
@@ -142,16 +149,13 @@ static observedAttributes = [
         }
         this.#swapEvents(true);
 
-        if (noAwait) {              // skipped when noAwait:
-            this.#input.inputMode = this.digits ? "decimal" : "numeric";
-            this.#input.disabled = !this.keyboards;
-            if (!this.autoAlign)    // default set above
-                this.#input.style.setProperty(textAlign[0], null);
-            this._connected();
-        }
-    }
-//  _connected() is the pseudo-connectedCallback(), see BaseElement.
-    _connected() {
+        this.#input.inputMode = this.digits ? "decimal" : "numeric";
+        this.#input.disabled = !this.keyboards;
+        if (this.showButtons)
+            this.#showCtrls(true, true);
+        if (!this.autoAlign)    // default set above
+            this.#input.style.setProperty(textAlign[0], null);
+
         const val = this.#attrs[VALUE];
         if (val > this.max || val < this.min)   // clamp value, even the default
             this.value = Math.max(this.min, Math.min(this.max, val));
@@ -177,7 +181,7 @@ static observedAttributes = [
             switch (name) {
             case STEP:
                 if (isNull)
-                    this.#attrs[STEP] = this.#autoStep(this.#attrs[DIGITS]);
+                    this.#attrs[STEP] = autoStep(this.#attrs[DIGITS]);
                 else if (n)
                     this.#accept(name, n);
                 else                // can't be zero
@@ -188,10 +192,10 @@ static observedAttributes = [
                 isResize = true;
                 isUpdate = true;
                 this.#getDigits(this.#locale, n);
-                if (this.#input)    // for noAwait
+                if (this.#input)
                     this.#input.inputMode = n ? "decimal" : "numeric";
                 if (!this.hasAttribute(STEP)) // auto-step default:
-                    this.#attrs[STEP] = this.#autoStep(n);
+                    this.#attrs[STEP] = autoStep(n);
             case DELAY:
             case INTERVAL:
                 n >= minimums[name]
@@ -220,9 +224,15 @@ static observedAttributes = [
         else {                      // boolean and string attributes:
             isResize = true;
             switch(name) {          // booleans:
+            case SHOW_BTNS:
+                this.#showCtrls(!isNull, true);
+                break;
+            case TRIM_RIGHT:
+                ;
+                break;
             case NO_KEYS:
                 isResize = false;
-                if (this.#input)    // for noAwait
+                if (this.#input)
                     this.#input.disabled = !isNull;
                 break;
             case NO_CONFIRM:
@@ -230,11 +240,10 @@ static observedAttributes = [
                 this.#swapEvents(true);
                 break;
             case NO_ALIGN:
-                if (this.#input) {  // for noAwait
+                if (this.#input) {
                     const args = isNull ? textAlign : [textAlign[0], null];
                     this.#input.style.setProperty(...args);
                 }
-            case NO_WIDTH:
             case NO_SCALE:
                 break;
             default:
@@ -261,7 +270,7 @@ static observedAttributes = [
                 case DISABLED:      // falls through
                     this.#input.tabIndex = isNull ? 0 : -1;
                     for (const elm of this.#btns)
-                        elm.style.pointerEvents = isNull ? "" : "none";
+                        elm.style.pointerEvents = isNull ? "" : NONE;
                 default:            // handled by BaseElement
                     super.attributeChangedCallback(name, _, val);
                     return;
@@ -272,7 +281,7 @@ static observedAttributes = [
             if (isResize)
                 this.resize();
             if (isUpdate) {
-                if (this.#input) {  // for noAwait
+                if (this.#input) {
                     const b = this.#inFocus;
                     this.#input.value = this.#getText(b, !b && this.units);
                 }
@@ -286,28 +295,45 @@ static observedAttributes = [
     #revert(name) {
         this.setAttribute(name, this.#attrs[name]);
     }
-    #autoStep(digits) { // using min/max to auto-step integers would be cool if
-        return 1 / Math.pow(10, digits);  // you could ever make sense of it...
-    }
 //==============================================================================
 //  Getters/setters reflect the HTML attributes, see attributeChangedCallback()
     get keyboards()  { return !this.hasAttribute(NO_KEYS);     } // booleans:
     get spins()      { return !this.hasAttribute(NO_SPIN);     }
     get confirms()   { return !this.hasAttribute(NO_CONFIRM);  }
-    get autoWidth()  { return !this.hasAttribute(NO_WIDTH);    }
     get autoAlign()  { return !this.hasAttribute(NO_ALIGN);    }
-    get autoResize() { return !this.hasAttribute(NO_RESIZE);   }
     get autoScale()  { return !this.hasAttribute(NO_SCALE);    }
+    get autoResize() { return !this.hasAttribute(NO_RESIZE);   }
+    get showButtons(){ return  this.hasAttribute(SHOW_BTNS);   }
+    get trimRight()  { return  this.hasAttribute(TRIM_RIGHT);  }
     get blurCancel() { return  this.hasAttribute(BLUR_CANCEL); }
     get anyDecimal() { return  this.hasAttribute(ANY_DECIMAL); }
     get accounting() { return  this.hasAttribute(ACCOUNTING);  }
     get useLocale()  { return  this.hasAttribute(LOCALE);      } // read-only
 
-    get units()    { return this.getAttribute(UNITS)  ?? ""; }   // strings:
+    set keyboards  (val) { this.toggleAttribute(NO_KEYS,    !val); }
+    set spins      (val) { this.toggleAttribute(NO_SPIN,    !val); }
+    set confirms   (val) { this.toggleAttribute(NO_CONFIRM, !val); }
+    set autoAlign  (val) { this.toggleAttribute(NO_ALIGN,   !val); }
+    set autoScale  (val) { this.toggleAttribute(NO_SCALE,   !val); }
+    set autoResize (val) { this.toggleAttribute(NO_RESIZE,  !val); }
+    set showButtons(val) { this.toggleAttribute(SHOW_BTNS,   Boolean(val)); }
+    set trimRight  (val) { this.toggleAttribute(TRIM_RIGHT,  Boolean(val)); }
+    set blurCancel (val) { this.toggleAttribute(BLUR_CANCEL, Boolean(val)); }
+    set anyDecimal (val) { this.toggleAttribute(ANY_DECIMAL, Boolean(val)); }
+    set accounting (val) { this.toggleAttribute(ACCOUNTING,  Boolean(val)); }
+                                                                 // strings:
+    get width()    { return this.getAttribute(WIDTH)  ?? AUTO; }
+    get units()    { return this.getAttribute(UNITS)  ?? ""; }
     get locale()   { return this.getAttribute(LOCALE) || undefined; }
     get currency() { return this.getAttribute(CURRENCY); }
     get notation() { return this.getAttribute(NOTATION); }
     get text()     { return this.#input.value; }                 // read-only
+
+    set width   (val) { this.#setRemove(WIDTH,    val); }
+    set units   (val) { this.#setRemove(UNITS,    val); }
+    set locale  (val) { this.#setRemove(LOCALE,   val); }
+    set currency(val) { this.#setRemove(CURRENCY, val); }
+    set notation(val) { this.#setRemove(NOTATION, val); }
 
     get value()    { return this.#attrs[VALUE];    }             // numbers:
     get digits()   { return this.#attrs[DIGITS];   }
@@ -317,30 +343,7 @@ static observedAttributes = [
     get delay()    { return this.#attrs[DELAY];    }
     get interval() { return this.#attrs[INTERVAL]; }
 
-    get validate()    { return this.#validate; }                 // function:
-    set validate(val) {
-        if (val === undefined || (val instanceof Function))
-            this.#validate = val;
-        else
-            throw new Error("validate must be an instance of Function or undefined.");
-    }
-    set keyboards (val) { this._setBool(NO_KEYS,    !val); }     // booleans:
-    set spins     (val) { this._setBool(NO_SPIN,    !val); }
-    set confirms  (val) { this._setBool(NO_CONFIRM, !val); }
-    set autoWidth (val) { this._setBool(NO_WIDTH,   !val); }
-    set autoAlign (val) { this._setBool(NO_ALIGN,   !val); }
-    set autoResize(val) { this._setBool(NO_RESIZE,  !val); }
-    set autoScale (val) { this._setBool(NO_SCALE,   !val); }
-    set blurCancel(val) { this._setBool(BLUR_CANCEL, val); }
-    set anyDecimal(val) { this._setBool(ANY_DECIMAL, val); }
-    set accounting(val) { this._setBool(ACCOUNTING,  val); }
-
-    set units   (val) { this.#setRemove(UNITS,    val); }        // strings:
-    set locale  (val) { this.#setRemove(LOCALE,   val); }
-    set currency(val) { this.#setRemove(CURRENCY, val); }
-    set notation(val) { this.#setRemove(NOTATION, val); }
-
-    set value   (val) { this.setAttribute(VALUE,    val); }      // numbers:
+    set value   (val) { this.setAttribute(VALUE,    val); }
     set digits  (val) { this.setAttribute(DIGITS,   val); }
     set max     (val) { this.setAttribute(MAX,      val); }
     set min     (val) { this.setAttribute(MIN,      val); }
@@ -348,9 +351,16 @@ static observedAttributes = [
     set delay   (val) { this.setAttribute(DELAY,    val); }
     set interval(val) { this.setAttribute(INTERVAL, val); }
 
+    get validate()    { return this.#validate; }                 // function:
+    set validate(val) {
+        if (val === undefined || (val instanceof Function))
+            this.#validate = val;
+        else
+            throw new Error("validate must be an instance of Function or undefined.");
+    }
 //  #setRemove() is for non-boolean attributes that can be removed
     #setRemove(attr, val) {
-        val === null || val === undefined
+        val === null || val === undefined //!!what about "" and NaN??
         ? this.removeAttribute(attr)
         : this.setAttribute(attr, val);
     }
@@ -382,7 +392,7 @@ static observedAttributes = [
     }
     #overOut(hoverBtn, state, args) {
         this.#hoverBtn = hoverBtn;
-        this._setHref(`${this.#getButton(this.#inFocus)}${state}`);
+        this._setHref(`${getButton(this.#inFocus)}${state}`);
         if (args !== undefined)
             this.#spin(...args);
     }
@@ -393,7 +403,7 @@ static observedAttributes = [
         inFocus = this.#inFocus;
         this.#hoverOut = isOver;
         if (!this.#hoverBtn)
-            this._setHref(`${this.#getButton(inFocus)}${IDLE}`);
+            this._setHref(`${getButton(inFocus)}${IDLE}`);
 
         if (inFocus) {
             if (this.confirms)
@@ -403,8 +413,9 @@ static observedAttributes = [
             const
             isActive = (this === document.activeElement),
             either   = isOver || isActive;
-            this.#showCtrls(either);
+
             this.#input.value = this.#getText(false, !either);
+            this.#showCtrls(either);
             if (!isActive)
                 this.#assignCSS(evt.type);
         }
@@ -425,18 +436,17 @@ static observedAttributes = [
         this.#assignCSS(outFocus ? mouse.over : event.blur);
         this.#showCtrls(outFocus);
         if (outFocus)               // always idle buttons:
-            this._setHref(this.#getButton(false) + this.#getState());
+            this._setHref(getButton(false) + this.#getState());
     }
 //  target is #input:
     #focus(evt) {
         // stopPropagation() here doesn't prevent #active()
-        if (this.#isBlurry || this.#isMousing) return;
-        //-------------------------------------------------
-        this.#fur(evt, false, CONFIRM, !this.#hoverBtn,
-                  this.#getText(true));
+        if (this.#isMousing) return;
+        //-------------------------------------------------------------------
+        this.#fur(evt, false, CONFIRM, !this.#hoverBtn, this.#getText(true));
     }
     #blur(evt) {
-        if (this.#isBlurry || this.#isMousing) return;
+        if (this.#isMousing) return;
         //----------------------------------------------------------------------
         // The default behavior is to confirm the value onblur() when the user
         // presses the Tab key or clicks elsewhere on the page. To cancel input
@@ -493,14 +503,13 @@ static observedAttributes = [
         else if (this.#inFocus) {             // clicking ok/cancel blurs #input
             const id = evt.target.id;
             this.#isMousing = true;           // #blur() = noop
-            this._setHref(this.#getButton(this.#inFocus) + ACTIVE + id);
+            this._setHref(getButton(this.#inFocus) + ACTIVE + id);
             if (id == TOP && this.classList.contains(NAN))
                 this.classList.add(BEEP);
         }
         else {
             this.#spin(true);                 // start spinning
-            if (this.#outFocus)               // Chrome: prevent next element's
-                evt.preventDefault();         // text selection on double-click,
+            preventSelection(evt, this.#outFocus);
         }                                     // but allow focus to happen first
     }
     #mouseUp(evt) {
@@ -509,26 +518,26 @@ static observedAttributes = [
             this.classList.remove(BEEP);  // ditto if (BEEP)
         }
         else {
-            let match, obj;               // end a text selection drag
-            const
+            const                         // end a text selection drag
             range = [],
+            rxp   = new RegExp(`[^\\d\-eE${this.#decimal}]`, "g"),
             input = this.#input,
             dir   = input.selectionDirection,
             start = input.selectionStart,
             end   = input.selectionEnd,
-            dist  = end - start,
             val   = input.value,
-            rxp   = new RegExp(`[^\\d\-eE${this.#decimal}]`, "g"),
-            orig  = [{num:start, str:val.slice(0, start)},
-                     {num:dist,  str:val.slice(start, end)}];
-            for (obj of orig) {
-                match = obj.str.match(rxp);
-                range.push(obj.num - (match ? match.length : 0))
-            }
-            this.#isMousing = false;      // let #focus() do it's thing, #input
-            this.#focus(new Event(event.focus));    // might already have focus.
+            orig  = [{num:start,       str:val.slice(0, start)},
+                     {num:end - start, str:val.slice(start, end)}];
+
+            for (const obj of orig)
+                range.push(obj.num - (obj.str.match(rxp)?.length ?? 0));
+
             if (this.accounting && val[0] == "(")
                 ++range[0];
+
+            this.#isMousing = false;             // let #focus() do it's thing
+            this.#focus(new Event(event.focus)); // #input may already have focus
+
             input.setSelectionRange(range[0], range[0] + range[1], dir);
             this.#dragEvents(false);
         }
@@ -542,13 +551,16 @@ static observedAttributes = [
             this.#input.focus();                  // mousedown/up handles BEEP
             this.#isMousing = false;              // must follow #input.focus()
         }
-        else
-            this.#blurMe(false);
+        else {
+            this.#isMousing = false;              // must precede this.#blur()
+            this.#blur(new Event(event.blur));
+            this.blur();
+        }
     }
 //  keydown and keyup ========================================================
 //  keyboard target is this, because the svg buttons don't receive focus.
     #keyDown(evt) {                 // document .activeElement === this
-        if (this.#inFocus)          // this._dom.activeElement === this.#input
+        if (this.#inFocus)          // this.shadowRoot.activeElement === this.#input
             switch (evt.code) {
             case code.enter:
                 if (this.classList.contains(NAN)) // force the user to input
@@ -564,10 +576,10 @@ static observedAttributes = [
             default:
             }
         else
-            switch (evt.code) {     // this._dom.activeElement === null
+            switch (evt.code) {     // this.shadowRoot.activeElement === null
             case code.enter: case code.escape:
                 this.#confirmIt = false;          // value already confirmed
-                this.#blurMe(true);
+                this.blur();
                 return;
             case code.down:
             case code.up:
@@ -610,24 +622,7 @@ static observedAttributes = [
     }
 //==============================================================================
 // this.#inFocus returns true if #input has the focus
-    get #inFocus() { return this.#input === this._dom.activeElement; }
-
-//  #blurMe() is because this.blur() noops in Chrome when:
-//            document.activeElement === this && _dom.activeElement === null
-    #blurMe(isKey) {
-        if (navigator.userAgentData) { // only Chrome-based browsers support it
-            this.#isBlurry  = isKey;   // isKey == #keyDown(), else #click()
-            this.#input.focus();
-            this.#isMousing = false;   // must follow focus(), precede blur()...
-            this.#input.blur();
-            this.#isBlurry  = false;
-        }
-        else {
-            this.#isMousing = false;   // ...and only matters for #click()
-            this.#blur(new Event(event.blur));
-            this.blur();
-        }
-    }
+    get #inFocus() { return this.#input === this.shadowRoot.activeElement; }
 //==============================================================================
 //  #swapEvents() is better than converting mousedown/mouseup into click,
 //                and it simplifies focus and blur handlers. But mousedown for
@@ -747,27 +742,28 @@ static observedAttributes = [
 //  resize() calculates the correct width and applies it to this.#input
     resize(forceIt) {
         if (!this.autoResize && !forceIt) return;
-        //-----------------------------------------------
-        let btns, diff, extra, id, isItalic, prop, style;
+        //--------------------------------------
+        let btns, diff, extra, isAuto, o, style;
         const
         px = "px",
-        W  = "width",
         PR = "padding-right",
         width   = {},
+        w       = this.width,
         states  = this.#states,
-        isAlign = this.autoAlign,
-        isWidth = this.max < Infinity && this.min > -Infinity
-                ? this.autoWidth
-                : false;            // can't auto-size infinite min or max value
+        defs    = InputNum.defaults,
+        isWidth = this.max < defs.max && this.min > defs.min
+                ? w != NONE
+                : false,            // can't auto-size infinite min or max value
+        isAlign = this.autoAlign;
 
         style = this.#svg.style;
         if (this.spins || this.confirms) {
             if (this.autoScale) {   // auto lets this.clientHeight adjust
-                style.height = "auto";
-                style.height = this.clientHeight + px;
+                style.height = AUTO;
+                style.height = this.#input.clientHeight + px;
             }
             else
-                for (prop of ["height", "margin-left"])
+                for (const prop of ["height", "margin-left"])
                     style.removeProperty(prop);
 
             btns = this.#svg.getBoundingClientRect().width;
@@ -777,78 +773,65 @@ static observedAttributes = [
         else
             btns = 0;               // no spinning, no confirming = no buttons
 
-        if (isWidth || isAlign) {   // get widths for max, min, units
-            let txt, type;
-            style    = getComputedStyle(this.#input);
-            isItalic = (style.fontStyle == "italic");
-            for (txt of this.#texts) {
-                id = txt.id;
-                if (id != UNITS)
-                    txt.innerHTML = this.#formatNumber(this[id]);
-                else if (this.units)
-                    txt.innerHTML = this.#getUnits();
-                else
-                    txt.innerHTML = "";
-
-                for (type of ["","-kerning","-size-adjust","-synthesis",
-                                 "-optical-sizing","-palette"]) {
-                    prop = "font" + type;
-                    txt.style[prop] = style[prop];
-                }
-                width[id] = txt.getBBox().width;
+        if (isWidth || isAlign) {   // get widths for #units #max #min #width
+            isAuto = (w == AUTO);
+            style  = getComputedStyle(this.#input);
+            sizeOne(width, style, this.#units, this.units ? this.#getUnits() : "");
+            if (isAuto)
+                for (const elm of this.#mNm)
+                    sizeOne(width, style, elm, this.#formatNumber(this[elm.id]));
+            else {
+                this.#width.style.width = w;
+                sizeOne(width, style, this.#width);
             }
             extra = Math.max(btns,  width[UNITS]);    // the rest of the width
             diff  = Math.max(btns - width[UNITS], 0); // 0 < width[UNITS] < svg
         }
-        if (isWidth) {
-            const
-            chars = Math.max(width[MAX], width[MIN]), // text width w/o units
-            obj   = {
-                [event.blur] : chars + extra - diff,
-                [event.focus]: chars + extra - btns,
-                [mouse.over] : chars
-            }
-            if (isItalic)           // right-aligned italics often truncate
-                for (id in obj)     // #roundEven() mitigates it by 1px
-                    obj[id] = this.#roundEven(obj[id]);
 
-            for (id in obj)
-                states[id][W] = obj[id] + px;
+        if (isWidth) {
+            let id, obj, n, sign;
+            if (isAuto) {           // auto-width
+                n = Math.max(width[MAX], width[MIN]);
+                sign = 1;
+            }
+            else {                  // fixed width
+                n = width.width;
+                sign = -1;
+            }
+            obj = { [event.blur ]: n + ((extra - diff) * sign),
+                    [event.focus]: n + ((extra - btns) * sign),
+                    [mouse.over ]: n };
+            // right-align italics can truncate, roundEven() mitigates it by 1px
+            const isItalic = isAuto && style.fontStyle == "italic";
+            for ([id, o] of Object.entries(obj))
+                states[id].width = (isItalic ? roundEven(o) : o) + px;
         }
-        else {
-            for (id in states)
-                states[id][W] = "";
-        }
-        if (isAlign) {
+        else                        // no width
+            for (o of Object.values(states))
+                o.width = "";
+
+        if (isAlign) {              // right-aligned
             states[event.blur] [PR] = this.#padRight + diff  + px;
             states[event.focus][PR] = this.#padRight + btns  + px;
             states[mouse.over] [PR] = this.#padRight + extra + px;
         }
-        else {
-            for (id in states)
-                states[id][PR] = "";
-        }
+        else                        // unaligned
+            for (o of Object.values(states))
+                o[PR] = "";
+
         this.#assignCSS(event.blur); // assumes #input not focused or hovering!!
-    }
-//  #roundEven() is because italics can truncate slightly when right-aligned,
-//               depending on the font-family and font-size. Rounding the width
-//               to the nearest even number of px reduces the truncation. Why???
-    #roundEven(n) {
-        const
-        floor = Math.floor(n),
-        ceil  = Math.ceil(n);
-        return floor % 2 ? ceil : floor;
     }
 //==============================================================================
 //  #showCtrls() shows or hides the spin or confirm buttons
-    #showCtrls(b) {
-        this.#ctrls.style.visibility = b ? "visible" : "hidden";
+    #showCtrls(b, forceIt) {
+        if (!this.showButtons || forceIt)
+            this.#ctrls.style.visibility = b ? "visible" : "hidden";
     }
-//  #assignCSS() is necessary because overriding ::part requires "important"
-    #assignCSS(type) { // only used for width, padding-right, and text-align
+//  #assignCSS() is necessary because overriding ::part requires !important
+    #assignCSS(type) {                  // only for width and padding-right
         const style = this.#input.style;
         for (const [prop, val] of Object.entries(this.#states[type]))
-            style.setProperty(prop, val, "important");
+            style.setProperty(prop, val, IMPORTANT);
     }
 //  #getText() gets the appropriate text for the #input
     #getText(inFocus, appendUnits) {
@@ -887,10 +870,6 @@ static observedAttributes = [
         }
         return Number(str);        // parseFloat() is too lenient
     }
-//  #getButton() gets the first segment of the href id
-    #getButton(inFocus) {
-        return !inFocus ? SPINNER : CONFIRM;
-    }
 //  #getState() gets the second-third segments of the href id
     #getState(id = this.#hoverBtn) {
         return this.#isSpinning ? `${ACTIVE}${id}`
@@ -899,3 +878,34 @@ static observedAttributes = [
     }
 }
 BaseElement.define(InputNum);
+//=============================================================================
+// Private helpers
+// autoStep() returns a step value based on digits. Using min/max to auto-step
+function autoStep(digits) {
+    return 1 / Math.pow(10, digits);
+}
+// getButton() gets the first segment of the href id
+function getButton(inFocus) {
+    return !inFocus ? SPINNER : CONFIRM;
+}
+// roundEven() is because italics can truncate slightly when right-aligned,
+//             depending on the font-family and font-size. Rounding the width
+//             to the nearest even number of px reduces the truncation. Why???
+function roundEven(n) {
+    const
+    floor = Math.floor(n),
+    ceil  = Math.ceil(n);
+    return floor % 2 ? ceil : floor;
+}
+function sizeOne(width, style, elm, innerHTML) {
+    if (innerHTML !== undefined) {
+        let prop, type;
+        elm.innerHTML = innerHTML;
+        for (type of ["","-kerning","-size-adjust","-synthesis",
+                            "-optical-sizing","-palette"]) {
+            prop = "font" + type;
+            elm.style[prop] = style[prop];
+        }
+    }
+    width[elm.id] = elm.getBBox().width;
+}

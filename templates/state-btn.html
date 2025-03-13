@@ -1,21 +1,180 @@
 <html>
-  <body> <!-- <state-btn> template for playback -->
-    <template>
-      <svg viewbox="0 0 25 25" width="25" height="25">
+  <body>
+    <!-- Playback buttons: play and stop -->
+    <template id="playback">
+      <svg viewbox="0 0 25 25">
         <defs>
-          <!-- 3 images for #play button -->
-          <path id="btn-play"   d="M3,2 L22,12.5 3,23 Z"/>
-          <g    id="btn-pause">
+          <!-- 3 images for play button -->
+          <path id="play"   d="M3,2 L22,12.5 3,23 Z"/>
+          <g    id="pause">
             <rect x= "3" y="3"  width="7" height="19" rx="1" ry="1"/>
             <rect x="15" y="3"  width="7" height="19" rx="1" ry="1"/>
           </g>
-          <path id="btn-resume" d="M3,3 V22 M8,3 L22,12.5 8,22 Z"/>
+          <path id="resume" d="M3,3 V22 M8,3 L22,12.5 8,22 Z"/>
 
-          <!-- 2 images for #stop button -->
-          <rect id="btn-stop"   x="3" y="3" width="19" height="19" rx="2" ry="2"/>
-          <path id="btn-reset"  d="M3,3 V22 M22,3 L8,12.5 22,22 Z"/>
+          <!-- 2 images for stop button -->
+          <rect id="stop"   x="3" y="3" width="19" height="19" rx="2" ry="2"/>
+          <path id="reset"  d="M3,3 V22 M22,3 L8,12.5 22,22 Z"/>
         </defs>
-        <use id="btn" href="#"/>
+        <use id="use" href="#"/>
+      </svg>
+    </template>
+    <!-- Toggle on-off,  full image includes labels -->
+    <template id="toggle">
+      <svg part="image" viewbox="0 0 227 370">
+        <defs>
+          <image id="on"  href="toggle-on.png"  height="100%"/>
+          <image id="off" href="toggle-off.png" height="100%"/>
+        </defs>
+        <use id="use" part="switch" href="#"/>
+      </svg>
+    </template>
+    <!-- Toggle on-off, image of just the switch, labels styled by CSS -->
+    <template id="toggle-hex">
+      <div style="display:flex; flex-direction:column; align-items:center;">
+        <pre part="on">ON</pre>
+        <svg part="image" viewbox="0 0 227 197">
+          <defs>
+            <image id="on"      href="toggle-hex-on.png"   height="100%"/>
+            <image id="off"     href="toggle-hex-off.png"  height="100%"/>
+            <image id="neither" href="toggle-hex-null.png" height="100%"/>
+          </defs>
+          <use id="use" part="switch" href="#"/>
+        </svg>
+        <pre part="off">OFF</pre>
+      </div>
+    </template>
+    <!-- Toggle on-off,  SVG with CSS styling that changes <rect> shape -->
+    <template id="on-off">
+      <div style="display:flex; align-items:center;">
+        <svg part="image" viewbox="0 0 48 48">
+          <defs>
+            <filter id="blur" filterUnits="userSpaceOnUse">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="0.5"/>
+            </filter>
+            <filter id="blur2" filterUnits="userSpaceOnUse">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="0.75"/>
+            </filter>
+            <linearGradient id="rise" gradientTransform="rotate(30)">
+              <stop offset= "5%"  stop-color="#F7F7F7" />
+              <stop offset="20%"  stop-color="#EEE" />
+              <stop offset="75%" stop-color="#BBB" />
+              <stop offset="87%" stop-color="#AAA" />
+              <stop offset="99%" stop-color="#888" />
+            </linearGradient>
+            <linearGradient id="hole" gradientTransform="rotate(30)">
+              <stop offset= "5%" stop-color="#202020" />
+              <stop offset="25%" stop-color="#262626" />
+              <stop offset="75%" stop-color="#2C2C2C" />
+              <stop offset="95%" stop-color="#333" />
+            </linearGradient>
+            <linearGradient id="bevel-stroke" gradientTransform="rotate(30)">
+              <stop offset= "5%" stop-color="#999" />
+              <stop offset="30%" stop-color="#959595" />
+              <stop offset="675%" stop-color="#888" />
+              <stop offset="99%" stop-color="#848484" />
+            </linearGradient>
+            <g id="false">
+              <rect x="5.5" y="5.5" width="37" height="37" rx="2" ry="2" fill="url(#rise)" stroke="url(#bevel-stroke)"/>
+              <rect x="9.5" y="9.5" width="29" height="29" rx="2" ry="2" fill="url(#hole)" stroke="#000"/>
+              <rect x="16"  y="16"  width="16" height="16" rx="8" ry="8" fill="none"       stroke="#FAFAFA"
+                  stroke-width="4" filter="url(#blur)"/>
+            </g>
+            <g id="falsy">
+              <rect x= "5"   y= "5"   width="38" height="38" rx="12"  ry="12"  fill="url(#rise)" stroke="url(#bevel-stroke)"/>
+              <rect x= "9"   y= "9"   width="30" height="30" rx="12"  ry="12"  fill="#000"/>
+              <rect x="17.5" y="17.5" width="13" height="13" rx="6.5" ry="6.5" fill="none" stroke="#FFF"
+                  stroke-width="3" filter="url(#blur)"/>
+            </g>
+            <g id="true">
+              <rect x= "4" y= "4" width="40" height="40" rx="20" ry="20" fill="url(#rise)" stroke="url(#bevel-stroke)"/>
+              <rect x= "8" y= "8" width="32" height="32" rx="16" ry="16" fill="#000" stroke="url(#hole)"/>
+              <rect x="21" y="14" width= "6" height="20"         ry= "3" fill="#FFF" filter="url(#blur2)"/>
+              <path d="M24,18 V30" stroke="#FFF" stroke-width="5" stroke-linecap="round"/>
+            </g>
+            <g id="truthy">
+              <rect x= "5" y= "5"  width="38" height="38" rx="12" ry="12" fill="url(#rise)" stroke="url(#bevel-stroke)"/>
+              <rect x="10" y="10"  width="28" height="28" rx= "8" ry= "8" fill="#000"/>
+              <rect x="22" y="16"  width= "4" height="16"         ry= "3" fill="#FFF" filter="url(#blur2)"/>
+            </g>
+            <g id="null">
+              <rect x= "5" y= "5" width="38" height="38" rx="6" ry="6" fill="url(#rise)" stroke="url(#bevel-stroke)"/>
+              <rect x= "8" y= "8" width="32" height="32" rx="6" ry="6" fill="#000"       stroke="url(#bevel-stroke)"/>
+              <rect x="16" y="17" width="16" height="16" rx="8" ry="8" fill="none"       stroke="#FAFAFA"
+                  stroke-width="4" filter="url(#blur)" mask="url(#break-circle)"/>
+              <path d="M24,15 V23" stroke="#FFF" stroke-width="4" stroke-linecap="round" filter="url(#blur)"/>
+            </g>
+            <g id="nullish">
+              <rect x="5" y="5" width="38" height="38" rx="4" ry="4" fill="url(#rise)" stroke="url(#bevel-stroke)"/>
+              <rect x="10" y="10" width="28" height="28" rx="4" ry="4" fill="#000"  stroke="url(#bevel-stroke)"/>
+              <rect x="17.5" y="18.5"  width="13" height="13" rx="6.5" ry="6.5" fill="none" stroke="#FFF"
+                  stroke-width="3" filter="url(#blur)" mask="url(#break-circle)"/>
+              <path d="M24,17 V23" stroke="#FFF" stroke-width="3" stroke-linecap="round" filter="url(#blur)"/>
+            </g>
+            <mask id="break-circle" maskUnits="userSpaceOnUse">
+              <rect fill="#FFF" width="48" height="48"/>
+              <rect fill="#000" width= "8" height= "8" x="20" y="14" filter="url(#blur)"/>
+            </mask>
+          </defs>
+          <rect part="outer"/>
+          <rect part="inner"/>
+          <rect part="rect"/>
+          <path part="path"/>
+        </svg>
+        <pre id="label" part="label"></pre>
+      </div>
+    </template>
+    <template id="stainless-button">
+      <div style="display:flex; align-items:center;">
+        <svg part="image" viewbox="0 0 48 42.3952">
+          <defs>
+            <filter id="glow" filterUnits="userSpaceOnUse">
+              <feGaussianBlur in="SourceGraphic" result="r1" stdDeviation="0.5"/>
+              <feColorMatrix  in="r1" type="saturate"/>
+            </filter>
+            <filter id="blur" filterUnits="userSpaceOnUse">
+              <feGaussianBlur in="SourceGraphic" result="r1" stdDeviation="1"/>
+            </filter>
+            <linearGradient id="hole" gradientTransform="rotate(30)">
+              <stop offset= "5%" stop-color="#202020" />
+              <stop offset="25%" stop-color="#262626" />
+              <stop offset="75%" stop-color="#2C2C2C" />
+              <stop offset="95%" stop-color="#333" />
+            </linearGradient>
+            <mask id="break-circle" maskUnits="userSpaceOnUse">
+              <rect fill="#FFF" width="48" height="48"/>
+              <rect fill="#000" width= "8" height="12" x="20" y="12" filter="url(#blur)"/>
+            </mask>
+          </defs>
+          <image  part="hex" href="stainless-button.png" width="48"/>
+          <circle part="hole"/>
+          <image  part="btn" href="stainless-circle.png"/>
+          <rect part="under-rect"/>
+          <path part="under-path"/>
+          <rect part="rect"/>
+          <path part="path"/>
+        </svg>
+        <pre id="label" part="label"></pre>
+      </div>
+    </template>
+    <template id="six">
+      <svg part="image" viewbox="0 0 104 211" width="104">
+        <defs>
+          <filter id="blur" filterUnits="userSpaceOnUse">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="4"/>
+          </filter>
+          <g id="led">
+            <rect x="15"   y="0"   width="30" height="11" rx="5" fill="#3F0" opacity="0.2"/>
+            <rect x="15.5" y="0.5" width="29" height="10" rx="5" fill="none" stroke="#3F0" filter="url(#blur)"/>
+          </g>
+          <rect id="pressed" x="16" y="176" width="73" height="22" rx="10" fill="none" stroke="red" stroke-width="4" opacity="0.2"/>
+        </defs>
+        <image href="five-way.jpg" width="104"/>
+        <use part="led1" href="#led"/>
+        <use part="led2" href="#led"/>
+        <use id="use" part="button" href="#"/>
+        <rect part="focus" x="16" y="176" width="73" height="22" rx="10" fill="none" stroke="gray" stroke-width="4" opacity="0"/>
+        <rect id="events" x="14" y="174" width="77" height="26" rx="10" fill="none" pointer-events="all"/>
       </svg>
     </template>
   </body>

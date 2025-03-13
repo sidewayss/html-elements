@@ -1,18 +1,359 @@
+@font-face {
+  font-family:"Alegreya";
+  font-weight:500;
+  font-style:normal;
+  src:url("/fonts/AlegreyaSansSC-Medium.ttf") format("truetype");
+}
+@media (width < 360px) {
+  .html { max-width:288px; }
+}
+body {
+  background-color:#171717;
+}
 label {
   margin-right:0.25rem;
 }
-span[id] { min-width:5ch }
-.chk-val { margin-top:0.25rem }
-.separator {
-  color:#787;
-  margin-bottom:0.5rem;
+input {
+  border:1px solid #0002;
+}
+input:hover {
+  border-color:#000;
+}
+
+div.chk-val {
+  margin-top:0.25rem;
+}
+pre {
+  margin:0
+}
+pre.w20ch {
+  width:20ch;
+}
+div.separator {
+  margin:0.75rem 0 0.25rem;
+  font-weight:500;
+  color:#000;
 }
 div.header {
   margin-top:0.1875rem;
 }
-.html { /* the only elements in this page that stretch */
-  width:328px;
+.indent {
+  padding:0 0.5rem;
 }
-@media (width < 360px) {
-  .html { max-width:288px; }
+.ml1-8 {
+  margin-left:0.125rem;
+}
+.self-center {
+  align-self:center;
+}
+pre.keyCodes {
+  margin-left:0.0625rem;
+  font-size:  0.9375rem;
+}
+.html {
+  width:312px;
+}
+#controls {
+  padding:0 0.4375rem 1rem 0.4375rem;
+  margin-bottom:0.5rem;
+  background-color:#F9F9F9;
+  box-shadow: 0px 0px 4px 2px #171717 inset;
+}
+state-btn::part(image) {
+  filter: drop-shadow(2px 4px 6px black); /* the Chrome default */
+}
+state-btn::part(label) {
+  margin:0;
+}
+/******************************************/
+#toggle {
+  font-size:0;
+  width:3rem;
+  margin-right:1.5rem;
+}
+#toggle, #toggle-hex {
+  filter:sepia(0);
+  transition:filter 100ms;
+}
+#toggle[index="1"],
+#toggle-hex[index="1"] {
+  filter:sepia(1);
+}
+#toggle:hover,
+#toggle-hex:hover {
+  filter:sepia(0.5);
+}
+#toggle[active],
+#toggle-hex[active] {
+  filter:sepia(0);
+}
+/******************************************/
+#toggle-hex {
+  width:3rem;
+  margin-right:0.75rem;
+}
+#toggle-hex::part(on),
+#toggle-hex::part(off),
+#on-off::part(label),
+#stainless::part(label) {
+  cursor:default;
+  font-size:1.375rem;
+  font-weight:900;
+}
+#toggle-hex::part(on) {
+  margin:0;  color:black;
+}
+#toggle-hex::part(off) {
+  margin:0.125rem 0 0 0.25rem;  color:black;
+}
+#toggle-hex[index="1"]::part(on),
+#toggle-hex[index="0"]::part(off) {
+  opacity:1;
+}
+#toggle-hex[index="0"]::part(on),
+#toggle-hex[index="1"]::part(off) {
+  opacity:0;
+}
+#toggle-hex[active]::part(off),
+#toggle-hex[active]::part(on) {
+  opacity:0.25;
+}
+/******************************************/
+#on-off { padding-right:0.25rem; }
+#on-off::part(image) {
+  width:3rem;
+}
+#on-off::part(outer) {
+  fill:  url(#rise);
+  stroke:url(#bevel-stroke);
+  transition:all 150ms;
+}
+#on-off::part(inner) {
+  fill:  #000;
+  stroke:url(#hole);
+  transition:all 150ms;
+}
+#on-off::part(rect) {
+  fill:none;
+  stroke-width:4px;
+  transition:all 150ms;
+}
+#on-off::part(path) {
+  visibility:hidden;
+}
+#on-off::part(label) {
+  opacity:1;
+  width:3ch;
+  line-height:0;
+  margin:0.125rem 0 0 0.125rem;
+  font-family:"Alegreya";
+  font-size:1.5em;
+  transition:all 150ms;
+}
+#on-off:hover::part(label) {
+  color:#000;
+}
+#on-off[active]::part(label) {
+  opacity:0.67;
+}
+#on-off[index="0"] {
+  &::part(outer) {
+    width:38px; height:38px;  x: 5px; y: 5px;  rx:2px; ry:2px;
+  }
+  &::part(inner) {
+    width:30px; height:30px;  x: 9px; y: 9px;  rx:0px; ry:0px;
+  }
+  &::part(rect) {
+    width:16px; height:16px;  x:16px; y:16px;  rx:8px; ry:8px;
+    stroke:#F8F8F8;  filter:url(#blur);
+  }
+  &::part(path) {
+    opacity:0;
+  }
+  &:hover::part(outer) { rx:6px;   ry:6px; }
+  &:hover::part(inner) { rx:4.5px; ry:4.5px; }
+  &:hover::part(rect)  {
+    width:14px; height:14px;  x:17px; y:17px;  rx:7px;   ry:7px;
+  }
+  &[active]::part(outer) {
+    width:36px; height:36px;  x: 6px; y: 6px;  rx:12px; ry:12px;
+  }
+  &[active]::part(inner) {
+    width:28px; height:28px;  x:10px; y:10px;  rx: 9px; ry: 9px;
+  }
+  &[active]::part(rect) {
+    width:10px; height:14px;  x:19px; y:17px;  rx: 5px; ry: 8px;
+  }
+}
+#on-off[index="1"] {
+  &::part(outer) {
+    width:40px; height:40px;  x: 4px; y: 4px;  rx:20px; ry:20px;
+  }
+  &::part(inner) {
+    width:32px; height:32px;  x: 8px; y: 8px;  rx:16px; ry:16px;
+  }
+  &::part(rect) {
+    width: 2px; height:18px;  x:23px; y:15px;  rx: 8px; ry: 1px;
+    stroke:#FFF;  filter:url(#blur2);
+  }
+  &:hover::part(outer) {
+    width:38px; height:38px;  x: 5px; y: 5px;  rx:15px; ry:15px;
+  }
+  &:hover::part(inner) {
+    width:30px; height:30px;  x: 9px; y: 9px;  rx:12px; ry:12px;
+  }
+  &:hover::part(rect) {
+    width: 2px; height:16px;  x:23px; y:16px;  rx: 8px; ry: 1px;
+  }
+  &[active]::part(outer) {
+    width:36px; height:36px;  x: 6px; y: 6px;  rx:12px; ry:12px;
+  }
+  &[active]::part(inner) {
+    width:28px; height:28px;  x:10px; y:10px;  rx:9px; ry:9px;
+  }
+  &[active]::part(rect) {
+    width: 8px; height:14px;  x:20px; y:17px;  rx: 4px; ry: 8px;
+  }
+}
+/******************************************/
+#stainless {
+  line-height:0;
+}
+#stainless::part(label) {
+  position:relative;  top:1px;  font-family:"Alegreya";
+  transition:all 150ms;         font-size:   1.5rem;
+}
+#stainless::part(image) {
+  width:4rem;  margin-right:0.5rem;
+}
+#stainless::part(hex) {
+  filter:none;
+}
+#stainless::part(hole) {
+  r: 13px; cx:23.75px; cy:21.75px;  stroke:none;  fill:url(#hole);
+}
+#stainless::part(btn) {
+  width:24px;  x:11.75px; y:10px;
+  filter:contrast(0.25);  transition:all 80ms;
+}
+#stainless:hover::part(hex) {
+  filter:sepia(0.1);  transition:filter 80ms;
+}
+#stainless:hover::part(btn) {
+  filter:sepia(0.1) contrast(0.25);
+}
+#stainless[active]::part(btn) {
+  width:23px;  x:12.25px; y:10.5px;
+}
+#stainless::part(under-rect),
+#stainless::part(under-path),
+#stainless::part(rect),
+#stainless::part(path) {
+  fill:none;  stroke-width:3px;  stroke-linecap:round;
+  transition:all 150ms;
+}
+#stainless::part(under-rect),
+#stainless::part(under-path) {
+  filter:url(#blur);
+}
+#stainless::part(rect),
+#stainless::part(path) {
+  filter:url(#glow);
+}
+#stainless[index="0"] {
+  &::part(under-rect),
+  &::part(rect) {
+    width:14px; height:14px;  rx:7px; ry:7px;
+    opacity:1;
+  }
+
+  &::part(under-rect) { x:17.5px; y:15.5px;  stroke:#444; }
+  &::part(rect)       { x:17px;   y:15.25px; stroke:#222;}
+  &::part(label)      { filter:none;         color:#222; }
+
+  &:hover::part(under-rect) { opacity:1; }
+  &:hover::part(rect)   { stroke:#040; }
+  &:hover::part(label)  { color: #040; }
+
+  &[active]::part(under-rect),
+  &[active]::part(rect) {
+    mask:url(#break-circle);
+  }
+  &[active]::part(under-rect) { stroke:#242; }
+  &[active]::part(rect),
+  &[active]::part(path)       { stroke:#DD0; }
+  &[active]::part(path) { d:path("M24,20 V21"); }
+  &[active]::part(label)      {  color:#DD0; filter:drop-shadow(0 0 1px #000); }
+}
+#stainless[index="1"] {
+  &::part(label) {
+    color:#E9E900;
+    filter:drop-shadow(0 0 1px #000);
+  }
+  &::part(under-rect),
+  &::part(rect) {
+    width:13px; height:13px;  rx:6.5px; ry:6.5px;  mask:url(#break-circle);
+  }
+  &::part(under-rect) { x:17.25px; y:16.5px;  }
+  &::part(rect)       { x:17.5px;  y:16.75px; }
+  &::part(under-path),
+  &::part(path)       { d:path("M24,15 V21"); }
+
+  &::part(under-rect),
+  &::part(under-path) { stroke:#220; }
+  &::part(rect),
+  &::part(path)       { stroke:#DD0; }
+
+  &:hover::part(rect),
+  &:hover::part(path)  { stroke:orange; }
+  &:hover::part(label) {  color:orange; }
+}
+#stainless[index="2"] {
+  &::part(under-rect),
+  &::part(rect)       { opacity:0; }
+  &::part(under-rect) { x:17.5px; y:15.5px;  stroke:#444; }
+  &::part(rect)       { x:17px; y:15.25px;  stroke:#222;}
+  &::part(label) { color:#F11; filter:drop-shadow(0 0 0.5px #808080); }
+
+  &::part(path),
+  &::part(under-path) { d:path("M24,16.25 V28.25");  stroke-width:5px; }
+  &::part(under-path) { stroke:#200;  opacity:0.5; }
+  &::part(path)       { stroke:#F11;  opacity:1;   }
+
+  &:hover::part(path)  { stroke:#DD0; }
+  &:hover::part(label) {  color:#DD0; }
+}
+/******************************************/
+#six:focus::part(focus) {
+  opacity:0.5;
+}
+#six::part(led2),
+#six[value="0"]::part(led1),
+#six[value="0"][active]::part(led1),
+#six[value="240"][active]::part(led2) {
+  opacity:0;
+}
+#six[active]::part(led1),
+#six[active]::part(led2) {
+  opacity:0.5;
+}
+#six[value="15"]::part(led1),
+#six[value= "0"]::part(led2) {
+  y:148px;
+}
+#six[value="30"]::part(led1),
+#six[value="15"]::part(led2) {
+  y:115px;
+}
+#six[value="60"]::part(led1),
+#six[value="30"]::part(led2) {
+  y:81px;
+}
+#six[value="120"]::part(led1),
+#six[value= "60"]::part(led2) {
+  y:48px;
+}
+#six[value="240"]::part(led1),
+#six[value="120"]::part(led2) {
+  y:15px;
 }

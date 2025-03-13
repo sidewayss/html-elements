@@ -15,17 +15,39 @@
   font-style:italic;
   src:url("/fonts/RobotoMono.ttf") format("truetype");
 }
-@media (height < 340px) {
-  * { font-family:monospace; }
+@media (width <= 500px) {
+  body { background-color:#171717 !important }
+}
+@media (width < 340px) {
+  *    { font-size: 0.9375rem }
 }
 @media (hover:none) {
   input-num::part(buttons) { display:none }
 }
-select     { margin-left: 0.25rem; }
-check-box  { margin-right:1rem }
+body {
+  background-color:aliceblue;
+}
+select      { margin-left: 0.25rem; }
+check-box   { margin-right:1rem; }
+#autoAlign, /* exceptions to check-box margin */
 #accounting,
-#keyboards { margin-right:0 } /* exceptions to check-box margin */
+#keyboards,
+#fontStyle  { margin-right:0 }
+#anyDecimal,
+#blurCancel { margin-left: 1rem }
 
 #max, #min, #step, #delay, #interval {
   text-align:right
+}
+#controls {
+  align-items:flex-start;
+  margin: 0.75rem 0;
+  padding:0.8125rem 0.75rem 0.6875rem 1rem;
+  background-color:#FEFEFD;
+  box-shadow: 1px 0 4px #171717 inset;
+  border:     2px solid #171717;
+  border-radius:0.75rem;
+}
+.center {
+  align-self:center;
 }

@@ -1,9 +1,12 @@
 import {writeText, toHTML, fromHTML} from "../common.js";
+import {BaseElement} from "/html-elements/base-element.js"
 const
 BOX = "box",
 TRI = "tri",
-BTN = "btn",
-elms = {};
+SIX = "six",
+
+elms = {},
+keyCodes = new Set(["ArrowUp","ArrowDown"]);
 //==============================================================================
 document.addEventListener("DOMContentLoaded", load);
 function load() {
@@ -11,7 +14,9 @@ function load() {
   const
   body  = document.body,
   tags  = ["check-box","check-tri","state-btn","input","select"],
-  byTag = tags.map(tag => [...body.getElementsByTagName(tag)]);
+  byTag = tags.map(tag => [...body.getElementsByTagName(tag)]),
+  all   = [...byTag.slice(0, 3).map(arr => arr.map(v => BaseElement.promises.get(v))).flat(),
+           ...tags .slice(0, 3).map(v => customElements.whenDefined(v))];
 
 //~for (elm of byTag.flat()) {
   for (elm of [].concat(...byTag)) {
@@ -23,7 +28,7 @@ function load() {
       elms[elm.id] = elm;     // none of them listen for events
 
   elms.keyCodes = {};         // 3 x <select>:
-  for (elm of byTag[byTag.length -1]) //@ https://github.com/sidewayss/html-elements/issues/10
+  for (elm of byTag[byTag.length - 1]) //@ https://github.com/sidewayss/html-elements/issues/10
     elms.keyCodes[splitDash(elm.id)[0]] = elm;
 
   elms.html = {};             // 3 x <div>:
@@ -33,48 +38,73 @@ function load() {
   for (elm of body.getElementsByTagName("button"))
     elm.addEventListener("click", copyToClipboard);
 
-  Promise.all(tags.slice(0, 3).map(v => customElements.whenDefined(v)))
+  elms[SIX].addEventListener("keyup",   arrowUpDown);
+  window.addEventListener("keydown", keyDown);
+
+  Promise.all(all)
     .then(() => {             // 3 x custom element definitions
       for (const id of [BOX, TRI]) {
         elm = elms[id];
         change({target:elm});
         elms[`${id}-label`].value = elm.label; // test it the other way around
       }
-      change({target:elms[BTN]});
+      change({target:elms[SIX]});
     });
+}
+// Attached to elms[SIX] only
+function arrowUpDown(evt) {
+  if (evt.code == "ArrowUp")
+    evt.target.increment();
+  else if (evt.code == "ArrowDown")
+    evt.target.decrement();
+  else
+    return;
+  //----------
+  change(evt);
+}
+// window.onkeydown()
+function keyDown(evt) {
+  if (document.activeElement === elms[SIX] && keyCodes.has(evt.code))
+    evt.preventDefault();
 }
 //==============================================================================
 // Event handler (there's only one) and helpers:
 function change(evt) {
+  const tar = evt.target;
+  if (tar.id == "on-off" || tar.id == "btn" || tar.id.startsWith("toggle") || tar.id.startsWith("stainless"))
+    return;
+  //----------------------------------
+  let valText;
   const
-  tar = evt.target,
-  val = tar.value,
   [tag, prop] = splitDash(tar.id),
-  elm = elms[tag];
+  isSix = (tag == SIX),
+  val   = isSix ? tar.index : tar.value,
+  elm   = elms[tag];
 
   if (!prop) {  // tar === elm aka #box, #tri, or #btn
-    if (tag == BTN) {
+    if (isSix) {
       if (!elm.autoIncrement && evt.type) { // not called by Promise.all() above
         let i;
         do {
-          i = Math.floor(Math.random() * elms[BTN].states.length);
+          i = Math.floor(Math.random() * elms[SIX].states.length);
         } while (i == val);
-        elm.value = i;
-      } // must follow setting of elm.value:
-      elms.href.textContent = elm.states[elm.index][1];
+        elm.index = i;
+      }
+      valText = elm.value.toString().padStart(3);
+      elms[`${tag}-index`].textContent = elm.index.toString().padStart(3);
     }
-    else
+    else {
+      valText = elm.value ?? "null";
       elms[`${tag}-checked`].textContent = elm.checked;
+    }
 
-    // must follow setting of elm.value:
-    elms[`${tag}-value`].textContent = elm.value ?? "null";
+    elms[`${tag}-value`].textContent = valText;
   }
   else if (prop == "keyCodes") {
     let arr;
     switch (tag) {
       case BOX: arr = [val];          break;
-      case TRI: arr = ["Space", val]; break;
-      case BTN: arr = Array.from(tar.selectedOptions).map(v => v.value);
+      case TRI: arr = [val, "Space"]; break;
     }
     elm[prop] = arr;
   }
@@ -101,25 +131,26 @@ function updateText(elm, id) {
     break;
   case TRI:
     tag = "check-tri";
-    txt = textLabel(elm);
+    txt = textLabel(elm) + " ";
     if (elm.default)
       txt += " default";
     if (elm.showDefault)
-      txt += "show-default";
+      txt += " show-default";
     if (keys.value)
       txt += textKeyCodes(elm);
     if (elm.value !== null)
       txt += ` value="${elm.value ? "1" : ""}"`;
     break;
-  case BTN:
-    tag = "state-btn";
-    txt = ` states='${JSON.stringify(elm.states)}'`;
-    if (elm.autoIncrement)
-      txt += " auto-increment";
-
-    const sel = keys.selectedOptions;
-    if (sel.length != 1 || sel[0].value != "Enter")
-      txt += sel.length ? textKeyCodes(elm) : ' key-codes=""';
+  case SIX:
+    return;
+//!!    tag = "state-btn";
+//!!    txt = ` states='${JSON.stringify(elm.states)}'`;
+//!!    if (elm.autoIncrement)
+//!!      txt += " auto-increment";
+//!!
+//!!    const sel = keys.selectedOptions;
+//!!    if (sel.length != 1 || sel[0].value != "Enter")
+//!!      txt += sel.length ? textKeyCodes(elm) : ' key-codes=""';
   }
   elms.html[id].innerHTML = toHTML(`&lt;${tag}${txt}&gt;&lt;/${tag}&gt;`);
 }
@@ -132,7 +163,7 @@ function textLabel(elm) {
 //==============================================================================
 function copyToClipboard(evt) {
   const tar = evt.target;
-  writeText(tar, fromHTML(elms.html[splitDash(tar.id)[0]].textContent));
+  writeText(tar, fromHTML(elms.html[splitDash(tar.id)[0]]));
 }
 // splitDash() is a convenience that splits hyphenated attribute names or ids
 function splitDash(name) { return name.split("-"); }

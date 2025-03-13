@@ -1,0 +1,30 @@
+<html>
+  <body>
+    <template>
+      <svg part="image" viewbox="0 0 48 42.3952">
+        <defs>
+          <g id="off">
+            <g id="base">
+              <image href="stainless-button.png" width="48"/>
+              <circle cx="23.75" cy="21.75" r="13" stroke="none" fill="#000"/>
+            </g>
+            <image id="circle" href="stainless-circle.png" x="11.75" y="10" width="24"/>
+          </g>
+          <g id="on">
+            <use href="#base"/>
+            <image id="circle" href="stainless-circle.png" x="12.75" y="11" width="22"/>
+          </g>
+          <g id="standby">
+            <use href="#base"/>
+            <image id="circle" href="stainless-circle.png" x="12.75" y="11" width="22"/>
+          </g>
+          <g id="pressed">
+            <use href="#base"/>
+            <image id="circle" href="stainless-circle.png" x="13.75" y="12" width="20"/>
+          </g>
+        </defs>
+        <use id="use" part="button" href="#"/>
+      </svg>
+    </template>
+  </body>
+</html>

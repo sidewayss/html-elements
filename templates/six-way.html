@@ -1,0 +1,23 @@
+<html>
+  <body style="display:flex; justify-content:center;">
+    <template>
+      <svg part="image" viewbox="0 0 104 211" width="104">
+        <defs>
+          <filter id="blur" filterUnits="userSpaceOnUse">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="4"/>
+          </filter>
+          <g id="led">
+            <rect x="15"   y="0"   width="30" height="11" rx="5" fill="#3F0" opacity="0.2"/>
+            <rect x="15.5" y="0.5" width="29" height="10" rx="5" fill="none" stroke="#3F0" filter="url(#blur)"/>
+          </g>
+          <rect id="pressed" x="16" y="176" width="73" height="22" rx="10" fill="none" stroke="red" stroke-width="4" opacity="0.2"/>
+        </defs>
+        <image href="five-way.jpg" width="104"/>
+        <use part="led1" href="#led"/>
+        <use part="led2" href="#led"/>
+        <use id="use" part="button" href="#"/>
+        <rect id="events" x="14" y="174" width="77" height="26" rx="10" fill="none" pointer-events="all"/>
+      </svg>
+    </template>
+  </body>
+</html>

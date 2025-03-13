@@ -1,6 +1,9 @@
+  @media (hover:none) {
+    input-num::part(buttons) { display:none }
+  }
   input-num {
     font-family:inherit;
-    background-color:white; /* for .beep background opacity < 1*/
+    background-color:#FFF; /* for .beep background opacity < 1*/
     border: 0.0625rem solid #0002;
     outline:none;
   }
@@ -33,15 +36,14 @@
     stroke:#0002;           /* matches element border  */
     stroke-width:0.0625rem;
   }
-  input-num::part(input) {    /* last so apps/number-app.js can find it easily */
-    border:       none;       /* handled by <input-num> parent */
-    outline-style:none;       /* initial padding-right is baseline for javascript: */
-    padding: 0 0.0625rem 0.0625rem 0.125rem;
-    background-color:white; /* same as default, afaik */
-  }
   input-num:disabled::part(input) {
     color: var(--medium-gray);
   }
-  @media (hover:none) {
-    input-num::part(buttons) { display:none }
+  input-num::part(input),
+  input-num::part(input):disabled {
+    border:       none;       /* handled by <input-num> parent */
+    outline-style:none;       /* initial padding-right is baseline for javascript: */
+    padding: 0 0.125rem 0.0625rem 0.125rem;
+    color: inherit;
+    background-color:transparent; /* same as default, afaik */
   }

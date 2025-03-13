@@ -8,31 +8,43 @@
     <link rel="stylesheet" href="../common.css"/>
     <link rel="stylesheet" href="index.css"/>
     <script type="module">
-      import "../../input-num.js?templateDir=/html-templates/";
+      import "../../input-num.js?directory=/html-templates/";
     </script>
     <script type="module">
-      import "../../multi-check.js?templateDir=/html-templates/";
+      import "../../check-box.js?path=/html-templates/multi-check.html";
     </script>
     <script src="index.js" type="module"></script>
   </head>
-  <body class="col"  style="align-items:center; background-color:#F9F9F9;">
-    <input-num id="number"></input-num>
-    <div class="col" style="align-items:flex-start;">
-      <div class="row mt1-2 mb3-16">
-        <label for="autoWidth" style="margin-right:0.75rem">Auto:</label>
-        <check-box id="autoWidth"  label="Width" checked disabled
-                   title="Auto-size width, disabled by infinite max or min value">
-        </check-box>
-        <check-box id="autoAlign"  label="Align" checked
-                   title="Auto-align left or right, and auto-pad-right">
+  <body class="col">
+    <div class="col" id="controls">
+      <input-num id="number" class="center" value="1234567890"></input-num> <!-- defaults to infinite min-max range -->
+      <div class="row mt1-2 mb3-8">
+        <label for="autoResize" style="margin-right:0.5rem">auto:</label>
+        <check-box id="autoResize"  label="Resize" checked
+                   title="Auto-resize upon any relevant property change">
         </check-box>
         <check-box id="autoScale"  label="Scale" checked
                    title="Auto-scale the buttons to fit the element size">
         </check-box>
+        <check-box id="autoAlign"  label="Align" checked
+                   title="Auto-align-right, auto-pad-right">
+        </check-box>
       </div>
       <div class="row">
-        <label for="max">Max:&nbsp;&nbsp;&nbsp;</label>
+        <label for="max">Max:</label>
         <select id="max" class="attr"></select>
+        <label for="width" style="margin-left:1rem">Width:</label>
+        <select id="width" class="attr">
+          <option>auto</option>
+          <option>none</option>
+          <option>200px</option>
+          <option>10rem</option>
+          <option>12rch</option>
+        </select>
+      </div>
+      <div class="row">
+        <label for="min">Min:</label>
+        <select id="min"></select>
         <p class="info warning italic"></p>
       </div>
       <div class="row">
@@ -74,7 +86,7 @@
         </check-box>
       </div>
       <div class="row">
-        <label for="step">Step:&nbsp;&nbsp;&nbsp;&nbsp;</label>
+        <label for="step">Step:&nbsp;</label>
         <select id="step">
           <option value="">auto</option>
           <option>1000</option>
@@ -86,10 +98,10 @@
           <option   >1</option>
           <option   >0.5</option>
         </select>
-        <p class="info" style="font-family:Roboto Mono"></p>
+        <p class="info" style="font-family:Roboto Mono; margin-left:0.3125rem;"></p>
       </div>
       <div class="row">
-        <label for="delay">Delay:&nbsp;&nbsp;&nbsp;</label>
+        <label for="delay">Delay:&nbsp;&nbsp;</label>
         <select id="delay"></select>
       </div>
       <div class="row">
@@ -117,14 +129,20 @@
           <option value="500">500ms</option>
         </select>
       </div>
-      <div class="row mt1-2 mb3-16">
-        <check-box id="blurCancel" label="onblur() &nbsp;= cancel input"
-                title="Cancel instead of confirming when tabbing out of the element or clicking elsewhere on the page.">
+      <div class="row mb3-16 mt1-2">
+        <check-box id="showButtons" label="showButtons"
+                title="Always display the spinner and/or confirm buttons. Designed for units = none.">
+        </check-box>
+        <check-box id="anyDecimal" label="anyDecimal"
+                title="Allows the user to input either comma ',' or period '.' as the decimal marker">
         </check-box>
       </div>
       <div class="row mb3-16">
-        <check-box id="anyDecimal" label="anyDecimal: comma or period"
-                title='Allows the user to input either comma "," or period "." as the decimal marker'>
+        <check-box id="trimRight" label="trimRight  "
+                title="When units.width < buttons.width, trims and pads the element width.">
+        </check-box>
+        <check-box id="blurCancel" label="blurCancel"
+                title="Cancel instead of confirming when tabbing out of the element or clicking elsewhere on the page.">
         </check-box>
       </div>
       <!-------------->
@@ -134,7 +152,7 @@
       </div>
       <div class="row">
         <label for="fontSize">size:</label>
-        <select id="fontSize" style="margin-right:0.5rem">
+        <select id="fontSize" style="margin-right:0.875rem">
           <option>8px</option>
           <option>12px</option>
           <option selected>16px</option>
@@ -146,7 +164,7 @@
           <option>32px</option>
           <option>48px</option>
         </select>
-        <check-box id="fontWeight" label="bold"
+        <check-box id="fontWeight" label="bold" style="margin-right:0.875rem"
                 title="Affects units width with variable width-fonts">
         </check-box>
         <check-box id="fontStyle"  label="italic"

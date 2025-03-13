@@ -3,6 +3,7 @@
   --accent-blue:  #03B;
   --charcoal:     #272727;
   --medium-gray:  #777;
+  --skewX: skewX(-3deg) translateX(1px);
 }
 check-box, check-tri {
   display:flex;
@@ -12,43 +13,74 @@ check-box, check-tri {
   fill-opacity:0;
   fill:  white;
   stroke:var(--charcoal);
-  color: var(--charcoal); /* color is for ::part(label) */
+  color: var(--charcoal);  /* color is for ::part(label) */
+  outline-color:var(--charcoal);
+  outline-width:0.0625rem; /* has no effect :( */
+  outline-offset:0.25rem;
 }
-check-box:disabled, check-box:disabled:checked,
-check-tri:disabled, check-tri:disabled:checked  {
+check-box[checked],
+check-tri[checked]  {
+  fill-opacity:1;
+  stroke:black;
+  color: black;
+}
+check-box:disabled, check-box:disabled[checked],
+check-tri:disabled, check-tri:disabled[checked]  {
   fill-opacity:0.25;
   stroke:var(--medium-gray);
   color: var(--medium-gray);
 }
-check-box:checked::part(check),
-check-tri[value]::part(check) {
+check-box::part(shapes),  /* the <svg> element */
+check-tri::part(shapes) {
+  width: 1.125rem;
+  height:0.9375rem;
+}
+check-box::part(check) {
+  fill-opacity:0;
+}
+check-box[checked]::part(check),
+check-tri[value]::part(check)
+{
   fill-opacity:1;
 }
 check-box:hover::part(check),
 check-tri:hover::part(check),
-check-box:checked:hover::part(check) {
+check-box[checked]:hover::part(check) {
   fill-opacity:0.05;
-  fill:  var(--accent-blue);
-  stroke:var(--medium-blue);
+  fill:  black;
+  stroke:black;
 }
 check-box:active::part(check),
 check-tri:active::part(check),
 check-tri:not([value])::part(default) {
   fill-opacity:1;
   fill:white;
-  stroke:var(--medium-blue);
-  color: var(--medium-blue);
+  stroke-width:1.25px;
 }
-check-tri[value]::part(default) {
-  fill-opacity:0.05;
-  fill:  var(--medium-gray);
-  stroke:var(--medium-gray);
+check-box[checked]:active::part(check),
+check-tri[checked]:active::part(check) {
+  stroke:var(--charcoal);
+  stroke-width:1px;
+  fill:white;
 }
+
 check-box::part(box),     /* fill, stroke handled by outer element */
 check-tri::part(box),
 check-tri::part(default-box) {
   stroke-width:1px;       /* for illustration only: it's the default value */
 }
+check-box:active::part(box),
+check-tri:active::part(box) {
+  rx:0px;
+  ry:0px;
+}
+check-box[checked]:active::part(box),
+check-tri[checked]:active::part(box) {
+  rx:0;
+  ry:0;
+  stroke:var(--charcoal);
+}
+
 check-box::part(mark),
 check-tri::part(mark),
 check-tri::part(default-mark) {
@@ -56,6 +88,16 @@ check-tri::part(default-mark) {
   stroke-width:2px;
   stroke-linecap :round;
   stroke-linejoin:round;
+}
+check-box:hover::part(mark),
+check-tri:hover::part(mark),
+check-tri:hover::part(default-mark) {
+  stroke:black;
+}
+check-box:active::part(mark),
+check-tri:active::part(mark),
+check-tri:active::part(default-mark) {
+  stroke:#444;
 }
 check-box::part(label),   /* color handled by outer element */
 check-tri::part(label) {
@@ -66,4 +108,17 @@ check-tri::part(label) {
   -webkit-user-select:none;
   -moz-user-select:none;
   -ms-user-select:none;
+}
+check-box:active::part(label),
+check-tri:active::part(label) {
+  color:black;
+}
+check-box[checked]:active::part(label),
+check-tri[checked]:active::part(label) {
+  color:var(--charcoal);
+}
+check-tri[value]::part(default) {
+  fill-opacity:0.05;
+  fill:  var(--medium-gray);
+  stroke:var(--medium-gray);
 }

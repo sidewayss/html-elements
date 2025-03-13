@@ -1,8 +1,9 @@
-// This module exists to assist Rollup in bundling dist/html-elements.js
+// This module exists to assist Rollup in bundling dist/elements.js
 // If you want to use imports.meta then you cannot directly import this module
-// It must be a bundle to support the import options: template and templateDir
-export {BaseElement} from "./base-element.js"; // BaseElement.promises and noAwait...
+// It must be a bundle to support the import options: path, directory, file
+export {BaseElement} from "./base-element.js"; // for BaseElement.promises
 
-export * from "./multi-check.js"; // CheckBox, CheckTri
-export * from "./state-btn.js";   // StateBtn
-export * from "./input-num.js";   // InputNum
+export * from "./input-num.js";
+export * from "./state-btn.js";
+export * from "./check-box.js";
+export * from "./check-tri.js";
